@@ -1,0 +1,152 @@
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    MetaData,
+    Numeric,
+    String,
+    Table,
+    Text,
+)
+
+metadata = MetaData()
+
+civilizations = Table(
+    "civilizations",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("slug", String(255), nullable=False, unique=True),
+    Column("name", String(255), nullable=False),
+    Column("type", String(64), nullable=False),
+    Column("start_year", Integer, nullable=False),
+    Column("end_year", Integer, nullable=False),
+    Column("description", Text, nullable=False),
+    Column("display_color", String(64), nullable=False),
+    Column("confidence_level", String(64), nullable=False),
+    Column("review_status", String(64), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+civilization_layers = Table(
+    "civilization_layers",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("civilization_id", ForeignKey("civilizations.id"), nullable=False),
+    Column("name", String(255), nullable=False),
+    Column("layer_type", String(64), nullable=False),
+    Column("valid_from_year", Integer, nullable=False),
+    Column("valid_to_year", Integer, nullable=False),
+    Column("geometry_json", JSON, nullable=True),
+    Column("geometry_placeholder", Text, nullable=True),
+    Column("confidence_level", String(64), nullable=False),
+    Column("review_status", String(64), nullable=False),
+    Column("source_note", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+places = Table(
+    "places",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("slug", String(255), nullable=False, unique=True),
+    Column("canonical_name", String(255), nullable=False),
+    Column("modern_name", String(255), nullable=True),
+    Column("latitude", String(32), nullable=False),
+    Column("longitude", String(32), nullable=False),
+    Column("start_year", Integer, nullable=False),
+    Column("end_year", Integer, nullable=False),
+    Column("place_type", String(64), nullable=False),
+    Column("confidence_level", String(64), nullable=False),
+    Column("review_status", String(64), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+civilization_places = Table(
+    "civilization_places",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("civilization_id", ForeignKey("civilizations.id"), nullable=False),
+    Column("place_id", ForeignKey("places.id"), nullable=False),
+    Column("valid_from_year", Integer, nullable=False),
+    Column("valid_to_year", Integer, nullable=False),
+    Column("role", String(64), nullable=False),
+    Column("importance_score", Numeric(4, 2), nullable=False),
+    Column("confidence_level", String(64), nullable=False),
+    Column("review_status", String(64), nullable=False),
+)
+
+civilization_edges = Table(
+    "civilization_edges",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("civilization_id", ForeignKey("civilizations.id"), nullable=False),
+    Column("source_place_id", ForeignKey("places.id"), nullable=False),
+    Column("target_place_id", ForeignKey("places.id"), nullable=False),
+    Column("valid_from_year", Integer, nullable=False),
+    Column("valid_to_year", Integer, nullable=False),
+    Column("edge_type", String(64), nullable=False),
+    Column("estimated_travel_days_min", Integer, nullable=True),
+    Column("estimated_travel_days_max", Integer, nullable=True),
+    Column("confidence_level", String(64), nullable=False),
+    Column("review_status", String(64), nullable=False),
+    Column("source_note", Text, nullable=False),
+    Column(
+        "path_geojson",
+        JSON,
+        nullable=True,
+        comment="Optional MVP route polyline as GeoJSON until PostGIS line geometry is enabled.",
+    ),
+)
+
+sources = Table(
+    "sources",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("source_name", String(255), nullable=False),
+    Column("source_type", String(64), nullable=False),
+    Column("external_id", String(255), nullable=True),
+    Column("url", Text, nullable=True),
+    Column("citation", Text, nullable=False),
+    Column("license", String(64), nullable=False),
+    Column("reliability_tier", String(64), nullable=False),
+    Column("retrieved_at", DateTime(timezone=True), nullable=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+evidence_links = Table(
+    "evidence_links",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("source_id", ForeignKey("sources.id"), nullable=False),
+    Column("entity_type", String(64), nullable=False),
+    Column("entity_id", String(64), nullable=False),
+    Column("claim_type", String(64), nullable=False),
+    Column("confidence_level", String(64), nullable=False),
+    Column("quote_or_note", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+historical_claims = Table(
+    "historical_claims",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("claim_type", String(64), nullable=False),
+    Column("subject_id", String(64), nullable=False),
+    Column("subject_kind", String(64), nullable=False),
+    Column("object_id", String(64), nullable=True),
+    Column("object_kind", String(64), nullable=True),
+    Column("valid_from_year", Integer, nullable=True),
+    Column("valid_to_year", Integer, nullable=True),
+    Column("confidence_level", String(64), nullable=False),
+    Column("review_status", String(64), nullable=False),
+    Column("notes", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
