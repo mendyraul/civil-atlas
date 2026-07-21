@@ -1,0 +1,35 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+@import "tailwindcss";
+
+:root {
+  --background: #f7efe1;
+  --foreground: #13263c;
+  --panel: rgba(255, 249, 240, 0.88);
+  --accent: #b85c2c;
+  --muted: #6b5d48;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(212, 166, 58, 0.24), transparent 28%),
+    radial-gradient(circle at top right, rgba(53, 114, 102, 0.2), transparent 25%),
+    linear-gradient(180deg, #f7f1e7 0%, #eadbc7 100%);
+}
+
+body {
+  color: var(--foreground);
+  background: transparent;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+.atlas-panel {
+  border: 1px solid rgba(19, 38, 60, 0.12);
+  background: var(--panel);
+  box-shadow: 0 20px 50px rgba(66, 48, 18, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.maplibregl-ctrl-group {
+  border-radius: 18px;
+  overflow: hidden;
+}
