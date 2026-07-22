@@ -10,41 +10,42 @@ const navItems = [
 
 export function SiteShell({
   children,
-  title,
-  subtitle,
 }: Readonly<{
   children: React.ReactNode;
   title: string;
   subtitle: string;
 }>) {
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <header className="mb-5 rounded-[28px] border border-slate-300/70 bg-[rgba(255,250,242,0.82)] px-5 py-5 shadow-[0_24px_60px_rgba(61,45,18,0.08)] backdrop-blur">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="max-w-4xl">
-            <p className="mb-2 text-xs uppercase tracking-[0.22em] text-[--muted]">
-              Civil Atlas Operations Deck
-            </p>
-            <h1 className="font-serif text-4xl leading-none tracking-[-0.05em] md:text-6xl">
-              {title}
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-700 md:text-base">
-              {subtitle}
-            </p>
+    <div className="min-h-screen px-4 py-4 md:px-6 md:py-5">
+      <header className="mb-5 rounded-[28px] border border-white/10 bg-black/20 px-5 py-4 shadow-[0_30px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 text-sm font-semibold tracking-[0.18em] text-cyan-200">
+              CA
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-[0.22em] text-slate-500">Historical operations dashboard</div>
+              <div className="mt-1 text-lg font-semibold text-white">Civil Atlas</div>
+            </div>
           </div>
-          <a
-            className="inline-flex items-center rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-950"
-            href={`${API_BASE_URL}/docs`}
-            rel="noreferrer"
-            target="_blank"
-          >
-            API docs
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-300/40 hover:text-white"
+              href={`${API_BASE_URL}/docs`}
+              rel="noreferrer"
+              target="_blank"
+            >
+              API docs
+            </a>
+            <span className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">
+              Approximate boundaries labeled
+            </span>
+          </div>
         </div>
-        <nav className="mt-5 flex flex-wrap gap-2">
+        <nav className="mt-4 flex flex-wrap gap-2">
           {navItems.map((item) => (
             <Link
-              className="rounded-full border border-slate-300 bg-white/80 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-500 hover:text-slate-950"
+              className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-300 transition hover:border-cyan-300/40 hover:text-white"
               href={item.href}
               key={item.href}
             >

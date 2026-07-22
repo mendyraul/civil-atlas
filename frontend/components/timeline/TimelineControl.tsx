@@ -9,14 +9,30 @@ const PRESETS = [-500, 0, 117, 700, 1500];
 
 export function TimelineControl({ year, onYearChange }: TimelineControlProps) {
   return (
-    <div className="atlas-panel rounded-[24px] p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Timeline</h2>
-        <span className="text-sm text-[--muted]">{formatYear(year)}</span>
+    <section className="atlas-panel rounded-[30px] px-5 py-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="atlas-kicker">Timeline / playback</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{formatYear(year)}</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Timeline defaults to 117 CE and drives active civilizations across the atlas.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200"
+            type="button"
+          >
+            Play
+          </button>
+          <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">
+            Placeholder playback
+          </div>
+        </div>
       </div>
       <input
         aria-label="Year"
-        className="mt-4 w-full accent-[var(--accent)]"
+        className="atlas-range mt-5 w-full"
         max={YEAR_MAX}
         min={YEAR_MIN}
         onChange={(event) => onYearChange(Number(event.target.value))}
@@ -24,7 +40,7 @@ export function TimelineControl({ year, onYearChange }: TimelineControlProps) {
         type="range"
         value={year}
       />
-      <div className="mt-2 flex justify-between text-xs text-[--muted]">
+      <div className="mt-2 flex justify-between text-xs text-slate-500">
         <span>600 BCE</span>
         <span>117 CE</span>
         <span>1800 CE</span>
@@ -34,8 +50,8 @@ export function TimelineControl({ year, onYearChange }: TimelineControlProps) {
           <button
             className={`rounded-full border px-3 py-2 text-sm transition ${
               preset === year
-                ? 'border-slate-900 bg-slate-900 text-amber-50'
-                : 'border-slate-300 bg-white/80'
+                ? 'border-cyan-300/60 bg-cyan-400/14 text-white'
+                : 'border-white/10 bg-white/6 text-slate-300 hover:border-white/16 hover:text-white'
             }`}
             key={preset}
             onClick={() => onYearChange(preset)}
@@ -45,6 +61,6 @@ export function TimelineControl({ year, onYearChange }: TimelineControlProps) {
           </button>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
