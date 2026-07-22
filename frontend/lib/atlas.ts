@@ -48,6 +48,10 @@ export function evidenceTone(confidence: Confidence) {
   }
 }
 
+export function confidenceLabel(confidence: Confidence) {
+  return confidence.replace('_', ' ');
+}
+
 export function reviewTone(reviewStatus: ReviewStatus) {
   switch (reviewStatus) {
     case 'reviewed':
@@ -59,6 +63,10 @@ export function reviewTone(reviewStatus: ReviewStatus) {
     case 'needs_review':
       return 'bg-violet-100 text-violet-800';
   }
+}
+
+export function reviewLabel(reviewStatus: ReviewStatus) {
+  return reviewStatus.replace('_', ' ');
 }
 
 export function getFeatureById(world: WorldPayload, id?: string) {

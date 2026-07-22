@@ -5,13 +5,18 @@ import maplibregl, { GeoJSONSource, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import type { AtlasNode, AtlasRoute, Civilization } from '../../types/atlas';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 type AtlasMapProps = {
   civilizations: Civilization[];
+  evidenceIds: string[];
   nodes: AtlasNode[];
   routes: AtlasRoute[];
   selectedId?: string;
+  showEvidence: boolean;
+  showExtents: boolean;
+  showNodes: boolean;
+  showRoutes: boolean;
   onCivilizationSelect: (id: string) => void;
   onNodeSelect: (id: string) => void;
   onRouteSelect: (id: string) => void;
@@ -77,9 +82,14 @@ function routeFeatureCollection(items: AtlasRoute[]) {
 
 export function AtlasMap({
   civilizations,
+  evidenceIds,
   nodes,
   routes,
   selectedId,
+  showEvidence,
+  showExtents,
+  showNodes,
+  showRoutes,
   onCivilizationSelect,
   onNodeSelect,
   onRouteSelect,
@@ -119,7 +129,7 @@ export function AtlasMap({
         type: 'line',
         source: 'routes',
         paint: {
-          'line-color': '#123f73',
+          'line-color': '#4bc6d6',
           'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1, 4, 2, 7, 3],
           'line-opacity': 0.72,
           'line-dasharray': [2, 1.4],
@@ -132,7 +142,7 @@ export function AtlasMap({
         source: 'civilizations',
         paint: {
           'fill-color': ['get', 'color'],
-          'fill-opacity': 0.28,
+          'fill-opacity': 0.34,
         },
       });
 
@@ -154,8 +164,8 @@ export function AtlasMap({
         minzoom: NODE_VISIBILITY_ZOOM,
         paint: {
           'circle-radius': ['interpolate', ['linear'], ['zoom'], NODE_VISIBILITY_ZOOM, 4, 7, 8],
-          'circle-color': '#13263c',
-          'circle-stroke-color': '#fff6e8',
+          'circle-color': '#d8f4ff',
+          'circle-stroke-color': '#08131f',
           'circle-stroke-width': 1.5,
         },
       });
@@ -172,9 +182,26 @@ export function AtlasMap({
           'text-offset': [0, 1.2],
         },
         paint: {
-          'text-color': '#13263c',
-          'text-halo-color': '#fff8ec',
+          'text-color': '#f3f8ff',
+          'text-halo-color': '#09131f',
           'text-halo-width': 1.1,
+        },
+      });
+
+      map.addSource('selected-evidence', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.addLayer({
+        id: 'selected-evidence-glow',
+        type: 'circle',
+        source: 'selected-evidence',
+        minzoom: NODE_VISIBILITY_ZOOM,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], NODE_VISIBILITY_ZOOM, 8, 7, 15],
+          'circle-color': '#f6c762',
+          'circle-opacity': 0.16,
         },
       });
 
@@ -234,6 +261,53 @@ export function AtlasMap({
       1.2,
     ]);
   }, [selectedId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    map.setLayoutProperty('civilizations-fill', 'visibility', showExtents ? 'visible' : 'none');
+    map.setLayoutProperty('civilizations-line', 'visibility', showExtents ? 'visible' : 'none');
+  }, [showExtents]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    map.setLayoutProperty('nodes-circle', 'visibility', showNodes ? 'visible' : 'none');
+    map.setLayoutProperty('nodes-label', 'visibility', showNodes ? 'visible' : 'none');
+  }, [showNodes]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    map.setLayoutProperty('routes-line', 'visibility', showRoutes ? 'visible' : 'none');
+  }, [showRoutes]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    const selectedNodeIds = new Set<string>();
+    nodes.forEach((node) => {
+      if (evidenceIds.some((id) => node.evidence.some((record) => record.id === id))) {
+        selectedNodeIds.add(node.id);
+      }
+    });
+
+    (map.getSource('selected-evidence') as GeoJSONSource | undefined)?.setData({
+      type: 'FeatureCollection',
+      features: nodes
+        .filter((node) => selectedNodeIds.has(node.id))
+        .map((node) => ({
+          type: 'Feature' as const,
+          properties: { id: node.id },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: node.coordinates,
+          },
+        })),
+    });
+
+    map.setLayoutProperty('selected-evidence-glow', 'visibility', showEvidence ? 'visible' : 'none');
+  }, [evidenceIds, nodes, showEvidence]);
 
   return <div className="h-[68vh] min-h-[560px] w-full" ref={containerRef} />;
 }
