@@ -1,10 +1,11 @@
 import { StatusBadge } from '../badges/StatusBadge';
 import { ActiveCivilizationsPanel } from './ActiveCivilizationsPanel';
+import { AtlasFilters, type LayerTypeOption } from './AtlasFilters';
 import { LayerControls } from './LayerControls';
 import { DetailPanel } from './DetailPanel';
 import { TimelineControl } from '../timeline/TimelineControl';
 import { featureBadgeTone, formatYear } from '../../lib/atlas';
-import type { AtlasFeature, WorldPayload } from '../../types/atlas';
+import type { AtlasFeature, Confidence, ReviewStatus, WorldPayload } from '../../types/atlas';
 
 type LayerVisibility = {
   extents: boolean;
@@ -17,13 +18,26 @@ type AtlasPageProps = {
   year: number;
   zoom: number;
   backendStatus: 'seed' | 'live';
+  confidenceCounts: Record<Confidence, number>;
+  detailWorld: WorldPayload;
+  filterCount: number;
+  isSelectedFeatureFilteredOut: boolean;
+  layerTypeOptions: LayerTypeOption[];
+  reviewCounts: Record<ReviewStatus, number>;
   selectedId?: string;
+  selectedConfidence: Confidence[];
   selectedFeature?: AtlasFeature;
+  selectedLayerTypes: string[];
+  selectedReviewStatus: ReviewStatus[];
   world: WorldPayload;
   layers: LayerVisibility;
   map: React.ReactNode;
+  onConfidenceToggle: (confidence: Confidence) => void;
   onYearChange: (year: number) => void;
   onCivilizationSelect: (id: string) => void;
+  onLayerTypeToggle: (value: string) => void;
+  onResetFilters: () => void;
+  onReviewStatusToggle: (status: ReviewStatus) => void;
   onToggleLayer: (layer: keyof LayerVisibility) => void;
 };
 
@@ -31,13 +45,26 @@ export function AtlasPage({
   year,
   zoom,
   backendStatus,
+  confidenceCounts,
+  detailWorld,
+  filterCount,
+  isSelectedFeatureFilteredOut,
+  layerTypeOptions,
+  reviewCounts,
   selectedId,
+  selectedConfidence,
   selectedFeature,
+  selectedLayerTypes,
+  selectedReviewStatus,
   world,
   layers,
   map,
+  onConfidenceToggle,
   onYearChange,
   onCivilizationSelect,
+  onLayerTypeToggle,
+  onResetFilters,
+  onReviewStatusToggle,
   onToggleLayer,
 }: AtlasPageProps) {
   const sourceCount = world.civilizations.reduce((total, civilization) => total + civilization.evidence.length, 0);
@@ -111,6 +138,18 @@ export function AtlasPage({
             onToggle={onToggleLayer}
             values={layers}
           />
+          <AtlasFilters
+            confidenceCounts={confidenceCounts}
+            layerTypeOptions={layerTypeOptions}
+            onConfidenceToggle={onConfidenceToggle}
+            onLayerTypeToggle={onLayerTypeToggle}
+            onReset={onResetFilters}
+            onReviewStatusToggle={onReviewStatusToggle}
+            reviewCounts={reviewCounts}
+            selectedConfidence={selectedConfidence}
+            selectedLayerTypes={selectedLayerTypes}
+            selectedReviewStatus={selectedReviewStatus}
+          />
         </section>
 
         <section className="atlas-map-shell overflow-hidden rounded-[30px]">
@@ -138,7 +177,11 @@ export function AtlasPage({
           <div className="relative">{map}</div>
         </section>
 
-        <DetailPanel feature={selectedFeature} world={world} />
+        <DetailPanel
+          feature={selectedFeature}
+          isFilteredOut={filterCount > 0 && isSelectedFeatureFilteredOut}
+          world={detailWorld}
+        />
       </main>
 
       <TimelineControl year={year} onYearChange={onYearChange} />

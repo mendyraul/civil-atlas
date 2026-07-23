@@ -9,7 +9,7 @@ import {
   filterWorldByYear,
   getFeatureById,
 } from '../../lib/atlas';
-import type { WorldPayload } from '../../types/atlas';
+import type { AtlasFeature, Confidence, ReviewStatus, WorldPayload } from '../../types/atlas';
 import { AtlasPage } from './AtlasPage';
 import { SiteShell } from './SiteShell';
 
@@ -25,6 +25,40 @@ type LayerVisibility = {
   sources: boolean;
 };
 
+type FilterState = {
+  confidence: Confidence[];
+  layerTypes: string[];
+  reviewStatus: ReviewStatus[];
+};
+
+const emptyFilterState: FilterState = {
+  confidence: [],
+  layerTypes: [],
+  reviewStatus: [],
+};
+
+function toggleValue<T extends string>(values: T[], value: T) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+function layerTypeValue(feature: AtlasFeature) {
+  if (feature.kind === 'civilization') {
+    return `civilization:${feature.civilizationType}`;
+  }
+  if (feature.kind === 'node') {
+    return `node:${feature.role}`;
+  }
+  return `route:${feature.routeKind}`;
+}
+
+function layerTypeLabel(value: string) {
+  const [group, raw] = value.split(':');
+  const label = raw.replace(/_/g, ' ');
+  if (group === 'civilization') return `Polity: ${label}`;
+  if (group === 'node') return `Place: ${label}`;
+  return `Route: ${label}`;
+}
+
 export function AtlasClient() {
   const [baseWorld, setBaseWorld] = useState<WorldPayload>(world117);
   const [year, setYear] = useState(DEFAULT_YEAR);
@@ -37,6 +71,7 @@ export function AtlasClient() {
     routes: true,
     sources: true,
   });
+  const [filters, setFilters] = useState<FilterState>(emptyFilterState);
 
   useEffect(() => {
     if (!HAS_REMOTE_API) {
@@ -70,19 +105,104 @@ export function AtlasClient() {
   }, []);
 
   const activeWorld = useMemo(() => filterWorldByYear(baseWorld, year), [baseWorld, year]);
+  const featuresByLayerType = useMemo(() => {
+    const allFeatures: AtlasFeature[] = [
+      ...activeWorld.civilizations,
+      ...activeWorld.nodes,
+      ...activeWorld.routes,
+    ];
+    return allFeatures.reduce<Map<string, number>>((counts, feature) => {
+      const key = layerTypeValue(feature);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      return counts;
+    }, new Map());
+  }, [activeWorld]);
+  const layerTypeOptions = useMemo(
+    () =>
+      Array.from(featuresByLayerType.entries())
+        .map(([value, count]) => ({
+          count,
+          group: value.split(':', 1)[0] as 'civilization' | 'node' | 'route',
+          label: layerTypeLabel(value),
+          value,
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label)),
+    [featuresByLayerType],
+  );
+  const reviewCounts = useMemo(
+    () =>
+      ({
+        placeholder: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.reviewStatus === 'placeholder',
+        ).length,
+        seeded: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.reviewStatus === 'seeded',
+        ).length,
+        needs_review: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.reviewStatus === 'needs_review',
+        ).length,
+        reviewed: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.reviewStatus === 'reviewed',
+        ).length,
+      }) satisfies Record<ReviewStatus, number>,
+    [activeWorld],
+  );
+  const confidenceCounts = useMemo(
+    () =>
+      ({
+        low: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.confidence === 'low',
+        ).length,
+        medium: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.confidence === 'medium',
+        ).length,
+        medium_high: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.confidence === 'medium_high',
+        ).length,
+        high: [...activeWorld.civilizations, ...activeWorld.nodes, ...activeWorld.routes].filter(
+          (feature) => feature.confidence === 'high',
+        ).length,
+      }) satisfies Record<Confidence, number>,
+    [activeWorld],
+  );
+  const filteredWorld = useMemo(() => {
+    const matchesFeature = (feature: AtlasFeature) => {
+      if (filters.layerTypes.length > 0 && !filters.layerTypes.includes(layerTypeValue(feature))) {
+        return false;
+      }
+      if (filters.reviewStatus.length > 0 && !filters.reviewStatus.includes(feature.reviewStatus)) {
+        return false;
+      }
+      if (filters.confidence.length > 0 && !filters.confidence.includes(feature.confidence)) {
+        return false;
+      }
+      return true;
+    };
+
+    return {
+      ...activeWorld,
+      civilizations: activeWorld.civilizations.filter(matchesFeature),
+      nodes: activeWorld.nodes.filter(matchesFeature),
+      routes: activeWorld.routes.filter(matchesFeature),
+    };
+  }, [activeWorld, filters.confidence, filters.layerTypes, filters.reviewStatus]);
   const visibleWorld = useMemo(
     () => ({
-      ...activeWorld,
-      civilizations: layers.extents ? activeWorld.civilizations : [],
-      nodes: layers.nodes ? activeWorld.nodes : [],
-      routes: layers.routes ? activeWorld.routes : [],
+      ...filteredWorld,
+      civilizations: layers.extents ? filteredWorld.civilizations : [],
+      nodes: layers.nodes ? filteredWorld.nodes : [],
+      routes: layers.routes ? filteredWorld.routes : [],
     }),
-    [activeWorld, layers.extents, layers.nodes, layers.routes],
+    [filteredWorld, layers.extents, layers.nodes, layers.routes],
   );
   const selectedFeature = useMemo(
     () => getFeatureById(activeWorld, selectedId) ?? getFeatureById(baseWorld, selectedId),
     [activeWorld, baseWorld, selectedId],
   );
+  const isSelectedFeatureFilteredOut = useMemo(() => {
+    if (!selectedFeature) return false;
+    return getFeatureById(visibleWorld, selectedFeature.id) === undefined;
+  }, [selectedFeature, visibleWorld]);
   const highlightedIds = useMemo(
     () =>
       layers.sources
@@ -90,9 +210,29 @@ export function AtlasClient() {
         : [],
     [layers.sources, selectedFeature],
   );
+  const filterCount =
+    filters.layerTypes.length + filters.reviewStatus.length + filters.confidence.length;
 
   function toggleLayer(layer: keyof LayerVisibility) {
     setLayers((current) => ({ ...current, [layer]: !current[layer] }));
+  }
+
+  function toggleLayerType(value: string) {
+    setFilters((current) => ({ ...current, layerTypes: toggleValue(current.layerTypes, value) }));
+  }
+
+  function toggleReviewStatus(value: ReviewStatus) {
+    setFilters((current) => ({
+      ...current,
+      reviewStatus: toggleValue(current.reviewStatus, value),
+    }));
+  }
+
+  function toggleConfidence(value: Confidence) {
+    setFilters((current) => ({
+      ...current,
+      confidence: toggleValue(current.confidence, value),
+    }));
   }
 
   return (
@@ -102,6 +242,11 @@ export function AtlasClient() {
     >
       <AtlasPage
         backendStatus={backendStatus}
+        confidenceCounts={confidenceCounts}
+        detailWorld={activeWorld}
+        filterCount={filterCount}
+        isSelectedFeatureFilteredOut={isSelectedFeatureFilteredOut}
+        layerTypeOptions={layerTypeOptions}
         layers={layers}
         map={
           <Suspense
@@ -129,11 +274,19 @@ export function AtlasClient() {
           </Suspense>
         }
         onCivilizationSelect={setSelectedId}
+        onConfidenceToggle={toggleConfidence}
+        onLayerTypeToggle={toggleLayerType}
+        onResetFilters={() => setFilters(emptyFilterState)}
+        onReviewStatusToggle={toggleReviewStatus}
         onToggleLayer={toggleLayer}
         onYearChange={setYear}
+        reviewCounts={reviewCounts}
+        selectedConfidence={filters.confidence}
         selectedFeature={selectedFeature}
         selectedId={selectedId}
-        world={activeWorld}
+        selectedLayerTypes={filters.layerTypes}
+        selectedReviewStatus={filters.reviewStatus}
+        world={filteredWorld}
         year={year}
         zoom={zoom}
       />

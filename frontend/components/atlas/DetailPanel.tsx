@@ -4,6 +4,7 @@ import type { AtlasFeature, AtlasNode, AtlasRoute, Civilization, WorldPayload } 
 
 type DetailPanelProps = {
   feature?: AtlasFeature;
+  isFilteredOut?: boolean;
   world: WorldPayload;
 };
 
@@ -56,7 +57,7 @@ function metaRows(feature: AtlasFeature, world: WorldPayload) {
   ];
 }
 
-export function DetailPanel({ feature, world }: DetailPanelProps) {
+export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPanelProps) {
   if (!feature) {
     return (
       <aside className="atlas-panel flex h-full flex-col rounded-[28px] p-5">
@@ -100,6 +101,9 @@ export function DetailPanel({ feature, world }: DetailPanelProps) {
           {confidenceLabel(feature.confidence)}
         </span>
         <StatusBadge label={reviewLabel(feature.reviewStatus)} tone={reviewTone(feature.reviewStatus)} />
+        {isFilteredOut ? (
+          <StatusBadge label="Filtered from map" tone="bg-slate-700 text-slate-100" />
+        ) : null}
       </div>
 
       <p className="mt-5 text-sm leading-7 text-slate-200">{description}</p>
