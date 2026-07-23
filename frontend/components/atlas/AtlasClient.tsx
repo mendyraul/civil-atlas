@@ -2,7 +2,13 @@
 
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { world117 } from '../../data/world117';
-import { API_BASE_URL, DEFAULT_YEAR, filterWorldByYear, getFeatureById } from '../../lib/atlas';
+import {
+  API_BASE_URL,
+  DEFAULT_YEAR,
+  HAS_REMOTE_API,
+  filterWorldByYear,
+  getFeatureById,
+} from '../../lib/atlas';
 import type { WorldPayload } from '../../types/atlas';
 import { AtlasPage } from './AtlasPage';
 import { SiteShell } from './SiteShell';
@@ -33,6 +39,10 @@ export function AtlasClient() {
   });
 
   useEffect(() => {
+    if (!HAS_REMOTE_API) {
+      return;
+    }
+
     let cancelled = false;
 
     async function loadWorld() {

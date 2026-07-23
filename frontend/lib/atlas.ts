@@ -11,8 +11,19 @@ export const DEFAULT_YEAR = 117;
 export const YEAR_MIN = -600;
 export const YEAR_MAX = 1800;
 export const NODE_VISIBILITY_ZOOM = 3.4;
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const developmentFallbackApiBaseUrl =
+  process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '';
+
+export const API_BASE_URL = (configuredApiBaseUrl || developmentFallbackApiBaseUrl).replace(
+  /\/$/,
+  '',
+);
+export const HAS_REMOTE_API = API_BASE_URL.length > 0;
+
+function buildApiUrl(path: string) {
+  return `${API_BASE_URL}${path}`;
+}
 
 export function isActiveAtYear(
   feature: Pick<AtlasFeature, 'startYear' | 'endYear'>,
@@ -94,8 +105,12 @@ export function featureBadgeTone(badge: string) {
 }
 
 export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {
+  if (!HAS_REMOTE_API) {
+    return filterWorldByYear(world117, year);
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/world/${year}`, {
+    const response = await fetch(buildApiUrl(`/api/v1/world/${year}`), {
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -108,8 +123,12 @@ export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {
 }
 
 export async function fetchCivilizations() {
+  if (!HAS_REMOTE_API) {
+    return world117.civilizations;
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/civilizations`, {
+    const response = await fetch(buildApiUrl('/api/v1/civilizations'), {
       cache: 'no-store',
     });
     if (!response.ok) return world117.civilizations;
@@ -120,8 +139,12 @@ export async function fetchCivilizations() {
 }
 
 export async function fetchPlaces() {
+  if (!HAS_REMOTE_API) {
+    return world117.nodes;
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/places`, {
+    const response = await fetch(buildApiUrl('/api/v1/places'), {
       cache: 'no-store',
     });
     if (!response.ok) return world117.nodes;
@@ -132,8 +155,12 @@ export async function fetchPlaces() {
 }
 
 export async function fetchSources(): Promise<SourceRecord[]> {
+  if (!HAS_REMOTE_API) {
+    return sourceCatalog;
+  }
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/sources`, {
+    const response = await fetch(buildApiUrl('/api/v1/sources'), {
       cache: 'no-store',
     });
     if (!response.ok) return sourceCatalog;

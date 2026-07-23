@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { API_BASE_URL } from '../../lib/atlas';
+import { API_BASE_URL, HAS_REMOTE_API } from '../../lib/atlas';
 
 const navItems = [
   { href: '/atlas', label: 'Atlas' },
@@ -29,14 +29,20 @@ export function SiteShell({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-300/40 hover:text-white"
-              href={`${API_BASE_URL}/docs`}
-              rel="noreferrer"
-              target="_blank"
-            >
-              API docs
-            </a>
+            {HAS_REMOTE_API ? (
+              <a
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-300/40 hover:text-white"
+                href={`${API_BASE_URL}/docs`}
+                rel="noreferrer"
+                target="_blank"
+              >
+                API docs
+              </a>
+            ) : (
+              <span className="rounded-full border border-dashed border-white/10 px-4 py-2 text-sm text-slate-500">
+                Seed-only demo
+              </span>
+            )}
             <span className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">
               Approximate boundaries labeled
             </span>
