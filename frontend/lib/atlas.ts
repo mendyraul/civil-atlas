@@ -1,6 +1,7 @@
 import type {
   AtlasFeature,
   Confidence,
+  HistoricalEvent,
   ReviewStatus,
   SourceRecord,
   WorldPayload,
@@ -20,6 +21,7 @@ export const API_BASE_URL = (configuredApiBaseUrl || developmentFallbackApiBaseU
   '',
 );
 export const HAS_REMOTE_API = API_BASE_URL.length > 0;
+export const EVENT_PROXIMITY_WINDOW = 40;
 
 function buildApiUrl(path: string) {
   return `${API_BASE_URL}${path}`;
@@ -32,12 +34,21 @@ export function isActiveAtYear(
   return feature.startYear <= year && feature.endYear >= year;
 }
 
+export function isEventRelevantAtYear(
+  event: Pick<HistoricalEvent, 'startYear' | 'endYear'>,
+  year: number,
+) {
+  return event.startYear <= year + EVENT_PROXIMITY_WINDOW && event.endYear >= year - EVENT_PROXIMITY_WINDOW;
+}
+
 export function filterWorldByYear(world: WorldPayload, year: number): WorldPayload {
   return {
     year,
     civilizations: world.civilizations.filter((feature) => isActiveAtYear(feature, year)),
     nodes: world.nodes.filter((feature) => isActiveAtYear(feature, year)),
     routes: world.routes.filter((feature) => isActiveAtYear(feature, year)),
+    eras: world.eras.filter((era) => isActiveAtYear(era, year)),
+    events: world.events.filter((event) => isEventRelevantAtYear(event, year)),
   };
 }
 

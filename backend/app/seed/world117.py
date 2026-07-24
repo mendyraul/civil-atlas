@@ -1,4 +1,12 @@
-from app.schemas import AtlasNode, AtlasRoute, Civilization, EvidenceRecord, WorldPayload
+from app.schemas import (
+    AtlasNode,
+    AtlasRoute,
+    Civilization,
+    Era,
+    EvidenceRecord,
+    HistoricalEvent,
+    WorldPayload,
+)
 
 
 def source(
@@ -19,6 +27,245 @@ def source(
         notes=notes,
         link=link,
     )
+
+
+ERAS_117 = [
+    Era(
+        id="classical-antiquity",
+        slug="classical-antiquity",
+        label="Classical Antiquity",
+        start_year=-600,
+        end_year=600,
+        summary="A long Mediterranean-to-Eurasian frame in which imperial administration, city networks, and connected trade corridors become the atlas baseline.",
+        focus_region="Mediterranean, Near East, and Eurasia",
+        featured_civilization_ids=[
+            "roman-empire",
+            "han-dynasty",
+            "parthian-empire",
+            "kingdom-of-kush",
+        ],
+        confidence="high",
+        review_status="seeded",
+        evidence=[
+            source(
+                "era-classical-antiquity",
+                "Classical world periodization references",
+                "Synthesis from standard ancient history survey chronologies",
+                "high",
+                "seeded",
+                "Used as a broad explanatory era frame for the atlas timeline.",
+            )
+        ],
+    ),
+    Era(
+        id="high-imperial-age",
+        slug="high-imperial-age",
+        label="High Imperial Age",
+        start_year=1,
+        end_year=250,
+        summary="This frame emphasizes the period when Rome, Han, Parthia, and Deccan powers can be compared as simultaneous high-capacity state systems.",
+        focus_region="Mediterranean to East Asia",
+        featured_civilization_ids=[
+            "roman-empire",
+            "han-dynasty",
+            "parthian-empire",
+            "satavahana-dynasty",
+        ],
+        confidence="medium_high",
+        review_status="seeded",
+        evidence=[
+            source(
+                "era-high-imperial-age",
+                "Imperial comparison references",
+                "Comparative imperial chronology synthesis",
+                "medium_high",
+                "seeded",
+                "Used to group the atlas around overlapping first- and second-century imperial systems.",
+            )
+        ],
+    ),
+    Era(
+        id="silk-road-consolidation",
+        slug="silk-road-consolidation",
+        label="Silk Road Consolidation",
+        start_year=-200,
+        end_year=220,
+        summary="Overland and maritime exchange networks tighten across Eurasia, making capitals, entrepots, and frontier corridors more explanatory than borders alone.",
+        focus_region="Central Eurasia and Indian Ocean links",
+        featured_civilization_ids=[
+            "han-dynasty",
+            "parthian-empire",
+            "satavahana-dynasty",
+            "aksumite-kingdom",
+        ],
+        confidence="medium_high",
+        review_status="seeded",
+        evidence=[
+            source(
+                "era-silk-road-consolidation",
+                "Silk Road synthesis references",
+                "Comparative exchange-network surveys",
+                "medium_high",
+                "seeded",
+                "Used as a trade-network explanatory frame rather than a single political era.",
+            )
+        ],
+    ),
+]
+
+
+EVENTS_117 = [
+    HistoricalEvent(
+        id="roman-annexation-nabataea",
+        slug="roman-annexation-nabataea",
+        label="Rome annexes Nabataea as Arabia Petraea",
+        event_type="annexation",
+        start_year=106,
+        end_year=106,
+        display_date="106 CE",
+        summary="Roman rule absorbs the Nabataean kingdom and reorganizes the southern Levant frontier into a new province.",
+        impact="Useful for explaining why eastern Roman logistics and Red Sea approaches matter more than static borders in the 117 view.",
+        civilization_ids=["roman-empire"],
+        place_ids=["alexandria", "antioch"],
+        confidence="medium_high",
+        review_status="seeded",
+        evidence=[
+            source(
+                "event-nabataea-annexation",
+                "Roman Arabia references",
+                "Provincial formation and frontier administration summaries",
+                "medium_high",
+                "seeded",
+                "Seed event used to anchor Roman frontier change shortly before the focal atlas year.",
+            )
+        ],
+    ),
+    HistoricalEvent(
+        id="trajan-eastern-campaigns",
+        slug="trajan-eastern-campaigns",
+        label="Trajan's eastern campaigns reach their widest extent",
+        event_type="campaign",
+        start_year=114,
+        end_year=117,
+        display_date="114-117 CE",
+        summary="Roman campaigns push into Armenia and Mesopotamia, producing the most expansionist Roman reading of the eastern frontier.",
+        impact="This is the key reason the 117 CE Roman layer should be read as a time-aware campaign moment rather than a timeless polygon.",
+        civilization_ids=["roman-empire", "parthian-empire"],
+        place_ids=["antioch", "ctesiphon"],
+        confidence="high",
+        review_status="seeded",
+        evidence=[
+            source(
+                "event-trajan-east",
+                "Cambridge Ancient History, Vol. XI",
+                "Trajanic eastern war chapters",
+                "high",
+                "seeded",
+                "Primary event frame for the atlas focal year.",
+            )
+        ],
+    ),
+    HistoricalEvent(
+        id="later-han-western-regions",
+        slug="later-han-western-regions",
+        label="Later Han restores influence in the Western Regions",
+        event_type="frontier_change",
+        start_year=91,
+        end_year=123,
+        display_date="91-123 CE",
+        summary="Later Han political and military activity reasserts long-distance corridor influence beyond the immediate agrarian core.",
+        impact="Helps explain why the Han layer and route logic should eventually distinguish direct control from corridor influence.",
+        civilization_ids=["han-dynasty"],
+        place_ids=["changan", "luoyang"],
+        confidence="medium",
+        review_status="seeded",
+        evidence=[
+            source(
+                "event-han-western-regions",
+                "Han frontier references",
+                "Later Han western-regions chronology summaries",
+                "medium",
+                "seeded",
+                "Seed event framing corridor influence around the focal year.",
+            )
+        ],
+    ),
+    HistoricalEvent(
+        id="meroe-urban-peak",
+        slug="meroe-urban-peak",
+        label="Meroe remains a major Nile political and industrial center",
+        event_type="urban_peak",
+        start_year=50,
+        end_year=200,
+        display_date="50-200 CE",
+        summary="Meroe continues as a major center for Kushite statecraft, craft production, and Nile corridor comparison.",
+        impact="Keeps Kush from reading like a passive background polygon by tying the layer to a legible urban phase.",
+        civilization_ids=["kingdom-of-kush"],
+        place_ids=["meroe", "napata"],
+        confidence="medium",
+        review_status="seeded",
+        evidence=[
+            source(
+                "event-meroe-peak",
+                "General Atlas of African History",
+                "Meroitic phase summaries and regional maps",
+                "medium",
+                "seeded",
+                "Seed event tying the Kush layer to an interpretable historical phase.",
+            )
+        ],
+    ),
+    HistoricalEvent(
+        id="satavahana-deccan-exchange",
+        slug="satavahana-deccan-exchange",
+        label="Satavahana Deccan exchange networks intensify",
+        event_type="trade_shift",
+        start_year=70,
+        end_year=150,
+        display_date="70-150 CE",
+        summary="Inland and coastal exchange activity across the Deccan strengthens the usefulness of Satavahana route and node comparisons.",
+        impact="Supports the atlas idea that trade systems and city roles should be first-class historical changes, not map decorations.",
+        civilization_ids=["satavahana-dynasty"],
+        place_ids=["pratishthana", "amaravati"],
+        confidence="medium",
+        review_status="seeded",
+        evidence=[
+            source(
+                "event-satavahana-trade",
+                "Ancient Indian Historical Atlas",
+                "Deccan exchange and dynastic geography summaries",
+                "medium",
+                "seeded",
+                "Seed event for trade-oriented interpretation of the Satavahana slice.",
+            )
+        ],
+    ),
+    HistoricalEvent(
+        id="aksum-red-sea-rise",
+        slug="aksum-red-sea-rise",
+        label="Aksumite Red Sea exchange sphere grows",
+        event_type="trade_shift",
+        start_year=50,
+        end_year=150,
+        display_date="50-150 CE",
+        summary="Aksum and Adulis become more meaningful together as an inland-port pairing inside wider Red Sea traffic.",
+        impact="This is the clearest seed proof that Civil Atlas should explain systems and connections, not just territorial shells.",
+        civilization_ids=["aksumite-kingdom"],
+        place_ids=["aksum", "adulis"],
+        confidence="medium",
+        review_status="seeded",
+        evidence=[
+            source(
+                "event-aksum-trade",
+                "Aksum trade references",
+                "Adulis and Red Sea exchange summaries",
+                "medium",
+                "seeded",
+                "Seed event framing Aksum as a connected trade system.",
+            )
+        ],
+    ),
+]
 
 
 WORLD_117 = WorldPayload(
@@ -281,4 +528,6 @@ WORLD_117 = WorldPayload(
         AtlasRoute(id="ctesiphon-nisa", slug="ctesiphon-nisa", kind="route", label="Ctesiphon to Nisa", route_kind="trade_route", edge_type="trade_route", source_node_id="ctesiphon", target_node_id="nisa", civilization_ids=["parthian-empire"], start_year=-129, end_year=224, summary="Representative Parthian eastward connection.", path=[(44.5806, 33.0989), (58.213, 37.95)], confidence="medium", review_status="seeded", source_notes="Used to prove intercity graph edges for Parthia.", status_badges=["Source-reported", "Needs review"], evidence=[source("route-ctesiphon-nisa", "Parthian route references", "Arsacid corridor summaries", "medium", "seeded", "Representative Parthian route edge.")]),
         AtlasRoute(id="aksum-adulis", slug="aksum-adulis", kind="route", label="Aksum to Adulis", route_kind="trade_route", edge_type="trade_route", source_node_id="aksum", target_node_id="adulis", civilization_ids=["aksumite-kingdom"], start_year=-100, end_year=700, summary="Representative inland-to-port route for the Aksumite kingdom.", path=[(38.722, 14.121), (39.47, 15.27)], confidence="medium", review_status="seeded", source_notes="Simple trade corridor edge proving inland-port connectivity.", status_badges=["Source-reported", "Needs review"], evidence=[source("route-aksum-adulis", "Aksum trade references", "Aksum-Adulis trade summaries", "medium", "seeded", "Representative Aksumite trade edge.")]),
     ],
+    eras=ERAS_117,
+    events=EVENTS_117,
 )
