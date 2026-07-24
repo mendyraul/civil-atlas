@@ -30,6 +30,14 @@ export type PlaceRole =
   | 'religious_center'
   | 'administrative_center'
   | 'frontier_post';
+export type HistoricalEventType =
+  | 'annexation'
+  | 'campaign'
+  | 'capital_move'
+  | 'trade_shift'
+  | 'religious_change'
+  | 'frontier_change'
+  | 'urban_peak';
 
 export type EvidenceRecord = {
   id: string;
@@ -116,11 +124,44 @@ export type AtlasRoute = {
   evidence: EvidenceRecord[];
 };
 
+export type Era = {
+  id: string;
+  slug: string;
+  label: string;
+  startYear: number;
+  endYear: number;
+  summary: string;
+  focusRegion: string;
+  featuredCivilizationIds: string[];
+  confidence: Confidence;
+  reviewStatus: ReviewStatus;
+  evidence: EvidenceRecord[];
+};
+
+export type HistoricalEvent = {
+  id: string;
+  slug: string;
+  label: string;
+  eventType: HistoricalEventType;
+  startYear: number;
+  endYear: number;
+  displayDate: string;
+  summary: string;
+  impact: string;
+  civilizationIds: string[];
+  placeIds: string[];
+  confidence: Confidence;
+  reviewStatus: ReviewStatus;
+  evidence: EvidenceRecord[];
+};
+
 export type WorldPayload = {
   year: number;
   civilizations: Civilization[];
   nodes: AtlasNode[];
   routes: AtlasRoute[];
+  eras: Era[];
+  events: HistoricalEvent[];
 };
 
 export type AtlasFeature = Civilization | AtlasNode | AtlasRoute;
@@ -128,7 +169,7 @@ export type AtlasFeature = Civilization | AtlasNode | AtlasRoute;
 export type SourceRecord = {
   id: string;
   featureId: string;
-  featureKind: AtlasFeature['kind'];
+  featureKind: AtlasFeature['kind'] | 'era' | 'event';
   featureLabel: string;
   title: string;
   citation: string;

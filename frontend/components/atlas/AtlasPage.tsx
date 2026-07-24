@@ -5,7 +5,7 @@ import { LayerControls } from './LayerControls';
 import { DetailPanel } from './DetailPanel';
 import { TimelineControl } from '../timeline/TimelineControl';
 import { featureBadgeTone, formatYear } from '../../lib/atlas';
-import type { AtlasFeature, Confidence, ReviewStatus, WorldPayload } from '../../types/atlas';
+import type { AtlasFeature, Confidence, Era, HistoricalEvent, ReviewStatus, WorldPayload } from '../../types/atlas';
 
 type LayerVisibility = {
   extents: boolean;
@@ -20,6 +20,8 @@ type AtlasPageProps = {
   backendStatus: 'seed' | 'live';
   confidenceCounts: Record<Confidence, number>;
   detailWorld: WorldPayload;
+  eras: Era[];
+  events: HistoricalEvent[];
   filterCount: number;
   isSelectedFeatureFilteredOut: boolean;
   layerTypeOptions: LayerTypeOption[];
@@ -47,6 +49,8 @@ export function AtlasPage({
   backendStatus,
   confidenceCounts,
   detailWorld,
+  eras,
+  events,
   filterCount,
   isSelectedFeatureFilteredOut,
   layerTypeOptions,
@@ -184,7 +188,7 @@ export function AtlasPage({
         />
       </main>
 
-      <TimelineControl year={year} onYearChange={onYearChange} />
+      <TimelineControl eras={eras} events={events} year={year} onYearChange={onYearChange} />
     </div>
   );
 }

@@ -7,9 +7,11 @@ from app.schemas import (
     CivilizationEdge,
     CivilizationLayer,
     CivilizationPlace,
+    Era,
     EvidenceLink,
     GlobePayload,
     HistoricalClaim,
+    HistoricalEvent,
     Place,
     Source,
     SourceRecord,
@@ -23,8 +25,10 @@ from app.services.atlas import (
     CIVILIZATION_PLACES,
     CIVILIZATIONS,
     CIVILIZATIONS_BY_SLUG,
+    ERAS,
     EVIDENCE_LINKS,
     HISTORICAL_CLAIMS,
+    HISTORICAL_EVENTS,
     PLACES,
     PLACES_BY_SLUG,
     SOURCES,
@@ -86,6 +90,16 @@ def get_routes_v1() -> list[AtlasRoute]:
 @router.get("/sources", response_model=list[SourceRecord])
 def get_sources_v1() -> list[SourceRecord]:
     return SOURCE_RECORDS
+
+
+@router.get("/eras", response_model=list[Era])
+def get_eras_v1() -> list[Era]:
+    return ERAS
+
+
+@router.get("/events", response_model=list[HistoricalEvent])
+def get_events_v1() -> list[HistoricalEvent]:
+    return HISTORICAL_EVENTS
 
 
 @router.get("/claims", response_model=list[HistoricalClaim])
@@ -155,6 +169,16 @@ def globe(
 @api_router.get("/sources", response_model=list[Source])
 def get_sources() -> list[Source]:
     return SOURCES
+
+
+@api_router.get("/eras", response_model=list[Era])
+def get_eras() -> list[Era]:
+    return ERAS
+
+
+@api_router.get("/events", response_model=list[HistoricalEvent])
+def get_events() -> list[HistoricalEvent]:
+    return HISTORICAL_EVENTS
 
 
 @api_router.get("/evidence", response_model=list[EvidenceLink])

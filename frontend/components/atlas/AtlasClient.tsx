@@ -244,6 +244,8 @@ export function AtlasClient() {
         backendStatus={backendStatus}
         confidenceCounts={confidenceCounts}
         detailWorld={activeWorld}
+        eras={activeWorld.eras}
+        events={activeWorld.events}
         filterCount={filterCount}
         isSelectedFeatureFilteredOut={isSelectedFeatureFilteredOut}
         layerTypeOptions={layerTypeOptions}

@@ -134,11 +134,44 @@ class AtlasRoute(BaseModel):
     claim_ids: list[str] = []
 
 
+class Era(BaseModel):
+    id: str
+    slug: str
+    label: str
+    start_year: int
+    end_year: int
+    summary: str
+    focus_region: str
+    featured_civilization_ids: list[str]
+    confidence: str
+    review_status: str
+    evidence: list[EvidenceRecord]
+
+
+class HistoricalEvent(BaseModel):
+    id: str
+    slug: str
+    label: str
+    event_type: str
+    start_year: int
+    end_year: int
+    display_date: str
+    summary: str
+    impact: str
+    civilization_ids: list[str]
+    place_ids: list[str]
+    confidence: str
+    review_status: str
+    evidence: list[EvidenceRecord]
+
+
 class WorldPayload(BaseModel):
     year: int
     civilizations: list[Civilization]
     nodes: list[AtlasNode]
     routes: list[AtlasRoute]
+    eras: list[Era]
+    events: list[HistoricalEvent]
 
 
 class Place(BaseModel):

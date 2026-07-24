@@ -7,9 +7,11 @@ from app.schemas import (
     CivilizationEdge,
     CivilizationLayer,
     CivilizationPlace,
+    Era,
     EvidenceLink,
     GlobePayload,
     HistoricalClaim,
+    HistoricalEvent,
     Place,
     Source,
     SourceRecord,
@@ -22,6 +24,7 @@ SEED_UPDATED_AT = "2026-07-21T12:00:00Z"
 SEED_RETRIEVED_AT = "2026-07-21T12:00:00Z"
 YEAR_MIN = -600
 YEAR_MAX = 1800
+EVENT_PROXIMITY_WINDOW = 40
 
 LAYER_CONFIG: dict[str, tuple[str, str]] = {
     "roman-empire": ("Trajanic imperial extent", "direct_control"),
@@ -56,16 +59,29 @@ def is_active(valid_from_year: int, valid_to_year: int, year: int) -> bool:
     return valid_from_year <= year <= valid_to_year
 
 
+def is_event_relevant(valid_from_year: int, valid_to_year: int, year: int) -> bool:
+    return valid_from_year <= year + EVENT_PROXIMITY_WINDOW and valid_to_year >= year - EVENT_PROXIMITY_WINDOW
+
+
 def _flatten_source_records() -> list[SourceRecord]:
     records: list[SourceRecord] = []
 
-    for feature in [*WORLD_117.civilizations, *WORLD_117.nodes, *WORLD_117.routes]:
+    for feature in [
+        *WORLD_117.civilizations,
+        *WORLD_117.nodes,
+        *WORLD_117.routes,
+        *WORLD_117.eras,
+        *WORLD_117.events,
+    ]:
+        feature_kind = getattr(feature, "kind", None)
+        if feature_kind is None:
+            feature_kind = "event" if isinstance(feature, HistoricalEvent) else "era"
         for evidence in feature.evidence:
             records.append(
                 SourceRecord(
                     id=evidence.id,
                     feature_id=feature.id,
-                    feature_kind=feature.kind,
+                    feature_kind=feature_kind,
                     feature_label=feature.label,
                     title=evidence.title,
                     citation=evidence.citation,
@@ -472,6 +488,8 @@ def _attach_links() -> tuple[list[Civilization], list[AtlasNode], list[AtlasRout
 
 
 CIVILIZATIONS, ATLAS_NODES, ATLAS_ROUTES = _attach_links()
+ERAS: list[Era] = WORLD_117.eras
+HISTORICAL_EVENTS: list[HistoricalEvent] = WORLD_117.events
 CIVILIZATIONS_BY_SLUG = {civilization.slug: civilization for civilization in CIVILIZATIONS}
 
 
@@ -490,6 +508,12 @@ def get_world(year: int) -> WorldPayload:
             route
             for route in ATLAS_ROUTES
             if is_active(route.start_year, route.end_year, year)
+        ],
+        eras=[era for era in ERAS if is_active(era.start_year, era.end_year, year)],
+        events=[
+            event
+            for event in HISTORICAL_EVENTS
+            if is_event_relevant(event.start_year, event.end_year, year)
         ],
     )
 

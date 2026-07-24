@@ -21,6 +21,16 @@ function isRoute(feature: AtlasFeature): feature is AtlasRoute {
 }
 
 function metaRows(feature: AtlasFeature, world: WorldPayload) {
+  const relatedEvents = world.events.filter((event) => {
+    if (isCivilization(feature)) {
+      return event.civilizationIds.includes(feature.id);
+    }
+    if (isNode(feature)) {
+      return event.placeIds.includes(feature.id) || (feature.civilizationId ? event.civilizationIds.includes(feature.civilizationId) : false);
+    }
+    return event.placeIds.includes(feature.sourceNodeId) || event.placeIds.includes(feature.targetNodeId);
+  });
+
   if (isCivilization(feature)) {
     return [
       ['Type', feature.civilizationType],
@@ -28,6 +38,7 @@ function metaRows(feature: AtlasFeature, world: WorldPayload) {
       ['Confidence', confidenceLabel(feature.confidence)],
       ['Review', reviewLabel(feature.reviewStatus)],
       ['Sources', `${feature.evidence.length}`],
+      ['Events', `${relatedEvents.length}`],
       ['Boundary', 'Approximate'],
     ];
   }
@@ -44,6 +55,7 @@ function metaRows(feature: AtlasFeature, world: WorldPayload) {
       ['Confidence', confidenceLabel(feature.confidence)],
       ['Review', reviewLabel(feature.reviewStatus)],
       ['Sources', `${feature.evidence.length}`],
+      ['Events', `${relatedEvents.length}`],
     ];
   }
 
@@ -54,6 +66,7 @@ function metaRows(feature: AtlasFeature, world: WorldPayload) {
     ['Confidence', confidenceLabel(feature.confidence)],
     ['Review', reviewLabel(feature.reviewStatus)],
     ['Sources', `${feature.evidence.length}`],
+    ['Events', `${relatedEvents.length}`],
   ];
 }
 
@@ -77,6 +90,15 @@ export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPan
 
   const title = isCivilization(feature) ? feature.displayName : feature.label;
   const description = isCivilization(feature) ? feature.panelDescription : feature.summary;
+  const relatedEvents = world.events.filter((event) => {
+    if (isCivilization(feature)) {
+      return event.civilizationIds.includes(feature.id);
+    }
+    if (isNode(feature)) {
+      return event.placeIds.includes(feature.id) || (feature.civilizationId ? event.civilizationIds.includes(feature.civilizationId) : false);
+    }
+    return event.placeIds.includes(feature.sourceNodeId) || event.placeIds.includes(feature.targetNodeId);
+  });
 
   return (
     <aside className="atlas-panel flex h-full flex-col rounded-[28px] p-5">
@@ -151,6 +173,33 @@ export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPan
           ))}
         </div>
       </section>
+
+      {relatedEvents.length > 0 ? (
+        <section className="mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
+              Historical log
+            </h3>
+            <span className="text-xs text-slate-500">{relatedEvents.length} related events</span>
+          </div>
+          <div className="mt-4 flex flex-col gap-3">
+            {relatedEvents.map((event) => (
+              <article className="rounded-[22px] border border-white/8 bg-black/14 px-4 py-4" key={event.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-medium text-white">{event.label}</h4>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                      {event.displayDate} · {event.eventType.replace('_', ' ')}
+                    </p>
+                  </div>
+                  <StatusBadge label={reviewLabel(event.reviewStatus)} tone={reviewTone(event.reviewStatus)} />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{event.summary}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </aside>
   );
 }
