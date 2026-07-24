@@ -12,6 +12,7 @@ from app.schemas import (
     GlobePayload,
     HistoricalClaim,
     HistoricalEvent,
+    HistoricalRelationship,
     Place,
     Source,
     SourceRecord,
@@ -26,15 +27,186 @@ YEAR_MIN = -600
 YEAR_MAX = 1800
 EVENT_PROXIMITY_WINDOW = 40
 
-LAYER_CONFIG: dict[str, tuple[str, str]] = {
-    "roman-empire": ("Trajanic imperial extent", "direct_control"),
-    "han-dynasty": ("Later Han administrative extent", "direct_control"),
+DEFAULT_LAYER_CONFIG: dict[str, tuple[str, str]] = {
+    "roman-empire": ("Roman imperial footprint", "direct_control"),
+    "han-dynasty": ("Later Han footprint", "direct_control"),
     "parthian-empire": ("Arsacid imperial extent", "source_reported_extent"),
     "kingdom-of-kush": ("Meroitic Nile core", "direct_control"),
     "aksumite-kingdom": ("Aksumite inland-port sphere", "trade_network"),
     "maya-civilization": ("Maya cultural zone", "cultural_extent"),
     "satavahana-dynasty": ("Satavahana Deccan footprint", "source_reported_extent"),
 }
+
+LAYER_VARIANTS: dict[str, list[dict[str, object]]] = {
+    "roman-empire": [
+        {
+            "id": "layer-roman-empire-core",
+            "name": "Roman direct provincial core",
+            "layer_type": "direct_control",
+            "variant_group": "roman-117-frontier-readings",
+            "interpretation_label": "Conservative provincial core",
+            "interpretation_kind": "boundary_variant",
+            "display_order": 0,
+            "is_primary": True,
+            "geometry": [
+                (-8, 36),
+                (-5, 43),
+                (3, 49),
+                (13, 52),
+                (24, 52),
+                (31, 45),
+                (36, 40),
+                (37, 35),
+                (31, 31),
+                (24, 32),
+                (18, 39),
+                (7, 44),
+                (-1, 43),
+                (-8, 36),
+            ],
+            "confidence": "medium_high",
+            "review_status": "seeded",
+            "source_note": "Conservative reading emphasizing long-held provincial control without treating Trajan's Mesopotamian campaign as settled empire.",
+        },
+        {
+            "id": "layer-roman-empire-trajanic-east",
+            "name": "Roman eastern campaign reach",
+            "layer_type": "contested_zone",
+            "variant_group": "roman-117-frontier-readings",
+            "interpretation_label": "Maximal Trajanic campaign reading",
+            "interpretation_kind": "boundary_variant",
+            "display_order": 1,
+            "is_primary": False,
+            "valid_from_year": 114,
+            "valid_to_year": 117,
+            "geometry": [
+                (-8, 36),
+                (-5, 43),
+                (3, 50),
+                (14, 54),
+                (28, 56),
+                (39, 49),
+                (49, 36),
+                (45, 31),
+                (38, 30),
+                (31, 30),
+                (27, 32),
+                (23, 38),
+                (14, 46),
+                (2, 44),
+                (-8, 36),
+            ],
+            "confidence": "medium",
+            "review_status": "needs_review",
+            "source_note": "Maximal 114-117 CE campaign reading that treats Roman reach into Mesopotamia as a temporary frontier interpretation, not a settled consensus boundary.",
+        },
+    ],
+    "han-dynasty": [
+        {
+            "id": "layer-han-dynasty-core",
+            "name": "Later Han administrative core",
+            "layer_type": "administrative_layer",
+            "variant_group": "han-117-frontier-readings",
+            "interpretation_label": "Administrative core provinces",
+            "interpretation_kind": "administrative_layer",
+            "display_order": 0,
+            "is_primary": True,
+            "geometry": [
+                (98, 23),
+                (100, 31),
+                (106, 37),
+                (114, 39),
+                (120, 36),
+                (119, 28),
+                (112, 23),
+                (104, 21),
+                (98, 23),
+            ],
+            "confidence": "medium_high",
+            "review_status": "seeded",
+            "source_note": "Conservative administrative reading centered on the durable agrarian and metropolitan core of the Later Han state.",
+        },
+        {
+            "id": "layer-han-dynasty-western-regions",
+            "name": "Han western-regions influence corridor",
+            "layer_type": "influence_zone",
+            "variant_group": "han-117-frontier-readings",
+            "interpretation_label": "Western Regions influence corridor",
+            "interpretation_kind": "influence_zone",
+            "display_order": 1,
+            "is_primary": False,
+            "valid_from_year": 91,
+            "valid_to_year": 123,
+            "geometry": [
+                (84, 36),
+                (90, 42),
+                (99, 43),
+                (107, 39),
+                (104, 34),
+                (95, 31),
+                (87, 31),
+                (84, 36),
+            ],
+            "confidence": "medium",
+            "review_status": "needs_review",
+            "source_note": "Influence-zone reading for corridor oversight and military activity in the Western Regions, deliberately separated from direct administrative control.",
+        },
+    ],
+}
+
+RELATIONSHIP_SEEDS: list[dict[str, object]] = [
+    {
+        "id": "relationship-roman-parthian-frontier",
+        "relationship_type": "contested_frontier",
+        "subject_id": "roman-empire",
+        "subject_kind": "civilization",
+        "target_id": "parthian-empire",
+        "target_kind": "civilization",
+        "label": "Roman-Parthian eastern frontier rivalry",
+        "summary": "The Euphrates-to-Mesopotamia zone should be interpreted as contested and time-sensitive, not as a single settled imperial edge.",
+        "valid_from_year": -53,
+        "valid_to_year": 217,
+        "confidence": "high",
+        "review_status": "seeded",
+        "source_note": "Seed relationship used to make rivalry and contested control first-class atlas facts.",
+        "source_record_ids": ["roman-cambridge", "parthia-curtis", "event-trajan-east"],
+        "claim_ids": ["claim-roman-boundary-core", "claim-roman-boundary-maximal", "claim-parthian-existence"],
+    },
+    {
+        "id": "relationship-han-western-regions-overlap",
+        "relationship_type": "influence_overlap",
+        "subject_id": "han-dynasty",
+        "subject_kind": "civilization",
+        "target_id": "parthian-empire",
+        "target_kind": "civilization",
+        "label": "Han and Arsacid corridor overlap",
+        "summary": "The atlas should distinguish direct rule from long-distance corridor influence when comparing Han and Arsacid west-east systems.",
+        "valid_from_year": -100,
+        "valid_to_year": 220,
+        "confidence": "medium",
+        "review_status": "seeded",
+        "source_note": "Seed relationship capturing overlapping influence logic across the Silk Road corridor world.",
+        "source_record_ids": ["han-cambridge", "parthia-curtis", "event-han-western-regions"],
+        "claim_ids": ["claim-han-boundary-core", "claim-han-western-regions-influence", "claim-parthian-existence"],
+    },
+    {
+        "id": "relationship-roman-aksum-trade",
+        "relationship_type": "trade_exchange",
+        "subject_id": "roman-empire",
+        "subject_kind": "civilization",
+        "target_id": "aksumite-kingdom",
+        "target_kind": "civilization",
+        "label": "Roman-Aksum Red Sea trade exchange",
+        "summary": "Trade reach should be modeled separately from formal political control, especially across the Red Sea and Nile-to-port systems.",
+        "valid_from_year": -30,
+        "valid_to_year": 300,
+        "confidence": "medium",
+        "review_status": "seeded",
+        "source_note": "Seed relationship proving that thematic exchange systems deserve first-class representation alongside territory.",
+        "source_record_ids": ["aksum-source", "route-aksum-adulis", "event-aksum-trade"],
+        "claim_ids": ["claim-aksum-route"],
+    },
+]
 
 PLACE_IMPORTANCE: dict[str, float] = {
     "capital": 1.0,
@@ -149,18 +321,32 @@ HISTORICAL_CLAIMS: list[HistoricalClaim] = [
         source_record_ids=["roman-cambridge"],
     ),
     HistoricalClaim(
-        id="claim-roman-boundary",
+        id="claim-roman-boundary-core",
         claim_type="supports_boundary",
-        subject_id="layer-roman-empire",
+        subject_id="layer-roman-empire-core",
         subject_kind="civilization_layer",
         object_id="roman-empire",
         object_kind="civilization",
         confidence="medium_high",
         review_status="seeded",
-        notes="Roman boundary geometry is intentionally approximate and should be read as a source-reported operational layer.",
+        notes="Conservative Roman boundary geometry emphasizes long-held provincial control and intentionally excludes the most maximal campaign reading in Mesopotamia.",
         valid_from_year=-27,
         valid_to_year=395,
         source_record_ids=["roman-cambridge"],
+    ),
+    HistoricalClaim(
+        id="claim-roman-boundary-maximal",
+        claim_type="supports_boundary",
+        subject_id="layer-roman-empire-trajanic-east",
+        subject_kind="civilization_layer",
+        object_id="roman-empire",
+        object_kind="civilization",
+        confidence="medium",
+        review_status="needs_review",
+        notes="Maximal Roman frontier reading includes Trajanic eastern campaign reach and should be treated as a disputed campaign-moment interpretation rather than a final imperial border.",
+        valid_from_year=114,
+        valid_to_year=117,
+        source_record_ids=["roman-cambridge", "event-trajan-east"],
     ),
     HistoricalClaim(
         id="claim-han-existence",
@@ -175,18 +361,32 @@ HISTORICAL_CLAIMS: list[HistoricalClaim] = [
         source_record_ids=["han-cambridge"],
     ),
     HistoricalClaim(
-        id="claim-han-boundary",
+        id="claim-han-boundary-core",
         claim_type="supports_boundary",
-        subject_id="layer-han-dynasty",
+        subject_id="layer-han-dynasty-core",
         subject_kind="civilization_layer",
         object_id="han-dynasty",
         object_kind="civilization",
         confidence="medium_high",
         review_status="seeded",
-        notes="The Han layer is a placeholder administrative footprint rather than a fully reviewed frontier reconstruction.",
+        notes="The Han core layer is a placeholder administrative footprint rather than a fully reviewed frontier reconstruction.",
         valid_from_year=-202,
         valid_to_year=220,
         source_record_ids=["han-cambridge"],
+    ),
+    HistoricalClaim(
+        id="claim-han-western-regions-influence",
+        claim_type="supports_influence_zone",
+        subject_id="layer-han-dynasty-western-regions",
+        subject_kind="civilization_layer",
+        object_id="han-dynasty",
+        object_kind="civilization",
+        confidence="medium",
+        review_status="needs_review",
+        notes="Western Regions activity is modeled as corridor influence and military reach, not as equivalent to direct administrative rule.",
+        valid_from_year=91,
+        valid_to_year=123,
+        source_record_ids=["han-cambridge", "event-han-western-regions"],
     ),
     HistoricalClaim(
         id="claim-parthian-existence",
@@ -340,39 +540,94 @@ def _polygon_to_geojson(polygon: list[tuple[float, float]]) -> dict[str, object]
     return {"type": "Polygon", "coordinates": coordinates}
 
 
+def _layer_specs_for_civilization(civilization: Civilization) -> list[dict[str, object]]:
+    if civilization.id in LAYER_VARIANTS:
+        return LAYER_VARIANTS[civilization.id]
+
+    layer_name, layer_type = DEFAULT_LAYER_CONFIG.get(
+        civilization.id,
+        ("Operational seed layer", "source_reported_extent"),
+    )
+    return [
+        {
+            "id": f"layer-{civilization.id}",
+            "name": layer_name,
+            "layer_type": layer_type,
+            "variant_group": f"{civilization.id}-default-reading",
+            "interpretation_label": "Seed operational reading",
+            "interpretation_kind": "boundary_variant",
+            "display_order": 0,
+            "is_primary": True,
+            "geometry": civilization.polygon,
+            "confidence": civilization.confidence,
+            "review_status": civilization.review_status,
+            "source_note": civilization.source_notes,
+        }
+    ]
+
+
 def _build_layers() -> list[CivilizationLayer]:
     layers: list[CivilizationLayer] = []
 
     for civilization in WORLD_117.civilizations:
-        layer_name, layer_type = LAYER_CONFIG.get(
-            civilization.id,
-            ("Operational seed layer", "source_reported_extent"),
-        )
-        layer_id = f"layer-{civilization.id}"
-        layers.append(
-            CivilizationLayer(
-                id=layer_id,
-                civilization_id=civilization.id,
-                name=layer_name,
-                layer_type=layer_type,
-                valid_from_year=civilization.start_year,
-                valid_to_year=civilization.end_year,
-                geometry_json=_polygon_to_geojson(civilization.polygon),
-                geometry_placeholder=civilization.extent_note,
-                confidence=civilization.confidence,
-                review_status=civilization.review_status,
-                source_note=civilization.source_notes,
-                created_at=SEED_CREATED_AT,
-                updated_at=SEED_UPDATED_AT,
-                source_record_ids=SOURCE_RECORD_IDS_BY_FEATURE[civilization.id],
-                claim_ids=CLAIM_IDS_BY_SUBJECT[layer_id],
+        for spec in _layer_specs_for_civilization(civilization):
+            layer_id = str(spec["id"])
+            geometry = spec.get("geometry", civilization.polygon)
+            layers.append(
+                CivilizationLayer(
+                    id=layer_id,
+                    civilization_id=civilization.id,
+                    name=str(spec["name"]),
+                    layer_type=str(spec["layer_type"]),
+                    variant_group=str(spec.get("variant_group") or ""),
+                    interpretation_label=str(spec.get("interpretation_label") or ""),
+                    interpretation_kind=str(spec.get("interpretation_kind") or ""),
+                    is_primary=bool(spec.get("is_primary", False)),
+                    display_order=int(spec.get("display_order", 0)),
+                    valid_from_year=int(spec.get("valid_from_year", civilization.start_year)),
+                    valid_to_year=int(spec.get("valid_to_year", civilization.end_year)),
+                    geometry_json=_polygon_to_geojson(geometry),
+                    geometry_placeholder=civilization.extent_note,
+                    confidence=str(spec.get("confidence", civilization.confidence)),
+                    review_status=str(spec.get("review_status", civilization.review_status)),
+                    source_note=str(spec.get("source_note", civilization.source_notes)),
+                    created_at=SEED_CREATED_AT,
+                    updated_at=SEED_UPDATED_AT,
+                    source_record_ids=SOURCE_RECORD_IDS_BY_FEATURE[civilization.id],
+                    claim_ids=CLAIM_IDS_BY_SUBJECT[layer_id],
+                )
             )
-        )
 
     return layers
 
 
 CIVILIZATION_LAYERS = _build_layers()
+
+
+def _build_relationships() -> list[HistoricalRelationship]:
+    return [
+        HistoricalRelationship(
+            id=str(item["id"]),
+            relationship_type=str(item["relationship_type"]),
+            subject_id=str(item["subject_id"]),
+            subject_kind=str(item["subject_kind"]),
+            target_id=str(item["target_id"]),
+            target_kind=str(item["target_kind"]),
+            label=str(item["label"]),
+            summary=str(item["summary"]),
+            valid_from_year=int(item["valid_from_year"]),
+            valid_to_year=int(item["valid_to_year"]),
+            confidence=str(item["confidence"]),
+            review_status=str(item["review_status"]),
+            source_note=str(item["source_note"]),
+            source_record_ids=list(item["source_record_ids"]),
+            claim_ids=list(item["claim_ids"]),
+        )
+        for item in RELATIONSHIP_SEEDS
+    ]
+
+
+HISTORICAL_RELATIONSHIPS = _build_relationships()
 
 
 def _build_places() -> list[Place]:
@@ -508,6 +763,16 @@ def get_world(year: int) -> WorldPayload:
             route
             for route in ATLAS_ROUTES
             if is_active(route.start_year, route.end_year, year)
+        ],
+        layers=[
+            layer
+            for layer in CIVILIZATION_LAYERS
+            if is_active(layer.valid_from_year, layer.valid_to_year, year)
+        ],
+        relationships=[
+            relationship
+            for relationship in HISTORICAL_RELATIONSHIPS
+            if is_active(relationship.valid_from_year, relationship.valid_to_year, year)
         ],
         eras=[era for era in ERAS if is_active(era.start_year, era.end_year, year)],
         events=[

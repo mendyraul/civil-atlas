@@ -18,6 +18,11 @@ CREATE TABLE IF NOT EXISTS civilization_layers (
   civilization_id TEXT NOT NULL REFERENCES civilizations(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   layer_type TEXT NOT NULL,
+  variant_group TEXT,
+  interpretation_label TEXT,
+  interpretation_kind TEXT,
+  is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+  display_order INTEGER NOT NULL DEFAULT 0,
   valid_from_year INTEGER NOT NULL,
   valid_to_year INTEGER NOT NULL,
   geometry_json JSONB,
@@ -121,6 +126,24 @@ CREATE TABLE IF NOT EXISTS historical_claims (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS historical_relationships (
+  id TEXT PRIMARY KEY,
+  relationship_type TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  subject_kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  target_kind TEXT NOT NULL,
+  label TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  valid_from_year INTEGER NOT NULL,
+  valid_to_year INTEGER NOT NULL,
+  confidence_level TEXT NOT NULL,
+  review_status TEXT NOT NULL,
+  source_note TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS historical_claim_sources (
   claim_id TEXT NOT NULL REFERENCES historical_claims(id) ON DELETE CASCADE,
   source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -144,3 +167,6 @@ CREATE INDEX IF NOT EXISTS idx_evidence_links_entity
 
 CREATE INDEX IF NOT EXISTS idx_historical_claims_subject_ref
   ON historical_claims (subject_kind, subject_id);
+
+CREATE INDEX IF NOT EXISTS idx_historical_relationships_subject_target
+  ON historical_relationships (subject_kind, subject_id, target_kind, target_id);

@@ -47,6 +47,11 @@ export function filterWorldByYear(world: WorldPayload, year: number): WorldPaylo
     civilizations: world.civilizations.filter((feature) => isActiveAtYear(feature, year)),
     nodes: world.nodes.filter((feature) => isActiveAtYear(feature, year)),
     routes: world.routes.filter((feature) => isActiveAtYear(feature, year)),
+    layers: world.layers.filter((layer) => layer.validFromYear <= year && layer.validToYear >= year),
+    relationships: world.relationships.filter(
+      (relationship) =>
+        relationship.validFromYear <= year && relationship.validToYear >= year,
+    ),
     eras: world.eras.filter((era) => isActiveAtYear(era, year)),
     events: world.events.filter((event) => isEventRelevantAtYear(event, year)),
   };
@@ -113,6 +118,15 @@ export function featureBadgeTone(badge: string) {
     default:
       return 'bg-slate-200 text-slate-800';
   }
+}
+
+export function relationshipTypeLabel(value: string) {
+  return value.replace(/_/g, ' ');
+}
+
+export function interpretationLabel(value?: string) {
+  if (!value) return 'Variant';
+  return value;
 }
 
 export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {

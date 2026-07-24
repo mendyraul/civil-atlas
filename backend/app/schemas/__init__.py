@@ -47,6 +47,11 @@ class CivilizationLayer(BaseModel):
     civilization_id: str
     name: str
     layer_type: str
+    variant_group: str | None = None
+    interpretation_label: str | None = None
+    interpretation_kind: str | None = None
+    is_primary: bool = False
+    display_order: int = 0
     valid_from_year: int
     valid_to_year: int
     geometry_json: dict[str, object] | None = None
@@ -56,6 +61,24 @@ class CivilizationLayer(BaseModel):
     source_note: str
     created_at: str
     updated_at: str
+    source_record_ids: list[str]
+    claim_ids: list[str]
+
+
+class HistoricalRelationship(BaseModel):
+    id: str
+    relationship_type: str
+    subject_id: str
+    subject_kind: str
+    target_id: str
+    target_kind: str
+    label: str
+    summary: str
+    valid_from_year: int
+    valid_to_year: int
+    confidence: str
+    review_status: str
+    source_note: str
     source_record_ids: list[str]
     claim_ids: list[str]
 
@@ -170,6 +193,8 @@ class WorldPayload(BaseModel):
     civilizations: list[Civilization]
     nodes: list[AtlasNode]
     routes: list[AtlasRoute]
+    layers: list[CivilizationLayer]
+    relationships: list[HistoricalRelationship]
     eras: list[Era]
     events: list[HistoricalEvent]
 
