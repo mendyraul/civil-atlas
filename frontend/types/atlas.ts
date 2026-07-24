@@ -38,6 +38,26 @@ export type HistoricalEventType =
   | 'religious_change'
   | 'frontier_change'
   | 'urban_peak';
+export type LayerType =
+  | 'direct_control'
+  | 'source_reported_extent'
+  | 'trade_network'
+  | 'cultural_extent'
+  | 'influence_zone'
+  | 'contested_zone'
+  | 'administrative_layer'
+  | 'thematic_overlay';
+export type InterpretationKind =
+  | 'boundary_variant'
+  | 'influence_zone'
+  | 'contested_zone'
+  | 'administrative_layer'
+  | 'thematic_overlay';
+export type RelationshipType =
+  | 'contested_frontier'
+  | 'trade_exchange'
+  | 'influence_overlap'
+  | 'cultural_exchange';
 
 export type EvidenceRecord = {
   id: string;
@@ -124,6 +144,48 @@ export type AtlasRoute = {
   evidence: EvidenceRecord[];
 };
 
+export type CivilizationLayer = {
+  id: string;
+  civilizationId: string;
+  name: string;
+  layerType: LayerType;
+  variantGroup?: string;
+  interpretationLabel?: string;
+  interpretationKind?: InterpretationKind;
+  isPrimary: boolean;
+  displayOrder: number;
+  validFromYear: number;
+  validToYear: number;
+  geometryJson?: {
+    type: string;
+    coordinates: number[][][];
+  };
+  geometryPlaceholder?: string;
+  confidence: Confidence;
+  reviewStatus: ReviewStatus;
+  sourceNote: string;
+  sourceRecordIds: string[];
+  claimIds: string[];
+};
+
+export type HistoricalRelationship = {
+  id: string;
+  relationshipType: RelationshipType;
+  subjectId: string;
+  subjectKind: 'civilization' | 'place' | 'civilization_layer';
+  targetId: string;
+  targetKind: 'civilization' | 'place' | 'civilization_layer';
+  label: string;
+  summary: string;
+  validFromYear: number;
+  validToYear: number;
+  confidence: Confidence;
+  reviewStatus: ReviewStatus;
+  sourceNote: string;
+  sourceRecordIds: string[];
+  claimIds: string[];
+};
+
 export type Era = {
   id: string;
   slug: string;
@@ -160,6 +222,8 @@ export type WorldPayload = {
   civilizations: Civilization[];
   nodes: AtlasNode[];
   routes: AtlasRoute[];
+  layers: CivilizationLayer[];
+  relationships: HistoricalRelationship[];
   eras: Era[];
   events: HistoricalEvent[];
 };

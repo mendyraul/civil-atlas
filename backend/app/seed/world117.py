@@ -528,6 +528,8 @@ WORLD_117 = WorldPayload(
         AtlasRoute(id="ctesiphon-nisa", slug="ctesiphon-nisa", kind="route", label="Ctesiphon to Nisa", route_kind="trade_route", edge_type="trade_route", source_node_id="ctesiphon", target_node_id="nisa", civilization_ids=["parthian-empire"], start_year=-129, end_year=224, summary="Representative Parthian eastward connection.", path=[(44.5806, 33.0989), (58.213, 37.95)], confidence="medium", review_status="seeded", source_notes="Used to prove intercity graph edges for Parthia.", status_badges=["Source-reported", "Needs review"], evidence=[source("route-ctesiphon-nisa", "Parthian route references", "Arsacid corridor summaries", "medium", "seeded", "Representative Parthian route edge.")]),
         AtlasRoute(id="aksum-adulis", slug="aksum-adulis", kind="route", label="Aksum to Adulis", route_kind="trade_route", edge_type="trade_route", source_node_id="aksum", target_node_id="adulis", civilization_ids=["aksumite-kingdom"], start_year=-100, end_year=700, summary="Representative inland-to-port route for the Aksumite kingdom.", path=[(38.722, 14.121), (39.47, 15.27)], confidence="medium", review_status="seeded", source_notes="Simple trade corridor edge proving inland-port connectivity.", status_badges=["Source-reported", "Needs review"], evidence=[source("route-aksum-adulis", "Aksum trade references", "Aksum-Adulis trade summaries", "medium", "seeded", "Representative Aksumite trade edge.")]),
     ],
+    layers=[],
+    relationships=[],
     eras=ERAS_117,
     events=EVENTS_117,
 )

@@ -1,6 +1,23 @@
 import { StatusBadge } from '../badges/StatusBadge';
-import { confidenceLabel, evidenceTone, featureBadgeTone, formatYear, reviewLabel, reviewTone } from '../../lib/atlas';
-import type { AtlasFeature, AtlasNode, AtlasRoute, Civilization, WorldPayload } from '../../types/atlas';
+import {
+  confidenceLabel,
+  evidenceTone,
+  featureBadgeTone,
+  formatYear,
+  interpretationLabel,
+  relationshipTypeLabel,
+  reviewLabel,
+  reviewTone,
+} from '../../lib/atlas';
+import type {
+  AtlasFeature,
+  AtlasNode,
+  AtlasRoute,
+  Civilization,
+  CivilizationLayer,
+  HistoricalRelationship,
+  WorldPayload,
+} from '../../types/atlas';
 
 type DetailPanelProps = {
   feature?: AtlasFeature;
@@ -18,6 +35,48 @@ function isNode(feature: AtlasFeature): feature is AtlasNode {
 
 function isRoute(feature: AtlasFeature): feature is AtlasRoute {
   return feature.kind === 'route';
+}
+
+function relatedLayers(feature: AtlasFeature, world: WorldPayload): CivilizationLayer[] {
+  if (isCivilization(feature)) {
+    return world.layers
+      .filter((layer) => layer.civilizationId === feature.id)
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+  }
+
+  if (isNode(feature) && feature.civilizationId) {
+    return world.layers
+      .filter((layer) => layer.civilizationId === feature.civilizationId)
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+  }
+
+  if (isRoute(feature)) {
+    return world.layers
+      .filter((layer) => feature.civilizationIds.includes(layer.civilizationId))
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+  }
+
+  return [];
+}
+
+function relatedRelationships(
+  feature: AtlasFeature,
+  world: WorldPayload,
+): HistoricalRelationship[] {
+  const targetIds = new Set<string>([feature.id]);
+
+  if (isNode(feature) && feature.civilizationId) {
+    targetIds.add(feature.civilizationId);
+  }
+
+  if (isRoute(feature)) {
+    feature.civilizationIds.forEach((id) => targetIds.add(id));
+  }
+
+  return world.relationships.filter(
+    (relationship) =>
+      targetIds.has(relationship.subjectId) || targetIds.has(relationship.targetId),
+  );
 }
 
 function metaRows(feature: AtlasFeature, world: WorldPayload) {
@@ -90,6 +149,8 @@ export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPan
 
   const title = isCivilization(feature) ? feature.displayName : feature.label;
   const description = isCivilization(feature) ? feature.panelDescription : feature.summary;
+  const variants = relatedLayers(feature, world);
+  const relationships = relatedRelationships(feature, world);
   const relatedEvents = world.events.filter((event) => {
     if (isCivilization(feature)) {
       return event.civilizationIds.includes(feature.id);
@@ -195,6 +256,68 @@ export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPan
                   <StatusBadge label={reviewLabel(event.reviewStatus)} tone={reviewTone(event.reviewStatus)} />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-slate-300">{event.summary}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {variants.length > 0 ? (
+        <section className="mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
+              Interpretation layers
+            </h3>
+            <span className="text-xs text-slate-500">{variants.length} active views</span>
+          </div>
+          <div className="mt-4 flex flex-col gap-3">
+            {variants.map((layer) => (
+              <article className="rounded-[22px] border border-white/8 bg-black/14 px-4 py-4" key={layer.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-medium text-white">{layer.name}</h4>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                      {interpretationLabel(layer.interpretationLabel)} · {layer.layerType.replace('_', ' ')}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    {layer.isPrimary ? (
+                      <StatusBadge label="Primary view" tone="bg-amber-100 text-amber-900" />
+                    ) : null}
+                    <StatusBadge label={reviewLabel(layer.reviewStatus)} tone={reviewTone(layer.reviewStatus)} />
+                  </div>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{layer.sourceNote}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {relationships.length > 0 ? (
+        <section className="mt-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-300">
+              Relationships
+            </h3>
+            <span className="text-xs text-slate-500">{relationships.length} active ties</span>
+          </div>
+          <div className="mt-4 flex flex-col gap-3">
+            {relationships.map((relationship) => (
+              <article className="rounded-[22px] border border-white/8 bg-black/14 px-4 py-4" key={relationship.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h4 className="font-medium text-white">{relationship.label}</h4>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-slate-500">
+                      {relationshipTypeLabel(relationship.relationshipType)}
+                    </p>
+                  </div>
+                  <StatusBadge
+                    label={reviewLabel(relationship.reviewStatus)}
+                    tone={reviewTone(relationship.reviewStatus)}
+                  />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">{relationship.summary}</p>
               </article>
             ))}
           </div>

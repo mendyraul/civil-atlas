@@ -12,6 +12,7 @@ from app.schemas import (
     GlobePayload,
     HistoricalClaim,
     HistoricalEvent,
+    HistoricalRelationship,
     Place,
     Source,
     SourceRecord,
@@ -29,6 +30,7 @@ from app.services.atlas import (
     EVIDENCE_LINKS,
     HISTORICAL_CLAIMS,
     HISTORICAL_EVENTS,
+    HISTORICAL_RELATIONSHIPS,
     PLACES,
     PLACES_BY_SLUG,
     SOURCES,
@@ -100,6 +102,11 @@ def get_eras_v1() -> list[Era]:
 @router.get("/events", response_model=list[HistoricalEvent])
 def get_events_v1() -> list[HistoricalEvent]:
     return HISTORICAL_EVENTS
+
+
+@router.get("/relationships", response_model=list[HistoricalRelationship])
+def get_relationships_v1() -> list[HistoricalRelationship]:
+    return HISTORICAL_RELATIONSHIPS
 
 
 @router.get("/claims", response_model=list[HistoricalClaim])
@@ -179,6 +186,11 @@ def get_eras() -> list[Era]:
 @api_router.get("/events", response_model=list[HistoricalEvent])
 def get_events() -> list[HistoricalEvent]:
     return HISTORICAL_EVENTS
+
+
+@api_router.get("/relationships", response_model=list[HistoricalRelationship])
+def get_relationships() -> list[HistoricalRelationship]:
+    return HISTORICAL_RELATIONSHIPS
 
 
 @api_router.get("/evidence", response_model=list[EvidenceLink])
