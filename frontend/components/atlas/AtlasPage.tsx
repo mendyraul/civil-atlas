@@ -23,6 +23,7 @@ type AtlasPageProps = {
   eras: Era[];
   events: HistoricalEvent[];
   filterCount: number;
+  isPlaying: boolean;
   isSelectedFeatureFilteredOut: boolean;
   layerTypeOptions: LayerTypeOption[];
   reviewCounts: Record<ReviewStatus, number>;
@@ -41,6 +42,7 @@ type AtlasPageProps = {
   onResetFilters: () => void;
   onReviewStatusToggle: (status: ReviewStatus) => void;
   onToggleLayer: (layer: keyof LayerVisibility) => void;
+  onTogglePlay: () => void;
 };
 
 export function AtlasPage({
@@ -52,6 +54,7 @@ export function AtlasPage({
   eras,
   events,
   filterCount,
+  isPlaying,
   isSelectedFeatureFilteredOut,
   layerTypeOptions,
   reviewCounts,
@@ -70,6 +73,7 @@ export function AtlasPage({
   onResetFilters,
   onReviewStatusToggle,
   onToggleLayer,
+  onTogglePlay,
 }: AtlasPageProps) {
   const sourceCount = world.civilizations.reduce((total, civilization) => total + civilization.evidence.length, 0);
   const badges = ['Approximate', 'Source-reported', 'Needs review'] as const;
@@ -188,7 +192,14 @@ export function AtlasPage({
         />
       </main>
 
-      <TimelineControl eras={eras} events={events} year={year} onYearChange={onYearChange} />
+      <TimelineControl
+        eras={eras}
+        events={events}
+        isPlaying={isPlaying}
+        year={year}
+        onTogglePlay={onTogglePlay}
+        onYearChange={onYearChange}
+      />
     </div>
   );
 }
