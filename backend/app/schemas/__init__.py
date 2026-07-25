@@ -27,6 +27,83 @@ class SourceRecord(BaseModel):
     valid_to_year: int | None = None
 
 
+class SourceArtifact(BaseModel):
+    id: str
+    artifact_type: str
+    storage_provider: str
+    bucket: str
+    object_key: str
+    mime_type: str
+    byte_size: int
+    sha256: str
+    source_record_id: str | None = None
+    claim_id: str | None = None
+    layer_id: str | None = None
+    import_job_id: str | None = None
+    derived_from_artifact_id: str | None = None
+    metadata_json: dict[str, object] = {}
+    created_at: str
+    updated_at: str
+
+
+class ImportJob(BaseModel):
+    id: str
+    dataset_slug: str
+    dataset_label: str
+    status: str
+    source_type: str
+    bucket: str
+    object_prefix: str
+    initiated_by: str
+    manifest_artifact_id: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    records_discovered: int = 0
+    records_imported: int = 0
+    artifacts_created: int = 0
+    notes: str
+
+
+class ReviewAssignment(BaseModel):
+    id: str
+    entity_type: str
+    entity_id: str
+    current_review_status: str
+    target_review_status: str
+    assigned_reviewer: str
+    assigned_by: str
+    priority: str
+    due_at: str | None = None
+    notes: str
+    created_at: str
+
+
+class ReviewDecision(BaseModel):
+    id: str
+    assignment_id: str
+    entity_type: str
+    entity_id: str
+    decision_type: str
+    previous_review_status: str
+    new_review_status: str
+    reviewer: str
+    rationale: str
+    created_at: str
+
+
+class RevisionRecord(BaseModel):
+    id: str
+    entity_type: str
+    entity_id: str
+    revision_kind: str
+    summary: str
+    diff_excerpt: str
+    actor: str
+    artifact_id: str | None = None
+    review_decision_id: str | None = None
+    created_at: str
+
+
 class HistoricalClaim(BaseModel):
     id: str
     claim_type: str

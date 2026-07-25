@@ -98,6 +98,43 @@ CREATE TABLE IF NOT EXISTS sources (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS source_artifacts (
+  id TEXT PRIMARY KEY,
+  artifact_type TEXT NOT NULL,
+  storage_provider TEXT NOT NULL,
+  bucket TEXT NOT NULL,
+  object_key TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  byte_size INTEGER NOT NULL,
+  sha256 TEXT NOT NULL,
+  source_record_id TEXT,
+  claim_id TEXT,
+  layer_id TEXT,
+  import_job_id TEXT,
+  derived_from_artifact_id TEXT,
+  metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS import_jobs (
+  id TEXT PRIMARY KEY,
+  dataset_slug TEXT NOT NULL,
+  dataset_label TEXT NOT NULL,
+  status TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  bucket TEXT NOT NULL,
+  object_prefix TEXT NOT NULL,
+  initiated_by TEXT NOT NULL,
+  manifest_artifact_id TEXT,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  records_discovered INTEGER NOT NULL DEFAULT 0,
+  records_imported INTEGER NOT NULL DEFAULT 0,
+  artifacts_created INTEGER NOT NULL DEFAULT 0,
+  notes TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS evidence_links (
   id TEXT PRIMARY KEY,
   source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -144,6 +181,46 @@ CREATE TABLE IF NOT EXISTS historical_relationships (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS review_assignments (
+  id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  current_review_status TEXT NOT NULL,
+  target_review_status TEXT NOT NULL,
+  assigned_reviewer TEXT NOT NULL,
+  assigned_by TEXT NOT NULL,
+  priority TEXT NOT NULL,
+  due_at TIMESTAMPTZ,
+  notes TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS review_decisions (
+  id TEXT PRIMARY KEY,
+  assignment_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  decision_type TEXT NOT NULL,
+  previous_review_status TEXT NOT NULL,
+  new_review_status TEXT NOT NULL,
+  reviewer TEXT NOT NULL,
+  rationale TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS revision_records (
+  id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  revision_kind TEXT NOT NULL,
+  summary TEXT NOT NULL,
+  diff_excerpt TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  artifact_id TEXT,
+  review_decision_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS historical_claim_sources (
   claim_id TEXT NOT NULL REFERENCES historical_claims(id) ON DELETE CASCADE,
   source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
@@ -165,8 +242,20 @@ CREATE INDEX IF NOT EXISTS idx_civilization_edges_lookup
 CREATE INDEX IF NOT EXISTS idx_evidence_links_entity
   ON evidence_links (entity_type, entity_id);
 
+CREATE INDEX IF NOT EXISTS idx_source_artifacts_source_record
+  ON source_artifacts (source_record_id, artifact_type);
+
+CREATE INDEX IF NOT EXISTS idx_import_jobs_dataset_status
+  ON import_jobs (dataset_slug, status);
+
 CREATE INDEX IF NOT EXISTS idx_historical_claims_subject_ref
   ON historical_claims (subject_kind, subject_id);
 
 CREATE INDEX IF NOT EXISTS idx_historical_relationships_subject_target
   ON historical_relationships (subject_kind, subject_id, target_kind, target_id);
+
+CREATE INDEX IF NOT EXISTS idx_review_assignments_entity
+  ON review_assignments (entity_type, entity_id, priority);
+
+CREATE INDEX IF NOT EXISTS idx_revision_records_entity
+  ON revision_records (entity_type, entity_id, revision_kind);

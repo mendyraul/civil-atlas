@@ -124,6 +124,47 @@ sources = Table(
     Column("updated_at", DateTime(timezone=True), nullable=False),
 )
 
+source_artifacts = Table(
+    "source_artifacts",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("artifact_type", String(64), nullable=False),
+    Column("storage_provider", String(64), nullable=False),
+    Column("bucket", String(255), nullable=False),
+    Column("object_key", Text, nullable=False),
+    Column("mime_type", String(128), nullable=False),
+    Column("byte_size", Integer, nullable=False),
+    Column("sha256", String(128), nullable=False),
+    Column("source_record_id", String(64), nullable=True),
+    Column("claim_id", String(64), nullable=True),
+    Column("layer_id", String(64), nullable=True),
+    Column("import_job_id", String(64), nullable=True),
+    Column("derived_from_artifact_id", String(64), nullable=True),
+    Column("metadata_json", JSON, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+import_jobs = Table(
+    "import_jobs",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("dataset_slug", String(128), nullable=False),
+    Column("dataset_label", String(255), nullable=False),
+    Column("status", String(64), nullable=False),
+    Column("source_type", String(64), nullable=False),
+    Column("bucket", String(255), nullable=False),
+    Column("object_prefix", Text, nullable=False),
+    Column("initiated_by", String(255), nullable=False),
+    Column("manifest_artifact_id", String(64), nullable=True),
+    Column("started_at", DateTime(timezone=True), nullable=True),
+    Column("completed_at", DateTime(timezone=True), nullable=True),
+    Column("records_discovered", Integer, nullable=False),
+    Column("records_imported", Integer, nullable=False),
+    Column("artifacts_created", Integer, nullable=False),
+    Column("notes", Text, nullable=False),
+)
+
 evidence_links = Table(
     "evidence_links",
     metadata,
@@ -174,4 +215,50 @@ historical_relationships = Table(
     Column("source_note", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+review_assignments = Table(
+    "review_assignments",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("entity_type", String(64), nullable=False),
+    Column("entity_id", String(64), nullable=False),
+    Column("current_review_status", String(64), nullable=False),
+    Column("target_review_status", String(64), nullable=False),
+    Column("assigned_reviewer", String(255), nullable=False),
+    Column("assigned_by", String(255), nullable=False),
+    Column("priority", String(64), nullable=False),
+    Column("due_at", DateTime(timezone=True), nullable=True),
+    Column("notes", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+review_decisions = Table(
+    "review_decisions",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("assignment_id", String(64), nullable=False),
+    Column("entity_type", String(64), nullable=False),
+    Column("entity_id", String(64), nullable=False),
+    Column("decision_type", String(64), nullable=False),
+    Column("previous_review_status", String(64), nullable=False),
+    Column("new_review_status", String(64), nullable=False),
+    Column("reviewer", String(255), nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+revision_records = Table(
+    "revision_records",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("entity_type", String(64), nullable=False),
+    Column("entity_id", String(64), nullable=False),
+    Column("revision_kind", String(64), nullable=False),
+    Column("summary", Text, nullable=False),
+    Column("diff_excerpt", Text, nullable=False),
+    Column("actor", String(255), nullable=False),
+    Column("artifact_id", String(64), nullable=True),
+    Column("review_decision_id", String(64), nullable=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
 )

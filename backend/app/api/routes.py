@@ -13,8 +13,13 @@ from app.schemas import (
     HistoricalClaim,
     HistoricalEvent,
     HistoricalRelationship,
+    ImportJob,
     Place,
+    ReviewAssignment,
+    ReviewDecision,
+    RevisionRecord,
     Source,
+    SourceArtifact,
     SourceRecord,
     WorldPayload,
 )
@@ -31,9 +36,14 @@ from app.services.atlas import (
     HISTORICAL_CLAIMS,
     HISTORICAL_EVENTS,
     HISTORICAL_RELATIONSHIPS,
+    IMPORT_JOBS,
     PLACES,
     PLACES_BY_SLUG,
+    REVIEW_ASSIGNMENTS,
+    REVIEW_DECISIONS,
+    REVISION_RECORDS,
     SOURCES,
+    SOURCE_ARTIFACTS,
     SOURCE_RECORDS,
     YEAR_MAX,
     YEAR_MIN,
@@ -114,6 +124,31 @@ def get_claims_v1() -> list[HistoricalClaim]:
     return HISTORICAL_CLAIMS
 
 
+@router.get("/artifacts", response_model=list[SourceArtifact])
+def get_artifacts_v1() -> list[SourceArtifact]:
+    return SOURCE_ARTIFACTS
+
+
+@router.get("/import-jobs", response_model=list[ImportJob])
+def get_import_jobs_v1() -> list[ImportJob]:
+    return IMPORT_JOBS
+
+
+@router.get("/review-assignments", response_model=list[ReviewAssignment])
+def get_review_assignments_v1() -> list[ReviewAssignment]:
+    return REVIEW_ASSIGNMENTS
+
+
+@router.get("/review-decisions", response_model=list[ReviewDecision])
+def get_review_decisions_v1() -> list[ReviewDecision]:
+    return REVIEW_DECISIONS
+
+
+@router.get("/revisions", response_model=list[RevisionRecord])
+def get_revisions_v1() -> list[RevisionRecord]:
+    return REVISION_RECORDS
+
+
 @api_router.get("/health")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
@@ -191,6 +226,31 @@ def get_events() -> list[HistoricalEvent]:
 @api_router.get("/relationships", response_model=list[HistoricalRelationship])
 def get_relationships() -> list[HistoricalRelationship]:
     return HISTORICAL_RELATIONSHIPS
+
+
+@api_router.get("/artifacts", response_model=list[SourceArtifact])
+def get_artifacts() -> list[SourceArtifact]:
+    return SOURCE_ARTIFACTS
+
+
+@api_router.get("/import-jobs", response_model=list[ImportJob])
+def get_import_jobs() -> list[ImportJob]:
+    return IMPORT_JOBS
+
+
+@api_router.get("/review-assignments", response_model=list[ReviewAssignment])
+def get_review_assignments() -> list[ReviewAssignment]:
+    return REVIEW_ASSIGNMENTS
+
+
+@api_router.get("/review-decisions", response_model=list[ReviewDecision])
+def get_review_decisions() -> list[ReviewDecision]:
+    return REVIEW_DECISIONS
+
+
+@api_router.get("/revisions", response_model=list[RevisionRecord])
+def get_revisions() -> list[RevisionRecord]:
+    return REVISION_RECORDS
 
 
 @api_router.get("/evidence", response_model=list[EvidenceLink])

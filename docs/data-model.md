@@ -13,8 +13,18 @@
 - `eras`: named interpretive periods that stay active across a year range
 - `historical_events`: dated or bounded changes that explain why the map differs
 - `sources`: canonical source metadata records
+- `source_artifacts`: durable stored raw, normalized, derived, or export files
+  linked back to their source records, claims, layers, and import jobs
+- `import_jobs`: lineage for dataset imports, normalization passes, and
+  reprocessing runs
 - `historical_claims`: normalized claims such as existence, boundary, location,
   route, or capital-role support
+- `review_assignments`: explicit review queue items for claims, events, and
+  geometries
+- `review_decisions`: reviewer outcomes that move entities between workflow
+  states
+- `revision_records`: human-readable change/audit trail for geometry, metadata,
+  and review operations
 - `evidence_links`: links from sources to specific entities and claim types
 
 ## Relationships
@@ -28,7 +38,11 @@
 - One era can feature many civilizations and one civilization can appear in many eras
 - One historical event can reference many civilizations, places, and sources
 - One source can support many entities through `evidence_links`
+- One source can produce many `source_artifacts`
+- One import job can generate many normalized and derived artifacts
 - One claim can reference many sources and one source can support many claims
+- One review assignment can lead to zero or one review decisions
+- One entity can accumulate many revision records over time
 
 ## Interpretation variants
 
@@ -50,3 +64,12 @@
   placeholder
 - Timeline-facing eras and events should also carry source-backed explanation
   text, not just date bounds
+
+## Storage + workflow notes
+
+- Object storage is split into raw, normalized, derived, and exports buckets so
+  Civil Atlas can answer where a geometry or claim came from.
+- Review states are no longer just badges: claims, layers, and events can now
+  generate explicit review assignments, decisions, and revision records.
+- This foundation is designed to support later ingestion tooling and internal
+  editorial interfaces without changing the canonical identifiers again.

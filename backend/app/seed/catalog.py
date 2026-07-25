@@ -13,8 +13,13 @@ from app.schemas import (
     HistoricalClaim,
     HistoricalEvent,
     HistoricalRelationship,
+    ImportJob,
     Place,
+    ReviewAssignment,
+    ReviewDecision,
+    RevisionRecord,
     Source,
+    SourceArtifact,
     SourceRecord,
     WorldPayload,
 )
@@ -23,9 +28,14 @@ from app.seed.world117 import WORLD_117
 SEED_CREATED_AT = "2026-07-21T12:00:00Z"
 SEED_UPDATED_AT = "2026-07-21T12:00:00Z"
 SEED_RETRIEVED_AT = "2026-07-21T12:00:00Z"
+SEED_REVIEW_DUE_AT = "2026-08-07T17:00:00Z"
 YEAR_MIN = -600
 YEAR_MAX = 1800
 EVENT_PROXIMITY_WINDOW = 40
+RAW_BUCKET = "civil-atlas-raw"
+NORMALIZED_BUCKET = "civil-atlas-normalized"
+DERIVED_BUCKET = "civil-atlas-derived"
+EXPORTS_BUCKET = "civil-atlas-exports"
 
 DEFAULT_LAYER_CONFIG: dict[str, tuple[str, str]] = {
     "roman-empire": ("Roman imperial footprint", "direct_control"),
@@ -305,6 +315,143 @@ def _build_sources() -> list[Source]:
 
 
 SOURCES = _build_sources()
+
+
+IMPORT_JOBS: list[ImportJob] = [
+    ImportJob(
+        id="import-job-manual-seed-117",
+        dataset_slug="manual-seed-117",
+        dataset_label="Manual Seed 117 CE",
+        status="completed",
+        source_type="manual_seed",
+        bucket=NORMALIZED_BUCKET,
+        object_prefix="imports/manual-seed-117/2026-07-21/",
+        initiated_by="rico",
+        manifest_artifact_id="artifact-import-manifest-manual-seed-117",
+        started_at=SEED_CREATED_AT,
+        completed_at=SEED_UPDATED_AT,
+        records_discovered=len(SOURCE_RECORDS),
+        records_imported=len(SOURCE_RECORDS),
+        artifacts_created=len(SOURCE_RECORDS) + 4,
+        notes="Bootstrap seed import that materializes the first atlas payload, source records, and interpretation layers.",
+    ),
+    ImportJob(
+        id="import-job-pleiades-prototype",
+        dataset_slug="pleiades-prototype",
+        dataset_label="Pleiades Prototype Import",
+        status="planned",
+        source_type="gazetteer",
+        bucket=RAW_BUCKET,
+        object_prefix="imports/pleiades-prototype/queued/",
+        initiated_by="rico",
+        manifest_artifact_id=None,
+        started_at=None,
+        completed_at=None,
+        records_discovered=0,
+        records_imported=0,
+        artifacts_created=0,
+        notes="Planned prototype import for ancient place gazetteer records and URI preservation.",
+    ),
+    ImportJob(
+        id="import-job-whg-normalization",
+        dataset_slug="whg-normalization",
+        dataset_label="World Historical Gazetteer Normalization",
+        status="planned",
+        source_type="gazetteer",
+        bucket=RAW_BUCKET,
+        object_prefix="imports/whg-normalization/queued/",
+        initiated_by="rico",
+        manifest_artifact_id=None,
+        started_at=None,
+        completed_at=None,
+        records_discovered=0,
+        records_imported=0,
+        artifacts_created=0,
+        notes="Planned normalization flow for WHG records and concordance metadata.",
+    ),
+]
+
+
+def _mock_sha(seed: str) -> str:
+    normalized = seed.replace("/", "-").replace(" ", "-")
+    return f"sha256:{normalized}"[:71]
+
+
+def _build_source_artifacts() -> list[SourceArtifact]:
+    artifacts: list[SourceArtifact] = [
+        SourceArtifact(
+            id="artifact-import-manifest-manual-seed-117",
+            artifact_type="import_manifest",
+            storage_provider="s3_compatible",
+            bucket=NORMALIZED_BUCKET,
+            object_key="imports/manual-seed-117/2026-07-21/manifest.json",
+            mime_type="application/json",
+            byte_size=4096,
+            sha256=_mock_sha("imports/manual-seed-117/manifest"),
+            import_job_id="import-job-manual-seed-117",
+            metadata_json={
+                "dataset_slug": "manual-seed-117",
+                "contains": ["source_records", "claims", "layers", "events"],
+            },
+            created_at=SEED_CREATED_AT,
+            updated_at=SEED_UPDATED_AT,
+        )
+    ]
+
+    for record in SOURCE_RECORDS:
+        artifacts.append(
+            SourceArtifact(
+                id=f"artifact-source-{record.id}",
+                artifact_type="raw_source_record",
+                storage_provider="s3_compatible",
+                bucket=RAW_BUCKET,
+                object_key=f"sources/manual-seed/{record.feature_kind}/{record.id}.json",
+                mime_type="application/json",
+                byte_size=2048,
+                sha256=_mock_sha(record.id),
+                source_record_id=record.id,
+                import_job_id="import-job-manual-seed-117",
+                derived_from_artifact_id="artifact-import-manifest-manual-seed-117",
+                metadata_json={
+                    "feature_id": record.feature_id,
+                    "feature_kind": record.feature_kind,
+                    "feature_label": record.feature_label,
+                },
+                created_at=SEED_CREATED_AT,
+                updated_at=SEED_UPDATED_AT,
+            )
+        )
+
+    for layer in CIVILIZATION_LAYERS:
+        source_record_id = layer.source_record_ids[0] if layer.source_record_ids else None
+        artifacts.append(
+            SourceArtifact(
+                id=f"artifact-layer-{layer.id}",
+                artifact_type="derived_geometry",
+                storage_provider="s3_compatible",
+                bucket=DERIVED_BUCKET,
+                object_key=f"geometries/{layer.civilization_id}/{layer.id}.geojson",
+                mime_type="application/geo+json",
+                byte_size=3072,
+                sha256=_mock_sha(layer.id),
+                source_record_id=source_record_id,
+                layer_id=layer.id,
+                import_job_id="import-job-manual-seed-117",
+                derived_from_artifact_id=(
+                    f"artifact-source-{source_record_id}" if source_record_id else None
+                ),
+                metadata_json={
+                    "variant_group": layer.variant_group,
+                    "interpretation_label": layer.interpretation_label,
+                    "interpretation_kind": layer.interpretation_kind,
+                },
+                created_at=SEED_CREATED_AT,
+                updated_at=SEED_UPDATED_AT,
+            )
+        )
+
+    return artifacts
+
 
 
 HISTORICAL_CLAIMS: list[HistoricalClaim] = [
@@ -602,6 +749,7 @@ def _build_layers() -> list[CivilizationLayer]:
 
 
 CIVILIZATION_LAYERS = _build_layers()
+SOURCE_ARTIFACTS = _build_source_artifacts()
 
 
 def _build_relationships() -> list[HistoricalRelationship]:
@@ -628,6 +776,128 @@ def _build_relationships() -> list[HistoricalRelationship]:
 
 
 HISTORICAL_RELATIONSHIPS = _build_relationships()
+
+
+def _build_review_assignments() -> list[ReviewAssignment]:
+    assignments: list[ReviewAssignment] = []
+
+    for claim in HISTORICAL_CLAIMS:
+        if claim.review_status == "reviewed":
+            continue
+        assignments.append(
+            ReviewAssignment(
+                id=f"review-assignment-{claim.id}",
+                entity_type="historical_claim",
+                entity_id=claim.id,
+                current_review_status=claim.review_status,
+                target_review_status="reviewed",
+                assigned_reviewer="atlas-editorial",
+                assigned_by="rico",
+                priority="high" if claim.review_status == "needs_review" else "medium",
+                due_at=SEED_REVIEW_DUE_AT,
+                notes=f"Resolve claim interpretation and provenance sufficiency for {claim.id}.",
+                created_at=SEED_UPDATED_AT,
+            )
+        )
+
+    for layer in CIVILIZATION_LAYERS:
+        if layer.review_status == "reviewed":
+            continue
+        assignments.append(
+            ReviewAssignment(
+                id=f"review-assignment-{layer.id}",
+                entity_type="civilization_layer",
+                entity_id=layer.id,
+                current_review_status=layer.review_status,
+                target_review_status="reviewed",
+                assigned_reviewer="atlas-geometry-review",
+                assigned_by="rico",
+                priority="high" if layer.interpretation_kind == "boundary_variant" else "medium",
+                due_at=SEED_REVIEW_DUE_AT,
+                notes=f"Review geometry interpretation, confidence, and variant semantics for {layer.name}.",
+                created_at=SEED_UPDATED_AT,
+            )
+        )
+
+    for event in HISTORICAL_EVENTS:
+        if event.review_status == "reviewed":
+            continue
+        assignments.append(
+            ReviewAssignment(
+                id=f"review-assignment-{event.id}",
+                entity_type="historical_event",
+                entity_id=event.id,
+                current_review_status=event.review_status,
+                target_review_status="reviewed",
+                assigned_reviewer="atlas-timeline-review",
+                assigned_by="rico",
+                priority="medium",
+                due_at=SEED_REVIEW_DUE_AT,
+                notes=f"Confirm event framing, display date, and historical impact language for {event.label}.",
+                created_at=SEED_UPDATED_AT,
+            )
+        )
+
+    return assignments
+
+
+REVIEW_ASSIGNMENTS = _build_review_assignments()
+
+
+REVIEW_DECISIONS: list[ReviewDecision] = [
+    ReviewDecision(
+        id="review-decision-roman-existence",
+        assignment_id="bootstrap-reviewed-roman-existence",
+        entity_type="historical_claim",
+        entity_id="claim-roman-existence",
+        decision_type="approve",
+        previous_review_status="seeded",
+        new_review_status="reviewed",
+        reviewer="atlas-editorial",
+        rationale="Roman existence claim is a stable bootstrap fact with adequate seeded reference support.",
+        created_at=SEED_UPDATED_AT,
+    ),
+    ReviewDecision(
+        id="review-decision-han-existence",
+        assignment_id="bootstrap-reviewed-han-existence",
+        entity_type="historical_claim",
+        entity_id="claim-han-existence",
+        decision_type="approve",
+        previous_review_status="seeded",
+        new_review_status="reviewed",
+        reviewer="atlas-editorial",
+        rationale="Han existence claim is a stable bootstrap fact with adequate seeded reference support.",
+        created_at=SEED_UPDATED_AT,
+    ),
+]
+
+
+REVISION_RECORDS: list[RevisionRecord] = [
+    RevisionRecord(
+        id="revision-roman-layer-core-seed",
+        entity_type="civilization_layer",
+        entity_id="layer-roman-empire-core",
+        revision_kind="geometry_variant_seed",
+        summary="Seeded conservative Roman provincial-core geometry artifact.",
+        diff_excerpt="Created a primary conservative provincial-core geometry distinct from the maximal Trajanic campaign reading.",
+        actor="rico",
+        artifact_id="artifact-layer-layer-roman-empire-core",
+        review_decision_id=None,
+        created_at=SEED_UPDATED_AT,
+    ),
+    RevisionRecord(
+        id="revision-roman-existence-review",
+        entity_type="historical_claim",
+        entity_id="claim-roman-existence",
+        revision_kind="review_decision",
+        summary="Reviewed Roman existence claim.",
+        diff_excerpt="Moved review status from seeded to reviewed with editorial approval rationale.",
+        actor="atlas-editorial",
+        artifact_id="artifact-source-roman-cambridge",
+        review_decision_id="review-decision-roman-existence",
+        created_at=SEED_UPDATED_AT,
+    ),
+]
 
 
 def _build_places() -> list[Place]:
