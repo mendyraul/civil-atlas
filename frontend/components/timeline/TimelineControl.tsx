@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { confidenceLabel, evidenceTone, formatYear, reviewLabel, reviewTone, YEAR_MAX, YEAR_MIN } from '../../lib/atlas';
 import { StatusBadge } from '../badges/StatusBadge';
 import type { Era, HistoricalEvent } from '../../types/atlas';
@@ -5,13 +8,37 @@ import type { Era, HistoricalEvent } from '../../types/atlas';
 type TimelineControlProps = {
   eras: Era[];
   events: HistoricalEvent[];
+  isPlaying: boolean;
   year: number;
+  onTogglePlay: () => void;
   onYearChange: (year: number) => void;
 };
 
 const PRESETS = [-500, 0, 117, 700, 1500];
 
-export function TimelineControl({ eras, events, year, onYearChange }: TimelineControlProps) {
+const yearToPercent = (value: number) =>
+  ((Math.min(Math.max(value, YEAR_MIN), YEAR_MAX) - YEAR_MIN) / (YEAR_MAX - YEAR_MIN)) * 100;
+
+export function TimelineControl({
+  eras,
+  events,
+  isPlaying,
+  year,
+  onTogglePlay,
+  onYearChange,
+}: TimelineControlProps) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleShare() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <section className="atlas-panel rounded-[30px] px-5 py-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -24,19 +51,53 @@ export function TimelineControl({ eras, events, year, onYearChange }: TimelineCo
         </div>
         <div className="flex items-center gap-3">
           <button
-            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200"
+            aria-pressed={isPlaying}
+            className={`rounded-full border px-5 py-2 text-sm font-medium transition ${
+              isPlaying
+                ? 'border-amber-300/50 bg-amber-400/16 text-amber-100'
+                : 'border-cyan-300/50 bg-cyan-400/16 text-cyan-100 hover:bg-cyan-400/24'
+            }`}
+            onClick={onTogglePlay}
             type="button"
           >
-            Play
+            {isPlaying ? '❚❚ Pause' : '▶ Play'}
           </button>
-          <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">
-            Placeholder playback
-          </div>
+          <button
+            className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200 transition hover:border-white/20 hover:text-white"
+            onClick={handleShare}
+            type="button"
+          >
+            {copied ? 'Link copied' : 'Share view'}
+          </button>
         </div>
+      </div>
+      <div className="relative mt-5 h-6" aria-hidden>
+        {eras.map((era) => (
+          <div
+            className="absolute top-0 h-2 rounded-full bg-cyan-400/15"
+            key={era.id}
+            style={{
+              left: `${yearToPercent(era.startYear)}%`,
+              width: `${Math.max(yearToPercent(era.endYear) - yearToPercent(era.startYear), 0.5)}%`,
+            }}
+            title={`${era.label} (${formatYear(era.startYear)} to ${formatYear(era.endYear)})`}
+          />
+        ))}
+        {events.map((event) => (
+          <button
+            aria-label={`Jump to ${event.label} (${event.displayDate})`}
+            className="absolute bottom-0 h-4 w-[2px] -translate-x-1/2 rounded-full bg-amber-300/80 transition hover:h-5 hover:bg-amber-200"
+            key={event.id}
+            onClick={() => onYearChange(event.startYear)}
+            style={{ left: `${yearToPercent(event.startYear)}%` }}
+            title={`${event.label} · ${event.displayDate}`}
+            type="button"
+          />
+        ))}
       </div>
       <input
         aria-label="Year"
-        className="atlas-range mt-5 w-full"
+        className="atlas-range mt-1 w-full"
         max={YEAR_MAX}
         min={YEAR_MIN}
         onChange={(event) => onYearChange(Number(event.target.value))}

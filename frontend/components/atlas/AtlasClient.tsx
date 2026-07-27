@@ -1,11 +1,13 @@
 'use client';
 
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { world117 } from '../../data/world117';
 import {
   API_BASE_URL,
   DEFAULT_YEAR,
   HAS_REMOTE_API,
+  YEAR_MAX,
+  YEAR_MIN,
   filterWorldByYear,
   getFeatureById,
 } from '../../lib/atlas';
@@ -36,6 +38,10 @@ const emptyFilterState: FilterState = {
   layerTypes: [],
   reviewStatus: [],
 };
+
+// Workstream D: autoplay advances the year ~55 years/second (5 years every 90ms).
+const PLAYBACK_TICK_MS = 90;
+const PLAYBACK_STEP_YEARS = 5;
 
 function toggleValue<T extends string>(values: T[], value: T) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -72,6 +78,8 @@ export function AtlasClient() {
     sources: true,
   });
   const [filters, setFilters] = useState<FilterState>(emptyFilterState);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const skipFirstUrlSyncRef = useRef(true);
 
   useEffect(() => {
     if (!HAS_REMOTE_API) {
@@ -103,6 +111,62 @@ export function AtlasClient() {
       cancelled = true;
     };
   }, []);
+
+  // Research mode: hydrate view state from the URL on load (shareable views).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlYear = Number(params.get('y'));
+    if (Number.isFinite(urlYear) && urlYear >= YEAR_MIN && urlYear <= YEAR_MAX) {
+      setYear(urlYear);
+    }
+    const urlSelected = params.get('sel');
+    if (urlSelected) {
+      setSelectedId(urlSelected);
+    }
+  }, []);
+
+  // Research mode: keep the URL in sync with year + selection so any view is shareable.
+  useEffect(() => {
+    if (skipFirstUrlSyncRef.current) {
+      skipFirstUrlSyncRef.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set('y', String(year));
+    if (selectedId) {
+      params.set('sel', selectedId);
+    }
+    const query = params.toString();
+    window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
+  }, [year, selectedId]);
+
+  // Workstream D: timeline autoplay.
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+    const intervalId = window.setInterval(() => {
+      setYear((current) => {
+        const next = current + PLAYBACK_STEP_YEARS;
+        if (next >= YEAR_MAX) {
+          setIsPlaying(false);
+          return YEAR_MAX;
+        }
+        return next;
+      });
+    }, PLAYBACK_TICK_MS);
+    return () => window.clearInterval(intervalId);
+  }, [isPlaying]);
+
+  function togglePlay() {
+    setIsPlaying((current) => {
+      // Restart from the beginning if we're paused at the end of the timeline.
+      if (!current && year >= YEAR_MAX) {
+        setYear(YEAR_MIN);
+      }
+      return !current;
+    });
+  }
 
   const activeWorld = useMemo(() => filterWorldByYear(baseWorld, year), [baseWorld, year]);
   const featuresByLayerType = useMemo(() => {
@@ -247,6 +311,7 @@ export function AtlasClient() {
         eras={activeWorld.eras}
         events={activeWorld.events}
         filterCount={filterCount}
+        isPlaying={isPlaying}
         isSelectedFeatureFilteredOut={isSelectedFeatureFilteredOut}
         layerTypeOptions={layerTypeOptions}
         layers={layers}
@@ -281,6 +346,7 @@ export function AtlasClient() {
         onResetFilters={() => setFilters(emptyFilterState)}
         onReviewStatusToggle={toggleReviewStatus}
         onToggleLayer={toggleLayer}
+        onTogglePlay={togglePlay}
         onYearChange={setYear}
         reviewCounts={reviewCounts}
         selectedConfidence={filters.confidence}
