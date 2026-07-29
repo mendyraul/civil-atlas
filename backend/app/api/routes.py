@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.core.config import settings
 from app.schemas import (
+    ArtifactIngestPlan,
+    ArtifactIngestRequest,
     AtlasNode,
     AtlasRoute,
     Civilization,
@@ -54,6 +56,7 @@ from app.services.atlas import (
     get_places,
     get_world,
 )
+from app.services.ingest import build_ingest_plan
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
@@ -155,6 +158,11 @@ def get_revisions_v1() -> list[RevisionRecord]:
 @router.get("/storage-contract", response_model=StorageContractView)
 def get_storage_contract_v1() -> StorageContractView:
     return _storage_contract_view()
+
+
+@router.post("/ingest-plans", response_model=ArtifactIngestPlan)
+def create_ingest_plan_v1(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
+    return build_ingest_plan(payload)
 
 
 @api_router.get("/health")
@@ -264,6 +272,11 @@ def get_revisions() -> list[RevisionRecord]:
 @api_router.get("/storage-contract", response_model=StorageContractView)
 def get_storage_contract() -> StorageContractView:
     return _storage_contract_view()
+
+
+@api_router.post("/ingest-plans", response_model=ArtifactIngestPlan)
+def create_ingest_plan(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
+    return build_ingest_plan(payload)
 
 
 @api_router.get("/evidence", response_model=list[EvidenceLink])
