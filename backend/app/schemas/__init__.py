@@ -27,6 +27,25 @@ class SourceRecord(BaseModel):
     valid_to_year: int | None = None
 
 
+class StorageBucketContract(BaseModel):
+    name: str
+    prefix: str
+    purpose: str
+
+
+class StorageContractView(BaseModel):
+    provider: str
+    endpoint: str
+    public_base_url: str | None = None
+    region: str
+    use_path_style: bool
+    signed_url_ttl_seconds: int
+    raw: StorageBucketContract
+    normalized: StorageBucketContract
+    derived: StorageBucketContract
+    exports: StorageBucketContract
+
+
 class SourceArtifact(BaseModel):
     id: str
     artifact_type: str

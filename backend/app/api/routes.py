@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
+from app.core.config import settings
 from app.schemas import (
     AtlasNode,
     AtlasRoute,
@@ -20,6 +21,8 @@ from app.schemas import (
     RevisionRecord,
     Source,
     SourceArtifact,
+    StorageBucketContract,
+    StorageContractView,
     SourceRecord,
     WorldPayload,
 )
@@ -149,6 +152,11 @@ def get_revisions_v1() -> list[RevisionRecord]:
     return REVISION_RECORDS
 
 
+@router.get("/storage-contract", response_model=StorageContractView)
+def get_storage_contract_v1() -> StorageContractView:
+    return _storage_contract_view()
+
+
 @api_router.get("/health")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
@@ -253,6 +261,11 @@ def get_revisions() -> list[RevisionRecord]:
     return REVISION_RECORDS
 
 
+@api_router.get("/storage-contract", response_model=StorageContractView)
+def get_storage_contract() -> StorageContractView:
+    return _storage_contract_view()
+
+
 @api_router.get("/evidence", response_model=list[EvidenceLink])
 def get_evidence(
     entity_type: str = Query(...),
@@ -268,3 +281,35 @@ def get_evidence(
 @api_router.get("/claims", response_model=list[HistoricalClaim])
 def get_claims() -> list[HistoricalClaim]:
     return HISTORICAL_CLAIMS
+
+
+def _storage_contract_view() -> StorageContractView:
+    storage = settings.storage
+    return StorageContractView(
+        provider=storage.provider,
+        endpoint=storage.endpoint,
+        public_base_url=storage.public_base_url,
+        region=storage.region,
+        use_path_style=storage.use_path_style,
+        signed_url_ttl_seconds=storage.signed_url_ttl_seconds,
+        raw=StorageBucketContract(
+            name=storage.raw_bucket,
+            prefix=storage.raw_prefix,
+            purpose="Immutable raw captures, scans, notes, manifests, and dataset payloads.",
+        ),
+        normalized=StorageBucketContract(
+            name=storage.normalized_bucket,
+            prefix=storage.normalized_prefix,
+            purpose="Normalized records and import manifests for atlas-native entities.",
+        ),
+        derived=StorageBucketContract(
+            name=storage.derived_bucket,
+            prefix=storage.derived_prefix,
+            purpose="Derived geometry, presentation artifacts, and future vector tiles.",
+        ),
+        exports=StorageBucketContract(
+            name=storage.exports_bucket,
+            prefix=storage.exports_prefix,
+            purpose="Researcher exports, classroom bundles, and shareable artifacts.",
+        ),
+    )
