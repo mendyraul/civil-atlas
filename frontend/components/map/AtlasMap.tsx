@@ -89,15 +89,35 @@ function fillOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecif
   return [
     'case',
     ['boolean', ['feature-state', 'hover'], false],
-    0.58,
+    0.34,
     ['==', ['get', 'id'], target],
-    0.52,
-    target.length > 0 ? 0.14 : 0.36,
+    0.28,
+    target.length > 0 ? 0.08 : 0.2,
   ];
 }
 
 function lineWidthExpression(selectedId?: string): maplibregl.ExpressionSpecification {
-  return ['case', ['==', ['get', 'id'], selectedId ?? ''], 3, 1.2];
+  return [
+    'interpolate',
+    ['linear'],
+    ['zoom'],
+    1,
+    ['case', ['==', ['get', 'id'], selectedId ?? ''], 2.4, 0.7],
+    5,
+    ['case', ['==', ['get', 'id'], selectedId ?? ''], 3.6, 1.1],
+  ];
+}
+
+function lineOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecification {
+  const target = selectedId ?? '';
+  return [
+    'case',
+    ['boolean', ['feature-state', 'hover'], false],
+    0.72,
+    ['==', ['get', 'id'], target],
+    0.64,
+    target.length > 0 ? 0.12 : 0.28,
+  ];
 }
 
 export function AtlasMap({
@@ -224,6 +244,32 @@ export function AtlasMap({
       });
 
       map.addLayer({
+        id: 'civilizations-outline-glow',
+        type: 'line',
+        source: 'civilizations',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            1,
+            ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 7],
+            5,
+            ['case', ['==', ['get', 'id'], selectedId ?? ''], 18, 10],
+          ],
+          'line-opacity': [
+            'case',
+            ['==', ['get', 'id'], selectedId ?? ''],
+            0.18,
+            0.1,
+          ],
+          'line-blur': 7,
+        },
+      });
+
+      map.addLayer({
         id: 'civilizations-fill',
         type: 'fill',
         source: 'civilizations',
@@ -239,10 +285,12 @@ export function AtlasMap({
         id: 'civilizations-line',
         type: 'line',
         source: 'civilizations',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': ['get', 'color'],
           'line-width': lineWidthExpression(selectedId),
-          'line-opacity': 0.9,
+          'line-opacity': lineOpacityExpression(selectedId),
+          'line-blur': 0.6,
           'line-opacity-transition': { duration: 450, delay: 0 },
         },
       });
@@ -422,7 +470,23 @@ export function AtlasMap({
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded() || !map.getLayer('civilizations-line')) return;
     map.setPaintProperty('civilizations-line', 'line-width', lineWidthExpression(selectedId));
+    map.setPaintProperty('civilizations-line', 'line-opacity', lineOpacityExpression(selectedId));
     map.setPaintProperty('civilizations-fill', 'fill-opacity', fillOpacityExpression(selectedId));
+    map.setPaintProperty('civilizations-outline-glow', 'line-width', [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      1,
+      ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 7],
+      5,
+      ['case', ['==', ['get', 'id'], selectedId ?? ''], 18, 10],
+    ]);
+    map.setPaintProperty('civilizations-outline-glow', 'line-opacity', [
+      'case',
+      ['==', ['get', 'id'], selectedId ?? ''],
+      0.18,
+      0.1,
+    ]);
   }, [selectedId]);
 
   // A2: fly the camera to frame the newly selected feature.
@@ -461,6 +525,7 @@ export function AtlasMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
+    map.setLayoutProperty('civilizations-outline-glow', 'visibility', showExtents ? 'visible' : 'none');
     map.setLayoutProperty('civilizations-fill', 'visibility', showExtents ? 'visible' : 'none');
     map.setLayoutProperty('civilizations-line', 'visibility', showExtents ? 'visible' : 'none');
   }, [showExtents]);
