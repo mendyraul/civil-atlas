@@ -6,6 +6,7 @@ export const civilizationColors = {
   'aksumite-kingdom': '#245c96',
   'maya-civilization': '#2f7d4c',
   'satavahana-dynasty': '#8a4fb4',
+  'kushan-empire': '#b23a48',
 } as const;
 
 export function civilizationColor(id: keyof typeof civilizationColors | string) {
