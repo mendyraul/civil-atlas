@@ -28,6 +28,28 @@ history is settled.
 - `backend`: FastAPI app on `http://localhost:8000`
 - `db`: PostgreSQL 16 on `localhost:5432`
 
+## Storage contract readiness
+
+The backend exposes a read-only storage contract at `/api/storage-contract` and
+`/api/v1/storage-contract` so the app and operators can agree on the expected
+S3-compatible bucket and prefix layout before live object storage is wired in.
+
+Relevant environment variables:
+
+- `S3_ENDPOINT`
+- `S3_PUBLIC_BASE_URL`
+- `S3_REGION`
+- `S3_USE_PATH_STYLE`
+- `S3_SIGNED_URL_TTL_SECONDS`
+- `S3_BUCKET_RAW`
+- `S3_BUCKET_NORMALIZED`
+- `S3_BUCKET_DERIVED`
+- `S3_BUCKET_EXPORTS`
+- `S3_PREFIX_RAW`
+- `S3_PREFIX_NORMALIZED`
+- `S3_PREFIX_DERIVED`
+- `S3_PREFIX_EXPORTS`
+
 ## Run locally
 
 ```bash

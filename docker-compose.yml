@@ -16,6 +16,19 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://civil_atlas:civil_atlas@db:5432/civil_atlas}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_USE_PATH_STYLE: ${S3_USE_PATH_STYLE:-true}
+      S3_SIGNED_URL_TTL_SECONDS: ${S3_SIGNED_URL_TTL_SECONDS:-900}
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-civil-atlas-raw}
+      S3_BUCKET_NORMALIZED: ${S3_BUCKET_NORMALIZED:-civil-atlas-normalized}
+      S3_BUCKET_DERIVED: ${S3_BUCKET_DERIVED:-civil-atlas-derived}
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:-civil-atlas-exports}
+      S3_PREFIX_RAW: ${S3_PREFIX_RAW:-sources}
+      S3_PREFIX_NORMALIZED: ${S3_PREFIX_NORMALIZED:-imports}
+      S3_PREFIX_DERIVED: ${S3_PREFIX_DERIVED:-geometries}
+      S3_PREFIX_EXPORTS: ${S3_PREFIX_EXPORTS:-exports}
     depends_on:
       - db
 

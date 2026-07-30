@@ -1,4 +1,23 @@
+import os
+
 from pydantic import BaseModel
+
+
+class StorageContract(BaseModel):
+    provider: str = "s3_compatible"
+    endpoint: str = "http://localhost:9000"
+    public_base_url: str | None = None
+    region: str = "us-east-1"
+    use_path_style: bool = True
+    signed_url_ttl_seconds: int = 900
+    raw_bucket: str = "civil-atlas-raw"
+    normalized_bucket: str = "civil-atlas-normalized"
+    derived_bucket: str = "civil-atlas-derived"
+    exports_bucket: str = "civil-atlas-exports"
+    raw_prefix: str = "sources"
+    normalized_prefix: str = "imports"
+    derived_prefix: str = "geometries"
+    exports_prefix: str = "exports"
 
 
 class Settings(BaseModel):
@@ -8,6 +27,52 @@ class Settings(BaseModel):
         "Backend API for the Civil Atlas historical civilization MVP."
     )
     cors_origins: list[str] = ["http://localhost:3000"]
+    storage: StorageContract = StorageContract()
 
 
-settings = Settings()
+def _bool_from_env(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _int_from_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+settings = Settings(
+    storage=StorageContract(
+        endpoint=os.getenv("S3_ENDPOINT", StorageContract.model_fields["endpoint"].default),
+        public_base_url=os.getenv("S3_PUBLIC_BASE_URL"),
+        region=os.getenv("S3_REGION", StorageContract.model_fields["region"].default),
+        use_path_style=_bool_from_env("S3_USE_PATH_STYLE", True),
+        signed_url_ttl_seconds=_int_from_env("S3_SIGNED_URL_TTL_SECONDS", 900),
+        raw_bucket=os.getenv("S3_BUCKET_RAW", StorageContract.model_fields["raw_bucket"].default),
+        normalized_bucket=os.getenv(
+            "S3_BUCKET_NORMALIZED", StorageContract.model_fields["normalized_bucket"].default
+        ),
+        derived_bucket=os.getenv(
+            "S3_BUCKET_DERIVED", StorageContract.model_fields["derived_bucket"].default
+        ),
+        exports_bucket=os.getenv(
+            "S3_BUCKET_EXPORTS", StorageContract.model_fields["exports_bucket"].default
+        ),
+        raw_prefix=os.getenv("S3_PREFIX_RAW", StorageContract.model_fields["raw_prefix"].default),
+        normalized_prefix=os.getenv(
+            "S3_PREFIX_NORMALIZED", StorageContract.model_fields["normalized_prefix"].default
+        ),
+        derived_prefix=os.getenv(
+            "S3_PREFIX_DERIVED", StorageContract.model_fields["derived_prefix"].default
+        ),
+        exports_prefix=os.getenv(
+            "S3_PREFIX_EXPORTS", StorageContract.model_fields["exports_prefix"].default
+        ),
+    )
+)

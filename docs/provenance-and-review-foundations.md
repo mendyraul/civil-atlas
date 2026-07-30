@@ -26,6 +26,9 @@
 5. `source_artifacts` link every stored file back to `source_records`,
    `historical_claims`, `civilization_layers`, and the originating
    `import_job`.
+6. `POST /api/ingest-plans` can now generate that lineage bundle before any
+   real object storage write happens, which makes the contract testable before
+   MinIO is live.
 
 ## Review flow
 

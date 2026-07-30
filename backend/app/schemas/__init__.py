@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EvidenceRecord(BaseModel):
@@ -27,6 +27,25 @@ class SourceRecord(BaseModel):
     valid_to_year: int | None = None
 
 
+class StorageBucketContract(BaseModel):
+    name: str
+    prefix: str
+    purpose: str
+
+
+class StorageContractView(BaseModel):
+    provider: str
+    endpoint: str
+    public_base_url: str | None = None
+    region: str
+    use_path_style: bool
+    signed_url_ttl_seconds: int
+    raw: StorageBucketContract
+    normalized: StorageBucketContract
+    derived: StorageBucketContract
+    exports: StorageBucketContract
+
+
 class SourceArtifact(BaseModel):
     id: str
     artifact_type: str
@@ -41,7 +60,7 @@ class SourceArtifact(BaseModel):
     layer_id: str | None = None
     import_job_id: str | None = None
     derived_from_artifact_id: str | None = None
-    metadata_json: dict[str, object] = {}
+    metadata_json: dict[str, object] = Field(default_factory=dict)
     created_at: str
     updated_at: str
 
@@ -62,6 +81,39 @@ class ImportJob(BaseModel):
     records_imported: int = 0
     artifacts_created: int = 0
     notes: str
+
+
+class ArtifactIngestRecordInput(BaseModel):
+    source_record_id: str
+    feature_id: str
+    feature_kind: str
+    feature_label: str
+    title: str
+    citation: str
+    link: str | None = None
+    filename: str
+    mime_type: str
+    byte_size: int
+    sha256: str
+    confidence: str = "medium"
+    review_status: str = "needs_review"
+    notes: str
+    source_namespace: str = "operator_upload"
+    valid_from_year: int | None = None
+    valid_to_year: int | None = None
+    claim_id: str | None = None
+    layer_id: str | None = None
+    create_derived_geometry: bool = False
+    metadata_json: dict[str, object] = Field(default_factory=dict)
+
+
+class ArtifactIngestRequest(BaseModel):
+    dataset_slug: str
+    dataset_label: str
+    source_type: str
+    initiated_by: str
+    notes: str = ""
+    records: list[ArtifactIngestRecordInput] = Field(default_factory=list)
 
 
 class ReviewAssignment(BaseModel):
@@ -102,6 +154,16 @@ class RevisionRecord(BaseModel):
     artifact_id: str | None = None
     review_decision_id: str | None = None
     created_at: str
+
+
+class ArtifactIngestPlan(BaseModel):
+    storage: StorageContractView
+    import_job: ImportJob
+    manifest_artifact: SourceArtifact
+    source_records: list[SourceRecord] = Field(default_factory=list)
+    artifacts: list[SourceArtifact] = Field(default_factory=list)
+    review_assignments: list[ReviewAssignment] = Field(default_factory=list)
+    revision_records: list[RevisionRecord] = Field(default_factory=list)
 
 
 class HistoricalClaim(BaseModel):
