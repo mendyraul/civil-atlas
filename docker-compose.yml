@@ -16,21 +16,68 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://civil_atlas:civil_atlas@db:5432/civil_atlas}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-civil-atlas-dev}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-civil-atlas-dev-secret}
       S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
       S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_USE_PATH_STYLE: ${S3_USE_PATH_STYLE:-true}
       S3_SIGNED_URL_TTL_SECONDS: ${S3_SIGNED_URL_TTL_SECONDS:-900}
-      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-civil-atlas-raw}
-      S3_BUCKET_NORMALIZED: ${S3_BUCKET_NORMALIZED:-civil-atlas-normalized}
-      S3_BUCKET_DERIVED: ${S3_BUCKET_DERIVED:-civil-atlas-derived}
-      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:-civil-atlas-exports}
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-raw-sources}
+      S3_BUCKET_NORMALIZED: ${S3_BUCKET_NORMALIZED:-normalized-sources}
+      S3_BUCKET_DERIVED: ${S3_BUCKET_DERIVED:-derived-tiles}
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:-exports}
       S3_PREFIX_RAW: ${S3_PREFIX_RAW:-sources}
       S3_PREFIX_NORMALIZED: ${S3_PREFIX_NORMALIZED:-imports}
       S3_PREFIX_DERIVED: ${S3_PREFIX_DERIVED:-geometries}
       S3_PREFIX_EXPORTS: ${S3_PREFIX_EXPORTS:-exports}
     depends_on:
       - db
+      - minio
+
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-civil-atlas-dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-civil-atlas-dev-secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-bootstrap:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-civil-atlas-dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-civil-atlas-dev-secret}
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-raw-sources}
+      S3_BUCKET_NORMALIZED: ${S3_BUCKET_NORMALIZED:-normalized-sources}
+      S3_BUCKET_DERIVED: ${S3_BUCKET_DERIVED:-derived-tiles}
+      S3_BUCKET_BACKUPS: ${S3_BUCKET_BACKUPS:-db-backups}
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:-exports}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$$S3_BUCKET_RAW"
+        mc mb --ignore-existing "local/$$S3_BUCKET_NORMALIZED"
+        mc mb --ignore-existing "local/$$S3_BUCKET_DERIVED"
+        mc mb --ignore-existing "local/$$S3_BUCKET_BACKUPS"
+        mc mb --ignore-existing "local/$$S3_BUCKET_EXPORTS"
 
   db:
     image: postgres:16
@@ -46,3 +93,4 @@ services:
 
 volumes:
   postgres-data:
+  minio-data:

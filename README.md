@@ -37,6 +37,8 @@ S3-compatible bucket and prefix layout before live object storage is wired in.
 Relevant environment variables:
 
 - `S3_ENDPOINT`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
 - `S3_PUBLIC_BASE_URL`
 - `S3_REGION`
 - `S3_USE_PATH_STYLE`

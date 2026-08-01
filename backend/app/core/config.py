@@ -5,15 +5,17 @@ from pydantic import BaseModel
 
 class StorageContract(BaseModel):
     provider: str = "s3_compatible"
+    access_key_id: str = "civil-atlas-dev"
+    secret_access_key: str = "civil-atlas-dev-secret"
     endpoint: str = "http://localhost:9000"
     public_base_url: str | None = None
     region: str = "us-east-1"
     use_path_style: bool = True
     signed_url_ttl_seconds: int = 900
-    raw_bucket: str = "civil-atlas-raw"
-    normalized_bucket: str = "civil-atlas-normalized"
-    derived_bucket: str = "civil-atlas-derived"
-    exports_bucket: str = "civil-atlas-exports"
+    raw_bucket: str = "raw-sources"
+    normalized_bucket: str = "normalized-sources"
+    derived_bucket: str = "derived-tiles"
+    exports_bucket: str = "exports"
     raw_prefix: str = "sources"
     normalized_prefix: str = "imports"
     derived_prefix: str = "geometries"
@@ -49,6 +51,12 @@ def _int_from_env(name: str, default: int) -> int:
 
 settings = Settings(
     storage=StorageContract(
+        access_key_id=os.getenv(
+            "S3_ACCESS_KEY_ID", StorageContract.model_fields["access_key_id"].default
+        ),
+        secret_access_key=os.getenv(
+            "S3_SECRET_ACCESS_KEY", StorageContract.model_fields["secret_access_key"].default
+        ),
         endpoint=os.getenv("S3_ENDPOINT", StorageContract.model_fields["endpoint"].default),
         public_base_url=os.getenv("S3_PUBLIC_BASE_URL"),
         region=os.getenv("S3_REGION", StorageContract.model_fields["region"].default),
