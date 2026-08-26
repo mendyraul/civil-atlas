@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl, { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import type { AtlasNode, AtlasRoute, Civilization } from '../../types/atlas';
 import { MapLegend } from './MapLegend';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || '/map-styles/minimal.json';
 
 type AtlasMapProps = {
   civilizations: Civilization[];
@@ -140,6 +140,9 @@ export function AtlasMap({
   const hoverRef = useRef<HoverRef>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const lastFlownRef = useRef<string | undefined>(undefined);
+  const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [mapError, setMapError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
 
   // Keep the latest callbacks in a ref so the map init effect can run exactly once.
   const handlersRef = useRef({
@@ -166,13 +169,23 @@ export function AtlasMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: MAP_STYLE,
-      center: [30, 25],
-      zoom: 1.7,
-      attributionControl: false,
-    });
+    setMapStatus('loading');
+    setMapError('');
+
+    let map: maplibregl.Map;
+    try {
+      map = new maplibregl.Map({
+        container: containerRef.current,
+        style: MAP_STYLE,
+        center: [30, 25],
+        zoom: 1.7,
+        attributionControl: { compact: true },
+      });
+    } catch (error) {
+      setMapStatus('failed');
+      setMapError(error instanceof Error ? error.message : 'The map could not be created.');
+      return;
+    }
 
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
@@ -185,6 +198,16 @@ export function AtlasMap({
     });
     popupRef.current = popup;
 
+    const handleMapError = (event: maplibregl.ErrorEvent) => {
+      setMapStatus('failed');
+      setMapError(event.error?.message || 'The basemap could not be loaded.');
+    };
+    const handleStyleData = () => {
+      if (map.isStyleLoaded()) setMapStatus((status) => status === 'failed' ? status : 'ready');
+    };
+    map.on('error', handleMapError);
+    map.on('styledata', handleStyleData);
+
     const clearHover = () => {
       if (hoverRef.current) {
         map.setFeatureState(hoverRef.current, { hover: false });
@@ -195,6 +218,8 @@ export function AtlasMap({
     };
 
     map.on('load', () => {
+      setMapStatus('ready');
+      setMapError('');
       // A1: globe projection + atmosphere.
       map.setProjection({ type: 'globe' });
       map.setSky({
@@ -428,7 +453,7 @@ export function AtlasMap({
       mapRef.current = null;
       hoverRef.current = null;
     };
-  }, []);
+  }, [retryKey]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -576,7 +601,36 @@ export function AtlasMap({
 
   return (
     <div className="relative h-[68vh] min-h-[560px] w-full">
-      <div className="h-full w-full" ref={containerRef} />
+      <div
+        aria-hidden={mapStatus !== 'ready'}
+        className="h-full w-full"
+        ref={containerRef}
+      />
+      {mapStatus !== 'ready' && (
+        <div
+          aria-live="assertive"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-[#06101a]/95 p-6 text-center"
+          role={mapStatus === 'failed' ? 'alert' : 'status'}
+        >
+          <div className="max-w-md rounded-2xl border border-white/10 bg-[#0b1724] p-6 shadow-2xl">
+            <p className="atlas-kicker">{mapStatus === 'failed' ? 'Map unavailable' : 'Loading map'}</p>
+            <p className="mt-3 text-sm text-slate-300">
+              {mapStatus === 'failed'
+                ? mapError || 'The basemap could not be loaded.'
+                : 'Loading basemap, labels, and atlas layers…'}
+            </p>
+            {mapStatus === 'failed' && (
+              <button
+                className="mt-5 rounded-full border border-cyan-300/40 bg-cyan-300/10 px-5 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/20 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                onClick={() => setRetryKey((key) => key + 1)}
+                type="button"
+              >
+                Retry map
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <MapLegend
         civilizations={civilizations.map((civilization) => ({
           id: civilization.id,

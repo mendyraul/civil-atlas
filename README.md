@@ -77,6 +77,35 @@ npm install
 npm run dev
 ```
 
+## Basemap configuration and licensing
+
+Set `NEXT_PUBLIC_MAP_STYLE_URL` to a public MapLibre Style Specification URL. It
+is a browser-visible, build-time Next.js setting; the style, tile, sprite, and
+glyph URLs it references must allow browser CORS requests. Docker Compose and
+Vercel default it to the checked-in `/map-styles/minimal.json`. Rebuild the
+frontend after changing it.
+
+The fallback style uses the public [OpenFreeMap](https://openfreemap.org/)
+vector-tile and glyph service and OpenStreetMap data. OpenFreeMap publishes its
+service under its terms and the map must continue to show **© OpenStreetMap
+contributors** with a link to the OSM copyright page. The style embeds this
+attribution and the UI deliberately retains MapLibre's attribution control.
+OpenFreeMap currently describes the public service as free with no API keys or
+request limits, but availability is not an SLA: review the provider's current
+terms and fair-use guidance before production traffic. Do not remove or obscure
+attribution, and do not configure a commercial or restricted style, tile,
+sprite, or glyph endpoint without confirming that its license covers the
+intended deployment and traffic volume.
+
+The fallback JSON is local, but its basemap tiles and glyphs are not. During
+offline development the globe receives the fallback land/background colors and
+Civil Atlas's local GeoJSON layers can still initialize, while water,
+boundaries, and labels require network access. Failed requests are reported in
+the accessible map status overlay and can be retried. For fully offline use,
+host licensed OpenMapTiles-compatible vector tiles and glyphs locally, update a
+copy of the style to those endpoints, preserve the source-data attribution, and
+point `NEXT_PUBLIC_MAP_STYLE_URL` at that style.
+
 ## Seed data
 
 The current seed spans roughly `600 BCE` to `1800 CE`, with `117 CE` as the

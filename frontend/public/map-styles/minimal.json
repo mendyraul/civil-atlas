@@ -1,0 +1,72 @@
+{
+  "version": 8,
+  "name": "Civil Atlas minimal fallback",
+  "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "land-background": {
+      "type": "geojson",
+      "data": {
+        "type": "Feature",
+        "properties": {},
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]]
+        }
+      }
+    },
+    "openmaptiles": {
+      "type": "vector",
+      "url": "https://tiles.openfreemap.org/planet",
+      "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap contributors</a>"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": { "background-color": "#06101a" }
+    },
+    {
+      "id": "land",
+      "type": "fill",
+      "source": "land-background",
+      "paint": { "fill-color": "#152535" }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "water",
+      "paint": { "fill-color": "#071522" }
+    },
+    {
+      "id": "boundary",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "boundary",
+      "filter": ["<=", ["get", "admin_level"], 4],
+      "paint": {
+        "line-color": "#708296",
+        "line-opacity": 0.38,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 1, 0.35, 7, 1]
+      }
+    },
+    {
+      "id": "label",
+      "type": "symbol",
+      "source": "openmaptiles",
+      "source-layer": "place",
+      "minzoom": 2,
+      "layout": {
+        "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 2, 10, 7, 14]
+      },
+      "paint": {
+        "text-color": "#c8d4df",
+        "text-halo-color": "#101e2b",
+        "text-halo-width": 1.2
+      }
+    }
+  ]
+}
