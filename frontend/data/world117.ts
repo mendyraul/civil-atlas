@@ -8,6 +8,7 @@ import type {
   Era,
   HistoricalEvent,
   HistoricalRelationship,
+  PolygonGeometry,
   ReviewStatus,
   SourceRecord,
   WorldPayload,
@@ -31,8 +32,8 @@ const source = (
   link,
 });
 
-const polygonToGeoJson = (polygon: [number, number][]) => ({
-  type: 'Polygon',
+const polygonToGeoJson = (polygon: [number, number][]): PolygonGeometry => ({
+  type: 'Polygon' as const,
   coordinates: [polygon.map(([longitude, latitude]) => [longitude, latitude])],
 });
 
@@ -1148,7 +1149,7 @@ const layers: CivilizationLayer[] = [
     displayOrder: 0,
     validFromYear: -247,
     validToYear: 224,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'parthian-empire')!.polygon),
+    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'parthian-empire')!.polygon!),
     geometryPlaceholder: 'Seed operational reading for Arsacid reach.',
     confidence: 'medium',
     reviewStatus: 'seeded',
@@ -1168,7 +1169,7 @@ const layers: CivilizationLayer[] = [
     displayOrder: 0,
     validFromYear: -1070,
     validToYear: 350,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'kingdom-of-kush')!.polygon),
+    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'kingdom-of-kush')!.polygon!),
     geometryPlaceholder: 'Seed operational reading for Kushite Nile control.',
     confidence: 'medium',
     reviewStatus: 'seeded',
@@ -1188,7 +1189,7 @@ const layers: CivilizationLayer[] = [
     displayOrder: 0,
     validFromYear: -100,
     validToYear: 940,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'aksumite-kingdom')!.polygon),
+    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'aksumite-kingdom')!.polygon!),
     geometryPlaceholder: 'Seed operational reading for Aksumite regional trade sphere.',
     confidence: 'medium',
     reviewStatus: 'seeded',
@@ -1208,7 +1209,7 @@ const layers: CivilizationLayer[] = [
     displayOrder: 0,
     validFromYear: -600,
     validToYear: 1697,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'maya-civilization')!.polygon),
+    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'maya-civilization')!.polygon!),
     geometryPlaceholder: 'Seed operational reading for Maya cultural extent.',
     confidence: 'medium',
     reviewStatus: 'needs_review',
@@ -1228,7 +1229,7 @@ const layers: CivilizationLayer[] = [
     displayOrder: 0,
     validFromYear: -100,
     validToYear: 250,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'satavahana-dynasty')!.polygon),
+    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'satavahana-dynasty')!.polygon!),
     geometryPlaceholder: 'Seed operational reading for Satavahana footprint.',
     confidence: 'medium',
     reviewStatus: 'seeded',

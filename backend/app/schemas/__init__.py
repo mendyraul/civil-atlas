@@ -1,4 +1,51 @@
-from pydantic import BaseModel, Field
+from math import isfinite
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field, model_validator
+
+
+Position = tuple[float, float]
+
+
+class GeoJSONGeometry(BaseModel):
+    """A validated RFC 7946 territorial geometry (longitude, latitude)."""
+
+    type: Literal["Polygon", "MultiPolygon"]
+    coordinates: Any
+
+    @model_validator(mode="after")
+    def validate_coordinates(self) -> "GeoJSONGeometry":
+        polygons = self.coordinates if self.type == "MultiPolygon" else [self.coordinates]
+        if not isinstance(polygons, list) or not polygons:
+            raise ValueError("geometry must contain at least one polygon")
+        for polygon in polygons:
+            if not isinstance(polygon, list) or not polygon:
+                raise ValueError("each polygon must contain an exterior ring")
+            for ring in polygon:
+                if not isinstance(ring, list) or len(ring) < 4:
+                    raise ValueError("each linear ring must contain at least four positions")
+                normalized: list[Position] = []
+                for position in ring:
+                    if not isinstance(position, (list, tuple)) or len(position) != 2:
+                        raise ValueError("positions must be [longitude, latitude] pairs")
+                    longitude, latitude = position
+                    if isinstance(longitude, bool) or isinstance(latitude, bool):
+                        raise ValueError("coordinates must be numbers")
+                    try:
+                        longitude, latitude = float(longitude), float(latitude)
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError("coordinates must be numbers") from exc
+                    if not isfinite(longitude) or not isfinite(latitude):
+                        raise ValueError("coordinates must be finite")
+                    if not -180 <= longitude <= 180 or not -90 <= latitude <= 90:
+                        raise ValueError(
+                            "positions use GeoJSON [longitude, latitude] order; longitude must be "
+                            "within [-180, 180] and latitude within [-90, 90]"
+                        )
+                    normalized.append((longitude, latitude))
+                if normalized[0] != normalized[-1]:
+                    raise ValueError("linear rings must be closed (first and last positions equal)")
+        return self
 
 
 class EvidenceRecord(BaseModel):
@@ -104,7 +151,29 @@ class ArtifactIngestRecordInput(BaseModel):
     claim_id: str | None = None
     layer_id: str | None = None
     create_derived_geometry: bool = False
+    geometry_json: GeoJSONGeometry | None = None
+    layer_type: str | None = None
+    variant_group: str | None = None
+    interpretation_label: str | None = None
+    interpretation_kind: str | None = None
+    is_primary: bool = False
+    display_order: int = 0
+    is_placeholder: bool = False
     metadata_json: dict[str, object] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_ingest_range_and_layer(self) -> "ArtifactIngestRecordInput":
+        if (
+            self.valid_from_year is not None
+            and self.valid_to_year is not None
+            and self.valid_from_year > self.valid_to_year
+        ):
+            raise ValueError("valid_from_year must be less than or equal to valid_to_year")
+        if self.geometry_json is not None and not self.layer_id:
+            raise ValueError("territorial geometry must identify its civilization layer")
+        if self.create_derived_geometry and (not self.layer_id or self.geometry_json is None):
+            raise ValueError("derived territorial geometry requires layer_id and geometry_json")
+        return self
 
 
 class ArtifactIngestRequest(BaseModel):
@@ -193,8 +262,9 @@ class CivilizationLayer(BaseModel):
     display_order: int = 0
     valid_from_year: int
     valid_to_year: int
-    geometry_json: dict[str, object] | None = None
+    geometry_json: GeoJSONGeometry
     geometry_placeholder: str | None = None
+    is_placeholder: bool = False
     confidence: str
     review_status: str
     source_note: str
@@ -202,6 +272,12 @@ class CivilizationLayer(BaseModel):
     updated_at: str
     source_record_ids: list[str]
     claim_ids: list[str]
+
+    @model_validator(mode="after")
+    def validate_valid_range(self) -> "CivilizationLayer":
+        if self.valid_from_year > self.valid_to_year:
+            raise ValueError("valid_from_year must be less than or equal to valid_to_year")
+        return self
 
 
 class HistoricalRelationship(BaseModel):
@@ -242,7 +318,9 @@ class Civilization(BaseModel):
     review_status: str
     source_notes: str
     status_badges: list[str]
-    polygon: list[tuple[float, float]]
+    # Kept only so legacy seed constructors can be migrated incrementally. It
+    # is never serialized; clients must render CivilizationLayer.geometry_json.
+    polygon: list[tuple[float, float]] = Field(default_factory=list, exclude=True)
     evidence: list[EvidenceRecord]
     source_record_ids: list[str] = []
     claim_ids: list[str] = []

@@ -9,6 +9,7 @@ from sqlalchemy import (
     String,
     Table,
     Text,
+    CheckConstraint,
 )
 
 metadata = MetaData()
@@ -44,13 +45,22 @@ civilization_layers = Table(
     Column("display_order", Integer, nullable=False, default=0),
     Column("valid_from_year", Integer, nullable=False),
     Column("valid_to_year", Integer, nullable=False),
-    Column("geometry_json", JSON, nullable=True),
+    Column(
+        "geometry_json",
+        JSON,
+        nullable=False,
+        comment="Authoritative GeoJSON Polygon or MultiPolygon for this interpretation layer.",
+    ),
     Column("geometry_placeholder", Text, nullable=True),
+    Column("is_placeholder", Integer, nullable=False, default=0),
     Column("confidence_level", String(64), nullable=False),
     Column("review_status", String(64), nullable=False),
     Column("source_note", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+    CheckConstraint("valid_from_year <= valid_to_year", name="ck_civilization_layers_valid_range"),
+    CheckConstraint("is_primary IN (0, 1)", name="ck_civilization_layers_is_primary"),
+    CheckConstraint("is_placeholder IN (0, 1)", name="ck_civilization_layers_is_placeholder"),
 )
 
 places = Table(
