@@ -735,6 +735,7 @@ def _build_layers() -> list[CivilizationLayer]:
                     valid_to_year=int(spec.get("valid_to_year", civilization.end_year)),
                     geometry_json=_polygon_to_geojson(geometry),
                     geometry_placeholder=civilization.extent_note,
+                    is_placeholder=True,
                     confidence=str(spec.get("confidence", civilization.confidence)),
                     review_status=str(spec.get("review_status", civilization.review_status)),
                     source_note=str(spec.get("source_note", civilization.source_notes)),

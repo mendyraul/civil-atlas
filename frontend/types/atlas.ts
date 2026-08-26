@@ -96,9 +96,22 @@ export type Civilization = {
   reviewStatus: ReviewStatus;
   sourceNotes: string;
   statusBadges: StatusBadge[];
-  polygon: [number, number][];
+  /** @deprecated Seed-authoring aid only. Never render territorial graphics from this field. */
+  polygon?: GeoJSONPosition[];
   evidence: EvidenceRecord[];
 };
+
+export type GeoJSONPosition = [longitude: number, latitude: number];
+export type PolygonGeometry = {
+  type: 'Polygon';
+  /** Exterior ring followed by zero or more interior rings (holes). */
+  coordinates: GeoJSONPosition[][];
+};
+export type MultiPolygonGeometry = {
+  type: 'MultiPolygon';
+  coordinates: GeoJSONPosition[][][];
+};
+export type TerritorialGeometry = PolygonGeometry | MultiPolygonGeometry;
 
 export type AtlasNode = {
   id: string;
@@ -156,11 +169,9 @@ export type CivilizationLayer = {
   displayOrder: number;
   validFromYear: number;
   validToYear: number;
-  geometryJson?: {
-    type: string;
-    coordinates: number[][][];
-  };
+  geometryJson: TerritorialGeometry;
   geometryPlaceholder?: string;
+  isPlaceholder?: boolean;
   confidence: Confidence;
   reviewStatus: ReviewStatus;
   sourceNote: string;

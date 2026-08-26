@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import maplibregl, { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
-import type { AtlasNode, AtlasRoute, Civilization } from '../../types/atlas';
+import type { AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
 import { MapLegend } from './MapLegend';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 type AtlasMapProps = {
   civilizations: Civilization[];
+  civilizationLayers: CivilizationLayer[];
   evidenceIds: string[];
   nodes: AtlasNode[];
   routes: AtlasRoute[];
@@ -26,23 +27,57 @@ type AtlasMapProps = {
 
 type HoverRef = { source: string; id: string } | null;
 
-function polygonFeatureCollection(items: Civilization[]) {
+const CONFIDENCE_OPACITY = { low: 0.11, medium: 0.17, medium_high: 0.23, high: 0.29 } as const;
+
+function layerFeatureCollection(items: CivilizationLayer[], civilizations: Civilization[]) {
+  const civilizationById = new Map(civilizations.map((item) => [item.id, item]));
   return {
     type: 'FeatureCollection' as const,
-    features: items.map((civilization) => ({
+    features: [...items]
+      .sort((a, b) => a.displayOrder - b.displayOrder || Number(b.isPrimary) - Number(a.isPrimary))
+      .flatMap((layer) => {
+      const civilization = civilizationById.get(layer.civilizationId);
+      if (!civilization) return [];
+      return [{
       type: 'Feature' as const,
-      id: civilization.id,
+      id: layer.id,
       properties: {
-        id: civilization.id,
-        label: civilization.label,
+        id: layer.id,
+        civilizationId: civilization.id,
+        label: layer.interpretationLabel || layer.name,
         color: civilization.color,
+        layerType: layer.layerType,
+        isPrimary: layer.isPrimary,
+        displayOrder: layer.displayOrder,
+        confidence: layer.confidence,
+        opacity: CONFIDENCE_OPACITY[layer.confidence],
+        variantGroup: layer.variantGroup || '',
+        isPlaceholder: layer.isPlaceholder ?? Boolean(layer.geometryPlaceholder),
       },
-      geometry: {
-        type: 'Polygon' as const,
-        coordinates: [[...civilization.polygon]],
-      },
-    })),
+      geometry: layer.geometryJson,
+    }];
+    }),
   };
+}
+
+function geometryPositions(geometry: TerritorialGeometry): GeoJSONPosition[] {
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  return polygons.flatMap((polygon) => polygon.flatMap((ring) => ring));
+}
+
+/** Unwrap longitudes around the first point so dateline features get local bounds. */
+function antimeridianBounds(geometries: TerritorialGeometry[]): LngLatBounds | undefined {
+  const positions = geometries.flatMap(geometryPositions);
+  if (!positions.length) return undefined;
+  const anchor = positions[0][0];
+  const unwrap = ([longitude, latitude]: GeoJSONPosition): GeoJSONPosition => {
+    let adjusted = longitude;
+    while (adjusted - anchor > 180) adjusted -= 360;
+    while (adjusted - anchor < -180) adjusted += 360;
+    return [adjusted, latitude];
+  };
+  const first = unwrap(positions[0]);
+  return positions.slice(1).reduce((bounds, position) => bounds.extend(unwrap(position)), new LngLatBounds(first, first));
 }
 
 function nodeFeatureCollection(items: AtlasNode[]) {
@@ -90,9 +125,9 @@ function fillOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecif
     'case',
     ['boolean', ['feature-state', 'hover'], false],
     0.34,
-    ['==', ['get', 'id'], target],
-    0.28,
-    target.length > 0 ? 0.08 : 0.2,
+    ['==', ['get', 'civilizationId'], target],
+    ['min', 0.38, ['+', ['get', 'opacity'], 0.08]],
+    target.length > 0 ? ['*', ['get', 'opacity'], 0.48] : ['get', 'opacity'],
   ];
 }
 
@@ -102,9 +137,9 @@ function lineWidthExpression(selectedId?: string): maplibregl.ExpressionSpecific
     ['linear'],
     ['zoom'],
     1,
-    ['case', ['==', ['get', 'id'], selectedId ?? ''], 2.4, 0.7],
+    ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 2.4, ['case', ['get', 'isPrimary'], 1.15, 0.7]],
     5,
-    ['case', ['==', ['get', 'id'], selectedId ?? ''], 3.6, 1.1],
+    ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 3.6, ['case', ['get', 'isPrimary'], 1.8, 1.1]],
   ];
 }
 
@@ -114,7 +149,7 @@ function lineOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecif
     'case',
     ['boolean', ['feature-state', 'hover'], false],
     0.72,
-    ['==', ['get', 'id'], target],
+    ['==', ['get', 'civilizationId'], target],
     0.64,
     target.length > 0 ? 0.12 : 0.28,
   ];
@@ -122,6 +157,7 @@ function lineOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecif
 
 export function AtlasMap({
   civilizations,
+  civilizationLayers,
   evidenceIds,
   nodes,
   routes,
@@ -156,8 +192,8 @@ export function AtlasMap({
   };
 
   const polygonData = useMemo(
-    () => polygonFeatureCollection(civilizations),
-    [civilizations],
+    () => layerFeatureCollection(civilizationLayers, civilizations),
+    [civilizationLayers, civilizations],
   );
   const pointData = useMemo(() => nodeFeatureCollection(nodes), [nodes]);
   const routeData = useMemo(() => routeFeatureCollection(routes), [routes]);
@@ -255,13 +291,13 @@ export function AtlasMap({
             ['linear'],
             ['zoom'],
             1,
-            ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 7],
+            ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 12, 7],
             5,
-            ['case', ['==', ['get', 'id'], selectedId ?? ''], 18, 10],
+            ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 18, 10],
           ],
           'line-opacity': [
             'case',
-            ['==', ['get', 'id'], selectedId ?? ''],
+            ['==', ['get', 'civilizationId'], selectedId ?? ''],
             0.18,
             0.1,
           ],
@@ -281,6 +317,31 @@ export function AtlasMap({
         },
       });
 
+      // Schematic geometry gets an unmistakable diagonal hatch overlay. It is
+      // intentionally independent of confidence and interpretation styling.
+      const patternCanvas = document.createElement('canvas');
+      patternCanvas.width = 16;
+      patternCanvas.height = 16;
+      const context = patternCanvas.getContext('2d');
+      if (context) {
+        context.strokeStyle = 'rgba(255,255,255,0.72)';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.moveTo(-4, 16);
+        context.lineTo(16, -4);
+        context.moveTo(4, 20);
+        context.lineTo(20, 4);
+        context.stroke();
+        map.addImage('schematic-hatch', context.getImageData(0, 0, 16, 16));
+        map.addLayer({
+          id: 'civilizations-placeholder-hatch',
+          type: 'fill',
+          source: 'civilizations',
+          filter: ['==', ['get', 'isPlaceholder'], true],
+          paint: { 'fill-pattern': 'schematic-hatch', 'fill-opacity': 0.48 },
+        });
+      }
+
       map.addLayer({
         id: 'civilizations-line',
         type: 'line',
@@ -291,6 +352,12 @@ export function AtlasMap({
           'line-width': lineWidthExpression(selectedId),
           'line-opacity': lineOpacityExpression(selectedId),
           'line-blur': 0.6,
+          'line-dasharray': [
+            'match', ['get', 'layerType'],
+            ['influence_zone', 'cultural_extent', 'trade_network'], ['literal', [3, 2]],
+            ['contested_zone', 'source_reported_extent'], ['literal', [1.2, 1.4]],
+            ['literal', [1, 1]],
+          ],
           'line-opacity-transition': { duration: 450, delay: 0 },
         },
       });
@@ -369,7 +436,7 @@ export function AtlasMap({
         map.queryRenderedFeatures(event.point, { layers: [layerId] })[0]?.properties?.id;
 
       map.on('click', 'civilizations-fill', (event) => {
-        const id = asId(event, 'civilizations-fill');
+        const id = map.queryRenderedFeatures(event.point, { layers: ['civilizations-fill'] })[0]?.properties?.civilizationId;
         if (typeof id === 'string') handlersRef.current.onCivilizationSelect(id);
       });
 
@@ -394,14 +461,18 @@ export function AtlasMap({
       hoverLayers.forEach((layerId) => {
         map.on('mousemove', layerId, (event) => {
           const feature = event.features?.[0];
-          const id = feature?.properties?.id;
+          const id = layerId === 'civilizations-fill'
+            ? feature?.properties?.civilizationId
+            : feature?.properties?.id;
           if (typeof id !== 'string') return;
 
           const source = sourceForLayer[layerId];
           if (hoverRef.current && (hoverRef.current.id !== id || hoverRef.current.source !== source)) {
             map.setFeatureState(hoverRef.current, { hover: false });
           }
-          hoverRef.current = { source, id };
+          const featureStateId = feature?.properties?.id;
+          if (typeof featureStateId !== 'string') return;
+          hoverRef.current = { source, id: featureStateId };
           map.setFeatureState(hoverRef.current, { hover: true });
           map.getCanvas().style.cursor = 'pointer';
 
@@ -477,13 +548,13 @@ export function AtlasMap({
       ['linear'],
       ['zoom'],
       1,
-      ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 7],
+      ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 12, 7],
       5,
-      ['case', ['==', ['get', 'id'], selectedId ?? ''], 18, 10],
+      ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 18, 10],
     ]);
     map.setPaintProperty('civilizations-outline-glow', 'line-opacity', [
       'case',
-      ['==', ['get', 'id'], selectedId ?? ''],
+      ['==', ['get', 'civilizationId'], selectedId ?? ''],
       0.18,
       0.1,
     ]);
@@ -499,12 +570,13 @@ export function AtlasMap({
     const node = nodes.find((item) => item.id === selectedId);
     const route = routes.find((item) => item.id === selectedId);
 
-    if (civilization && civilization.polygon.length > 0) {
-      const bounds = civilization.polygon.reduce(
-        (acc, coordinate) => acc.extend(coordinate),
-        new LngLatBounds(civilization.polygon[0], civilization.polygon[0]),
+    if (civilization) {
+      const bounds = antimeridianBounds(
+        civilizationLayers
+          .filter((layer) => layer.civilizationId === civilization.id)
+          .map((layer) => layer.geometryJson),
       );
-      map.fitBounds(bounds, { padding: 96, maxZoom: 5, duration: 900 });
+      if (bounds) map.fitBounds(bounds, { padding: 96, maxZoom: 5, duration: 900 });
     } else if (route && route.path.length > 0) {
       const bounds = route.path.reduce(
         (acc, coordinate) => acc.extend(coordinate),
@@ -520,13 +592,16 @@ export function AtlasMap({
     }
 
     lastFlownRef.current = selectedId;
-  }, [selectedId, civilizations, nodes, routes]);
+  }, [selectedId, civilizations, civilizationLayers, nodes, routes]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
     map.setLayoutProperty('civilizations-outline-glow', 'visibility', showExtents ? 'visible' : 'none');
     map.setLayoutProperty('civilizations-fill', 'visibility', showExtents ? 'visible' : 'none');
+    if (map.getLayer('civilizations-placeholder-hatch')) {
+      map.setLayoutProperty('civilizations-placeholder-hatch', 'visibility', showExtents ? 'visible' : 'none');
+    }
     map.setLayoutProperty('civilizations-line', 'visibility', showExtents ? 'visible' : 'none');
   }, [showExtents]);
 

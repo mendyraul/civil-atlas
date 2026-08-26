@@ -325,6 +325,9 @@ export function AtlasClient() {
           >
             <LazyAtlasMap
               civilizations={visibleWorld.civilizations}
+              civilizationLayers={visibleWorld.layers.filter((layer) =>
+                visibleWorld.civilizations.some((item) => item.id === layer.civilizationId),
+              )}
               evidenceIds={highlightedIds}
               nodes={visibleWorld.nodes}
               routes={visibleWorld.routes}
