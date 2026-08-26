@@ -1,3 +1,9 @@
+"""World 117 demo import fixture.
+
+This module contains source material only. Runtime API code must query the
+repository; use ``app.seed.import_world117`` to validate and import this fixture.
+"""
+
 from app.schemas import (
     AtlasNode,
     AtlasRoute,

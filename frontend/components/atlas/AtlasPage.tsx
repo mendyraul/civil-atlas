@@ -17,7 +17,7 @@ type LayerVisibility = {
 type AtlasPageProps = {
   year: number;
   zoom: number;
-  backendStatus: 'seed' | 'live';
+  backendStatus: 'live' | 'demo' | 'loading' | 'stale' | 'unavailable';
   confidenceCounts: Record<Confidence, number>;
   detailWorld: WorldPayload;
   eras: Era[];
@@ -109,7 +109,7 @@ export function AtlasPage({
             <div className="rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Data channel</p>
               <p className="mt-3 text-xl font-semibold text-white">
-                {backendStatus === 'live' ? 'FastAPI live' : 'Seed fallback'}
+                {{ live: 'Database live', demo: 'Demo snapshot', loading: 'Loading database', stale: 'Database stale', unavailable: 'Database unavailable' }[backendStatus]}
               </p>
             </div>
           </div>
