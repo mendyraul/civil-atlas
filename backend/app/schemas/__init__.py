@@ -46,6 +46,66 @@ class GeoJSONGeometry(BaseModel):
                 if normalized[0] != normalized[-1]:
                     raise ValueError("linear rings must be closed (first and last positions equal)")
         return self
+class LearningQuestion(BaseModel):
+    id: str
+    activity_id: str
+    question_type: Literal["map_identification", "chronological_order", "source_analysis", "short_explanation"]
+    prompt: str
+    options: list[str] = Field(default_factory=list)
+    evidence_required: bool = True
+    claim_id: str
+    source_id: str
+
+
+class LearningActivity(BaseModel):
+    id: str
+    lesson_id: str
+    activity_type: Literal["map_identification", "chronological_order", "source_analysis", "compare_contrast", "short_explanation"]
+    title: str
+    instructions: str
+    questions: list[LearningQuestion] = Field(default_factory=list)
+
+
+class Lesson(BaseModel):
+    id: str
+    slug: str
+    title: str
+    summary: str
+    activities: list[LearningActivity] = Field(default_factory=list)
+
+
+class AttemptRequest(BaseModel):
+    question_id: str
+    response: str | list[str]
+    visible_evidence: str = ""
+    storage_mode: Literal["none", "local", "account"] = "none"
+    consent: bool = False
+    learner_id: str | None = None
+
+
+class AttemptFeedback(BaseModel):
+    correct: bool
+    score: float
+    message: str
+    claim_id: str
+    claim_url: str
+    source_id: str
+    source_url: str
+    persisted: bool = False
+
+
+class Mastery(BaseModel):
+    learner_key: str
+    skill: str
+    level: float
+
+
+class Progress(BaseModel):
+    learner_key: str
+    lesson_id: str
+    completed_activity_ids: list[str] = Field(default_factory=list)
+    last_question_id: str | None = None
+    storage_mode: Literal["local", "account"]
 
 
 class EvidenceRecord(BaseModel):

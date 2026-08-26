@@ -18,6 +18,9 @@ from app.schemas import (
     HistoricalEvent,
     HistoricalRelationship,
     ImportJob,
+    AttemptFeedback,
+    AttemptRequest,
+    Lesson,
     Place,
     ReviewAssignment,
     ReviewDecision,
@@ -45,6 +48,8 @@ from app.services.atlas import (
     get_world, list_entities,
 )
 from app.services.ingest import build_ingest_plan
+from app.services.learning import LESSONS, grade_attempt
+from app.seed.catalog import ATLAS_NODES, ATLAS_ROUTES, CIVILIZATIONS, HISTORICAL_EVENTS, SOURCE_RECORDS
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
@@ -110,6 +115,29 @@ def search_catalog(
     facets = {name: sorted({str(record[name]) for record in records if record.get(name)}) for name in ("kind", "confidence", "review_status", "polity_type")}
     offset = (page - 1) * page_size
     return {"items": records[offset:offset + page_size], "total": len(records), "page": page, "page_size": page_size, "facets": facets}
+
+
+@router.get("/lessons", response_model=list[Lesson], tags=["learning"])
+def get_lessons() -> list[Lesson]:
+    return LESSONS
+
+
+@router.get("/lessons/{slug}", response_model=Lesson, tags=["learning"])
+def get_lesson(slug: str) -> Lesson:
+    lesson = next((item for item in LESSONS if item.slug == slug), None)
+    if lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson not found.")
+    return lesson
+
+
+@router.post("/attempts", response_model=AttemptFeedback, tags=["learning"])
+def submit_attempt(payload: AttemptRequest) -> AttemptFeedback:
+    if payload.storage_mode == "account" and not payload.consent:
+        raise HTTPException(status_code=422, detail="Clear consent is required before server progress is stored.")
+    try:
+        return grade_attempt(payload)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Question not found.") from error
 
 
 @router.get("/world/{year}", response_model=WorldPayload)

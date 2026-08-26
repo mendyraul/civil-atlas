@@ -708,9 +708,10 @@ export function AtlasMap({
   }, [selectedId, civilizations, civilizationLayers, nodes, routes]);
 
   return (
-    <div className="relative h-[68vh] min-h-[560px] w-full">
+    <div className="relative h-[68vh] min-h-[560px] w-full" role="group" aria-label="Interactive historical map. Use Tab to reach map controls and arrow keys to pan.">
       <div
         aria-hidden={mapStatus !== 'ready'}
+        aria-label={`${civilizations.length} polity extents, ${nodes.length} places, and ${routes.length} routes are active.`}
         className="h-full w-full"
         ref={containerRef}
       />
