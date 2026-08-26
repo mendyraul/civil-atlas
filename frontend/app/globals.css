@@ -23,6 +23,14 @@ body {
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
 
+:focus-visible { outline: 3px solid #f6c762; outline-offset: 3px; }
+.skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 9999; border-radius: .5rem; background: #fff; color: #07111b; padding: .75rem 1rem; }
+.skip-link:focus { top: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
 .atlas-panel {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: var(--panel);

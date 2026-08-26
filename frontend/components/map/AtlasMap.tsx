@@ -575,8 +575,8 @@ export function AtlasMap({
   }, [evidenceIds, nodes, showEvidence]);
 
   return (
-    <div className="relative h-[68vh] min-h-[560px] w-full">
-      <div className="h-full w-full" ref={containerRef} />
+    <div className="relative h-[68vh] min-h-[560px] w-full" role="group" aria-label="Interactive historical map. Use Tab to reach map controls and arrow keys to pan.">
+      <div className="h-full w-full" ref={containerRef} aria-label={`${civilizations.length} polity extents, ${nodes.length} places, and ${routes.length} routes are active.`} />
       <MapLegend
         civilizations={civilizations.map((civilization) => ({
           id: civilization.id,

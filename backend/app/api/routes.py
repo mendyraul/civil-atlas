@@ -17,6 +17,9 @@ from app.schemas import (
     HistoricalEvent,
     HistoricalRelationship,
     ImportJob,
+    AttemptFeedback,
+    AttemptRequest,
+    Lesson,
     Place,
     ReviewAssignment,
     ReviewDecision,
@@ -57,6 +60,7 @@ from app.services.atlas import (
     get_world,
 )
 from app.services.ingest import build_ingest_plan
+from app.services.learning import LESSONS, grade_attempt
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
@@ -78,6 +82,29 @@ def _validate_zoom(zoom: str) -> str:
             detail="Zoom must be one of: world, regional, local.",
         )
     return zoom
+
+
+@router.get("/lessons", response_model=list[Lesson], tags=["learning"])
+def get_lessons() -> list[Lesson]:
+    return LESSONS
+
+
+@router.get("/lessons/{slug}", response_model=Lesson, tags=["learning"])
+def get_lesson(slug: str) -> Lesson:
+    lesson = next((item for item in LESSONS if item.slug == slug), None)
+    if lesson is None:
+        raise HTTPException(status_code=404, detail="Lesson not found.")
+    return lesson
+
+
+@router.post("/attempts", response_model=AttemptFeedback, tags=["learning"])
+def submit_attempt(payload: AttemptRequest) -> AttemptFeedback:
+    if payload.storage_mode == "account" and not payload.consent:
+        raise HTTPException(status_code=422, detail="Clear consent is required before server progress is stored.")
+    try:
+        return grade_attempt(payload)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Question not found.") from error
 
 
 @router.get("/world/{year}", response_model=WorldPayload)

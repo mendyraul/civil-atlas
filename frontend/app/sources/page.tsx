@@ -11,7 +11,7 @@ export default async function SourcesPage() {
     >
       <section className="grid gap-4 lg:grid-cols-2">
         {sources.map((source) => (
-          <article className="atlas-panel rounded-[24px] p-5" key={source.id}>
+          <article className="atlas-panel scroll-mt-4 rounded-[24px] p-5" id={source.id} key={source.id}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-[--muted]">

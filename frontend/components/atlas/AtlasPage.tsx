@@ -183,6 +183,11 @@ export function AtlasPage({
             </div>
           </div>
           <div className="relative">{map}</div>
+          <details className="border-t border-white/10 p-5" open>
+            <summary className="cursor-pointer font-semibold text-cyan-200">Map information as a table</summary>
+            <p className="mt-2 text-sm text-slate-300" aria-live="polite">Active layers: {layers.extents ? 'polity extents, ' : ''}{layers.nodes ? 'places, ' : ''}{layers.routes ? 'routes, ' : ''}{layers.sources ? 'evidence' : ''}. Symbols use outlines, dashed routes, and point shapes in addition to color.</p>
+            <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Visible polity extent descriptions</caption><thead><tr><th className="p-2">Polity</th><th className="p-2">Dates</th><th className="p-2">Narrative extent</th><th className="p-2">Evidence</th></tr></thead><tbody>{world.civilizations.map((item) => <tr className="border-t border-white/10" key={item.id}><th scope="row" className="p-2">{item.label}</th><td className="p-2">{formatYear(item.startYear)}–{formatYear(item.endYear)}</td><td className="p-2">{item.extentNote}</td><td className="p-2">{item.confidence.replace('_', ' ')}, {item.reviewStatus.replace('_', ' ')}</td></tr>)}</tbody></table></div>
+          </details>
         </section>
 
         <DetailPanel

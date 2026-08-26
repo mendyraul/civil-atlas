@@ -159,6 +159,10 @@ export function AtlasClient() {
   }, [isPlaying]);
 
   function togglePlay() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setIsPlaying(false);
+      return;
+    }
     setIsPlaying((current) => {
       // Restart from the beginning if we're paused at the end of the timeline.
       if (!current && year >= YEAR_MAX) {

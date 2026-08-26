@@ -262,3 +262,73 @@ revision_records = Table(
     Column("review_decision_id", String(64), nullable=True),
     Column("created_at", DateTime(timezone=True), nullable=False),
 )
+
+# Learning records deliberately reference claims but never live inside the
+# historical-claims tables. This keeps learner state and scholarly assertions
+# independently reviewable, exportable, and deletable.
+lessons = Table(
+    "lessons", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("slug", String(255), nullable=False, unique=True),
+    Column("title", String(255), nullable=False),
+    Column("summary", Text, nullable=False),
+    Column("published", Integer, nullable=False, default=0),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+activities = Table(
+    "activities", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("lesson_id", ForeignKey("lessons.id"), nullable=False),
+    Column("activity_type", String(64), nullable=False),
+    Column("title", String(255), nullable=False),
+    Column("instructions", Text, nullable=False),
+    Column("display_order", Integer, nullable=False),
+)
+
+questions = Table(
+    "questions", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("activity_id", ForeignKey("activities.id"), nullable=False),
+    Column("question_type", String(64), nullable=False),
+    Column("prompt", Text, nullable=False),
+    Column("response_config", JSON, nullable=False),
+    Column("feedback", Text, nullable=False),
+    Column("claim_id", ForeignKey("historical_claims.id"), nullable=False),
+    Column("source_id", ForeignKey("sources.id"), nullable=False),
+)
+
+attempts = Table(
+    "learning_attempts", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("question_id", ForeignKey("questions.id"), nullable=False),
+    Column("learner_id", String(128), nullable=True),
+    Column("anonymous_session_id", String(128), nullable=True),
+    Column("response", JSON, nullable=False),
+    Column("score", Numeric(5, 4), nullable=False),
+    Column("feedback", Text, nullable=False),
+    Column("consent_recorded_at", DateTime(timezone=True), nullable=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+mastery = Table(
+    "learning_mastery", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("learner_key", String(128), nullable=False),
+    Column("skill", String(128), nullable=False),
+    Column("level", Numeric(5, 4), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+progress = Table(
+    "learning_progress", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("learner_key", String(128), nullable=False),
+    Column("lesson_id", ForeignKey("lessons.id"), nullable=False),
+    Column("completed_activity_ids", JSON, nullable=False),
+    Column("last_question_id", String(64), nullable=True),
+    Column("storage_mode", String(32), nullable=False),
+    Column("consent_recorded_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
