@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router, router as world_router
 from app.core.config import settings
+from app.services.atlas import get_data_version
 
 app = FastAPI(
     title=settings.app_name,
@@ -20,8 +21,13 @@ app.add_middleware(
 
 
 @app.get("/health")
-def healthcheck() -> dict[str, str]:
-    return {"status": "ok"}
+def healthcheck() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "database": "available",
+        "data": get_data_version(),
+        "api_version": settings.app_version,
+    }
 
 
 app.include_router(world_router, prefix="/api/v1")

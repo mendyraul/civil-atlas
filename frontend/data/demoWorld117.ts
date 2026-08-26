@@ -1,3 +1,4 @@
+// DEMO SNAPSHOT ONLY: loaded exclusively when NEXT_PUBLIC_DEMO_MODE=true.
 import { civilizationColor } from '../lib/palette';
 import type {
   AtlasNode,

@@ -29,6 +29,7 @@ class Settings(BaseModel):
         "Backend API for the Civil Atlas historical civilization MVP."
     )
     cors_origins: list[str] = ["http://localhost:3000"]
+    database_url: str = "postgresql+psycopg://civil_atlas:civil_atlas@localhost:5432/civil_atlas"
     storage: StorageContract = StorageContract()
 
 
@@ -50,6 +51,9 @@ def _int_from_env(name: str, default: int) -> int:
 
 
 settings = Settings(
+    database_url=os.getenv(
+        "DATABASE_URL", Settings.model_fields["database_url"].default
+    ).replace("postgresql://", "postgresql+psycopg://", 1),
     storage=StorageContract(
         access_key_id=os.getenv(
             "S3_ACCESS_KEY_ID", StorageContract.model_fields["access_key_id"].default

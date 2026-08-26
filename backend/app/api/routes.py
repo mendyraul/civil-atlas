@@ -29,32 +29,8 @@ from app.schemas import (
     WorldPayload,
 )
 from app.services.atlas import (
-    ATLAS_NODES,
-    ATLAS_ROUTES,
-    CIVILIZATION_EDGES,
-    CIVILIZATION_LAYERS,
-    CIVILIZATION_PLACES,
-    CIVILIZATIONS,
-    CIVILIZATIONS_BY_SLUG,
-    ERAS,
-    EVIDENCE_LINKS,
-    HISTORICAL_CLAIMS,
-    HISTORICAL_EVENTS,
-    HISTORICAL_RELATIONSHIPS,
-    IMPORT_JOBS,
-    PLACES,
-    PLACES_BY_SLUG,
-    REVIEW_ASSIGNMENTS,
-    REVIEW_DECISIONS,
-    REVISION_RECORDS,
-    SOURCES,
-    SOURCE_ARTIFACTS,
-    SOURCE_RECORDS,
-    YEAR_MAX,
-    YEAR_MIN,
-    get_globe,
-    get_places,
-    get_world,
+    YEAR_MAX, YEAR_MIN, get_data_version, get_entity, get_globe, get_places,
+    get_world, list_entities,
 )
 from app.services.ingest import build_ingest_plan
 
@@ -87,72 +63,72 @@ def get_world_by_year(year: int) -> WorldPayload:
 
 @router.get("/civilizations", response_model=list[Civilization])
 def get_civilizations_v1() -> list[Civilization]:
-    return CIVILIZATIONS
+    return list_entities("civilizations", Civilization)
 
 
 @router.get("/civilization-layers", response_model=list[CivilizationLayer])
 def get_civilization_layers_v1() -> list[CivilizationLayer]:
-    return CIVILIZATION_LAYERS
+    return list_entities("layers", CivilizationLayer)
 
 
 @router.get("/places", response_model=list[AtlasNode])
 def get_atlas_places_v1() -> list[AtlasNode]:
-    return ATLAS_NODES
+    return list_entities("nodes", AtlasNode)
 
 
 @router.get("/routes", response_model=list[AtlasRoute])
 def get_routes_v1() -> list[AtlasRoute]:
-    return ATLAS_ROUTES
+    return list_entities("routes", AtlasRoute)
 
 
 @router.get("/sources", response_model=list[SourceRecord])
 def get_sources_v1() -> list[SourceRecord]:
-    return SOURCE_RECORDS
+    return list_entities("source_records", SourceRecord)
 
 
 @router.get("/eras", response_model=list[Era])
 def get_eras_v1() -> list[Era]:
-    return ERAS
+    return list_entities("eras", Era)
 
 
 @router.get("/events", response_model=list[HistoricalEvent])
 def get_events_v1() -> list[HistoricalEvent]:
-    return HISTORICAL_EVENTS
+    return list_entities("events", HistoricalEvent)
 
 
 @router.get("/relationships", response_model=list[HistoricalRelationship])
 def get_relationships_v1() -> list[HistoricalRelationship]:
-    return HISTORICAL_RELATIONSHIPS
+    return list_entities("relationships", HistoricalRelationship)
 
 
 @router.get("/claims", response_model=list[HistoricalClaim])
 def get_claims_v1() -> list[HistoricalClaim]:
-    return HISTORICAL_CLAIMS
+    return list_entities("claims", HistoricalClaim)
 
 
 @router.get("/artifacts", response_model=list[SourceArtifact])
 def get_artifacts_v1() -> list[SourceArtifact]:
-    return SOURCE_ARTIFACTS
+    return list_entities("artifacts", SourceArtifact)
 
 
 @router.get("/import-jobs", response_model=list[ImportJob])
 def get_import_jobs_v1() -> list[ImportJob]:
-    return IMPORT_JOBS
+    return list_entities("import_jobs", ImportJob)
 
 
 @router.get("/review-assignments", response_model=list[ReviewAssignment])
 def get_review_assignments_v1() -> list[ReviewAssignment]:
-    return REVIEW_ASSIGNMENTS
+    return list_entities("review_assignments", ReviewAssignment)
 
 
 @router.get("/review-decisions", response_model=list[ReviewDecision])
 def get_review_decisions_v1() -> list[ReviewDecision]:
-    return REVIEW_DECISIONS
+    return list_entities("review_decisions", ReviewDecision)
 
 
 @router.get("/revisions", response_model=list[RevisionRecord])
 def get_revisions_v1() -> list[RevisionRecord]:
-    return REVISION_RECORDS
+    return list_entities("revisions", RevisionRecord)
 
 
 @router.get("/storage-contract", response_model=StorageContractView)
@@ -166,18 +142,28 @@ def create_ingest_plan_v1(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
 
 
 @api_router.get("/health")
-def healthcheck() -> dict[str, str]:
-    return {"status": "ok"}
+def healthcheck() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "database": "available",
+        "data": get_data_version(),
+        "api_version": settings.app_version,
+    }
+
+
+@api_router.get("/data-version")
+def data_version() -> dict[str, object]:
+    return get_data_version()
 
 
 @api_router.get("/civilizations", response_model=list[Civilization])
 def get_civilizations() -> list[Civilization]:
-    return CIVILIZATIONS
+    return list_entities("civilizations", Civilization)
 
 
 @api_router.get("/civilizations/{slug}", response_model=Civilization)
 def get_civilization(slug: str) -> Civilization:
-    civilization = CIVILIZATIONS_BY_SLUG.get(slug)
+    civilization = get_entity("civilizations", slug, Civilization)
     if civilization is None:
         raise HTTPException(status_code=404, detail="Civilization not found.")
     return civilization
@@ -185,7 +171,7 @@ def get_civilization(slug: str) -> Civilization:
 
 @api_router.get("/civilization-layers", response_model=list[CivilizationLayer])
 def get_civilization_layers() -> list[CivilizationLayer]:
-    return CIVILIZATION_LAYERS
+    return list_entities("layers", CivilizationLayer)
 
 
 @api_router.get("/places", response_model=list[Place])
@@ -200,7 +186,7 @@ def list_places(
 
 @api_router.get("/places/{slug}", response_model=Place)
 def get_place(slug: str) -> Place:
-    place = PLACES_BY_SLUG.get(slug)
+    place = get_entity("places", slug, Place)
     if place is None:
         raise HTTPException(status_code=404, detail="Place not found.")
     return place
@@ -208,12 +194,12 @@ def get_place(slug: str) -> Place:
 
 @api_router.get("/civilization-places", response_model=list[CivilizationPlace])
 def get_civilization_places() -> list[CivilizationPlace]:
-    return CIVILIZATION_PLACES
+    return list_entities("civilization_places", CivilizationPlace)
 
 
 @api_router.get("/civilization-edges", response_model=list[CivilizationEdge])
 def get_civilization_edges() -> list[CivilizationEdge]:
-    return CIVILIZATION_EDGES
+    return list_entities("edges", CivilizationEdge)
 
 
 @api_router.get("/globe", response_model=GlobePayload)
@@ -226,47 +212,47 @@ def globe(
 
 @api_router.get("/sources", response_model=list[Source])
 def get_sources() -> list[Source]:
-    return SOURCES
+    return list_entities("sources", Source)
 
 
 @api_router.get("/eras", response_model=list[Era])
 def get_eras() -> list[Era]:
-    return ERAS
+    return list_entities("eras", Era)
 
 
 @api_router.get("/events", response_model=list[HistoricalEvent])
 def get_events() -> list[HistoricalEvent]:
-    return HISTORICAL_EVENTS
+    return list_entities("events", HistoricalEvent)
 
 
 @api_router.get("/relationships", response_model=list[HistoricalRelationship])
 def get_relationships() -> list[HistoricalRelationship]:
-    return HISTORICAL_RELATIONSHIPS
+    return list_entities("relationships", HistoricalRelationship)
 
 
 @api_router.get("/artifacts", response_model=list[SourceArtifact])
 def get_artifacts() -> list[SourceArtifact]:
-    return SOURCE_ARTIFACTS
+    return list_entities("artifacts", SourceArtifact)
 
 
 @api_router.get("/import-jobs", response_model=list[ImportJob])
 def get_import_jobs() -> list[ImportJob]:
-    return IMPORT_JOBS
+    return list_entities("import_jobs", ImportJob)
 
 
 @api_router.get("/review-assignments", response_model=list[ReviewAssignment])
 def get_review_assignments() -> list[ReviewAssignment]:
-    return REVIEW_ASSIGNMENTS
+    return list_entities("review_assignments", ReviewAssignment)
 
 
 @api_router.get("/review-decisions", response_model=list[ReviewDecision])
 def get_review_decisions() -> list[ReviewDecision]:
-    return REVIEW_DECISIONS
+    return list_entities("review_decisions", ReviewDecision)
 
 
 @api_router.get("/revisions", response_model=list[RevisionRecord])
 def get_revisions() -> list[RevisionRecord]:
-    return REVISION_RECORDS
+    return list_entities("revisions", RevisionRecord)
 
 
 @api_router.get("/storage-contract", response_model=StorageContractView)
@@ -286,14 +272,14 @@ def get_evidence(
 ) -> list[EvidenceLink]:
     return [
         link
-        for link in EVIDENCE_LINKS
+        for link in list_entities("evidence", EvidenceLink)
         if link.entity_type == entity_type and link.entity_id == entity_id
     ]
 
 
 @api_router.get("/claims", response_model=list[HistoricalClaim])
 def get_claims() -> list[HistoricalClaim]:
-    return HISTORICAL_CLAIMS
+    return list_entities("claims", HistoricalClaim)
 
 
 def _storage_contract_view() -> StorageContractView:

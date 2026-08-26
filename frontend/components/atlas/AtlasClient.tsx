@@ -1,10 +1,11 @@
 'use client';
 
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { world117 } from '../../data/world117';
+import { world117 as demoWorld117 } from '../../data/demoWorld117';
 import {
   API_BASE_URL,
   DEFAULT_YEAR,
+  DEMO_MODE,
   HAS_REMOTE_API,
   YEAR_MAX,
   YEAR_MIN,
@@ -26,6 +27,10 @@ type LayerVisibility = {
   routes: boolean;
   sources: boolean;
 };
+
+type DataState = 'live' | 'demo' | 'loading' | 'stale' | 'unavailable';
+
+const emptyWorld: WorldPayload = { year: DEFAULT_YEAR, civilizations: [], nodes: [], routes: [], layers: [], relationships: [], eras: [], events: [] };
 
 type FilterState = {
   confidence: Confidence[];
@@ -66,11 +71,11 @@ function layerTypeLabel(value: string) {
 }
 
 export function AtlasClient() {
-  const [baseWorld, setBaseWorld] = useState<WorldPayload>(world117);
+  const [baseWorld, setBaseWorld] = useState<WorldPayload>(DEMO_MODE ? demoWorld117 : emptyWorld);
   const [year, setYear] = useState(DEFAULT_YEAR);
   const [selectedId, setSelectedId] = useState<string>('roman-empire');
   const [zoom, setZoom] = useState(2.1);
-  const [backendStatus, setBackendStatus] = useState<'seed' | 'live'>('seed');
+  const [backendStatus, setBackendStatus] = useState<DataState>(DEMO_MODE ? 'demo' : 'loading');
   const [layers, setLayers] = useState<LayerVisibility>({
     extents: true,
     nodes: true,
@@ -82,27 +87,26 @@ export function AtlasClient() {
   const skipFirstUrlSyncRef = useRef(true);
 
   useEffect(() => {
-    if (!HAS_REMOTE_API) {
-      return;
-    }
+    if (DEMO_MODE) return;
+    if (!HAS_REMOTE_API) { setBackendStatus('unavailable'); return; }
 
     let cancelled = false;
 
     async function loadWorld() {
+      setBackendStatus((current) => current === 'live' ? 'live' : 'loading');
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/world/${DEFAULT_YEAR}`, {
-          cache: 'no-store',
-        });
-        if (!response.ok) {
-          return;
-        }
-        const payload = (await response.json()) as WorldPayload;
-        if (!cancelled) {
-          setBaseWorld(payload);
-          setBackendStatus('live');
-        }
+        const [worldResponse, healthResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/v1/world/${DEFAULT_YEAR}`, { cache: 'no-store' }),
+          fetch(`${API_BASE_URL}/api/health`, { cache: 'no-store' }),
+        ]);
+        if (!worldResponse.ok || !healthResponse.ok) throw new Error('API unavailable');
+        const payload = (await worldResponse.json()) as WorldPayload;
+        const health = (await healthResponse.json()) as { data?: { updated_at?: string } };
+        const updatedAt = health.data?.updated_at ? Date.parse(health.data.updated_at) : NaN;
+        const stale = Number.isFinite(updatedAt) && Date.now() - updatedAt > 24 * 60 * 60 * 1000;
+        if (!cancelled) { setBaseWorld(payload); setBackendStatus(stale ? 'stale' : 'live'); }
       } catch {
-        // Seed fallback is intentional for the MVP.
+        if (!cancelled) setBackendStatus((current) => current === 'live' || current === 'stale' ? 'stale' : 'unavailable');
       }
     }
 

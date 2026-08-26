@@ -6,7 +6,7 @@ import type {
   SourceRecord,
   WorldPayload,
 } from '../types/atlas';
-import { sourceCatalog, world117 } from '../data/world117';
+import { sourceCatalog, world117 as demoWorld117 } from '../data/demoWorld117';
 
 export const DEFAULT_YEAR = 117;
 export const YEAR_MIN = -600;
@@ -21,6 +21,7 @@ export const API_BASE_URL = (configuredApiBaseUrl || developmentFallbackApiBaseU
   '',
 );
 export const HAS_REMOTE_API = API_BASE_URL.length > 0;
+export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 export const EVENT_PROXIMITY_WINDOW = 40;
 
 function buildApiUrl(path: string) {
@@ -129,68 +130,37 @@ export function interpretationLabel(value?: string) {
   return value;
 }
 
-export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {
+async function fetchApi<T>(path: string): Promise<T> {
   if (!HAS_REMOTE_API) {
-    return filterWorldByYear(world117, year);
+    throw new Error('Civil Atlas API is not configured');
   }
+  const response = await fetch(buildApiUrl(path), { cache: 'no-store' });
+  if (!response.ok) throw new Error(`Civil Atlas API returned ${response.status}`);
+  return (await response.json()) as T;
+}
 
-  try {
-    const response = await fetch(buildApiUrl(`/api/v1/world/${year}`), {
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      return filterWorldByYear(world117, year);
-    }
-    return (await response.json()) as WorldPayload;
-  } catch {
-    return filterWorldByYear(world117, year);
-  }
+export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {
+  if (DEMO_MODE) return filterWorldByYear(demoWorld117, year);
+  return fetchApi<WorldPayload>(`/api/v1/world/${year}`);
 }
 
 export async function fetchCivilizations() {
-  if (!HAS_REMOTE_API) {
-    return world117.civilizations;
-  }
-
-  try {
-    const response = await fetch(buildApiUrl('/api/v1/civilizations'), {
-      cache: 'no-store',
-    });
-    if (!response.ok) return world117.civilizations;
-    return (await response.json()) as WorldPayload['civilizations'];
-  } catch {
-    return world117.civilizations;
-  }
+  if (DEMO_MODE) return demoWorld117.civilizations;
+  if (!HAS_REMOTE_API) return [];
+  try { return await fetchApi<WorldPayload['civilizations']>('/api/v1/civilizations'); }
+  catch { return []; }
 }
 
 export async function fetchPlaces() {
-  if (!HAS_REMOTE_API) {
-    return world117.nodes;
-  }
-
-  try {
-    const response = await fetch(buildApiUrl('/api/v1/places'), {
-      cache: 'no-store',
-    });
-    if (!response.ok) return world117.nodes;
-    return (await response.json()) as WorldPayload['nodes'];
-  } catch {
-    return world117.nodes;
-  }
+  if (DEMO_MODE) return demoWorld117.nodes;
+  if (!HAS_REMOTE_API) return [];
+  try { return await fetchApi<WorldPayload['nodes']>('/api/v1/places'); }
+  catch { return []; }
 }
 
 export async function fetchSources(): Promise<SourceRecord[]> {
-  if (!HAS_REMOTE_API) {
-    return sourceCatalog;
-  }
-
-  try {
-    const response = await fetch(buildApiUrl('/api/v1/sources'), {
-      cache: 'no-store',
-    });
-    if (!response.ok) return sourceCatalog;
-    return (await response.json()) as SourceRecord[];
-  } catch {
-    return sourceCatalog;
-  }
+  if (DEMO_MODE) return sourceCatalog;
+  if (!HAS_REMOTE_API) return [];
+  try { return await fetchApi<SourceRecord[]>('/api/v1/sources'); }
+  catch { return []; }
 }

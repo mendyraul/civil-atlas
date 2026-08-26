@@ -125,3 +125,10 @@ sources, claims, confidence levels, review status, and valid time ranges.
 - No PostGIS geometry columns yet
 - No persistence/write workflow yet; seed data still lives in code
 - The frontend is still optimized for the MVP atlas flow, not a full research UI
+# Data modes
+
+The API serves only validated repository data. Import the bundled, idempotent
+fixture with `python -m app.seed.import_world117` after applying the SQL
+migrations in `db/init`. The frontend never falls back to bundled knowledge in
+production. Set `NEXT_PUBLIC_DEMO_MODE=true` explicitly to use the clearly
+labeled World 117 demo snapshot without an API.
