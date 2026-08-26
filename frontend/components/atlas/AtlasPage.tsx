@@ -93,7 +93,7 @@ export function AtlasPage({
   const badges = ['Approximate', 'Source-reported', 'Needs review'] as const;
 
   return (
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col gap-5">
+    <main className="flex min-h-[calc(100vh-3rem)] flex-col gap-5">
       <section className="atlas-hero rounded-[32px] px-5 py-5 md:px-6">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/16 p-3">
           <div><p className="atlas-kicker">Experience</p><p className="mt-1 text-sm text-slate-300">Choose a curated path or keep every research control available.</p></div>
@@ -163,7 +163,7 @@ export function AtlasPage({
         </section>
       ))}
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
         <section className="flex min-h-0 flex-col gap-5">
           <ActiveCivilizationsPanel
             civilizations={world.civilizations}
@@ -230,7 +230,7 @@ export function AtlasPage({
           isFilteredOut={filterCount > 0 && isSelectedFeatureFilteredOut}
           world={detailWorld}
         />
-      </main>
+      </div>
 
       <TimelineControl
         eras={eras}
@@ -246,6 +246,6 @@ export function AtlasPage({
         onStep={onStep}
         onYearChange={onYearChange}
       />
-    </div>
+    </main>
   );
 }

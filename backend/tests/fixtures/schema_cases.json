@@ -1,0 +1,13 @@
+{
+  "temporal": [
+    {"id":"bce","valid_from_year":-550,"valid_to_year":-480},
+    {"id":"uncertain","valid_from_year":-525,"valid_to_year":-475,"certainty":"circa"},
+    {"id":"interpretation-a","variant_group":"frontier","valid_from_year":-500,"valid_to_year":-450},
+    {"id":"interpretation-b","variant_group":"frontier","valid_from_year":-490,"valid_to_year":-440}
+  ],
+  "geometry": [
+    {"id":"polygon-hole","type":"Polygon","coordinates":[[[0,0],[8,0],[8,8],[0,8],[0,0]],[[2,2],[2,3],[3,3],[3,2],[2,2]]]},
+    {"id":"multipolygon","type":"MultiPolygon","coordinates":[[[[10,0],[11,0],[11,1],[10,1],[10,0]]],[[[12,0],[13,0],[13,1],[12,1],[12,0]]]]},
+    {"id":"antimeridian","type":"Polygon","coordinates":[[[179,-10],[-179,-10],[-179,10],[179,10],[179,-10]]]}
+  ]
+}

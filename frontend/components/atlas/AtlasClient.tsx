@@ -18,8 +18,8 @@ import { AtlasPage } from './AtlasPage';
 import { SiteShell } from './SiteShell';
 
 const LazyAtlasMap = lazy(async () => {
-  const module = await import('../map/AtlasMap');
-  return { default: module.AtlasMap };
+  const atlasMapModule = await import('../map/AtlasMap');
+  return { default: atlasMapModule.AtlasMap };
 });
 
 type LayerVisibility = {
@@ -95,6 +95,7 @@ export function AtlasClient() {
   const skipFirstUrlSyncRef = useRef(true);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => { setReducedMotion(query.matches); if (query.matches) setIsPlaying(false); };
     update();
@@ -135,7 +136,8 @@ export function AtlasClient() {
   // Research mode: hydrate view state from the URL on load (shareable views).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const urlYear = Number(params.get('y'));
+    const yearParam = params.get('y');
+    const urlYear = yearParam === null ? NaN : Number(yearParam);
     if (Number.isFinite(urlYear) && urlYear >= YEAR_MIN && urlYear <= YEAR_MAX) {
       setYear(urlYear);
     }
@@ -143,7 +145,8 @@ export function AtlasClient() {
     if (urlSelected) {
       setSelectedId(urlSelected);
     }
-    const urlZoom = Number(params.get('z')); const longitude = Number(params.get('lng')); const latitude = Number(params.get('lat'));
+    const zoomParam = params.get('z'); const longitudeParam = params.get('lng'); const latitudeParam = params.get('lat');
+    const urlZoom = zoomParam === null ? NaN : Number(zoomParam); const longitude = longitudeParam === null ? NaN : Number(longitudeParam); const latitude = latitudeParam === null ? NaN : Number(latitudeParam);
     if (Number.isFinite(urlZoom)) setZoom(urlZoom);
     if (Number.isFinite(longitude) && Number.isFinite(latitude)) setCenter([longitude, latitude]);
     const encodedLayers = params.get('layers');

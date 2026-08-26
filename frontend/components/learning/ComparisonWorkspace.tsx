@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { world117 } from '../../data/world117';
+import { world117 } from '../../data/demoWorld117';
 import { formatYear } from '../../lib/atlas';
 
 const dimensions = ['Governance', 'Chronology', 'Territory', 'Economy', 'Religion', 'Evidence quality'] as const;

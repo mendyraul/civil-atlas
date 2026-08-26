@@ -777,10 +777,38 @@ def _build_relationships() -> list[HistoricalRelationship]:
 
 
 HISTORICAL_RELATIONSHIPS = _build_relationships()
+HISTORICAL_EVENTS: list[HistoricalEvent] = WORLD_117.events
 
 
 def _build_review_assignments() -> list[ReviewAssignment]:
-    assignments: list[ReviewAssignment] = []
+    assignments: list[ReviewAssignment] = [
+        ReviewAssignment(
+            id="bootstrap-reviewed-roman-existence",
+            entity_type="historical_claim",
+            entity_id="claim-roman-existence",
+            current_review_status="seeded",
+            target_review_status="reviewed",
+            assigned_reviewer="atlas-editorial",
+            assigned_by="rico",
+            priority="high",
+            due_at=SEED_REVIEW_DUE_AT,
+            notes="Bootstrap review of the Roman existence claim.",
+            created_at=SEED_UPDATED_AT,
+        ),
+        ReviewAssignment(
+            id="bootstrap-reviewed-han-existence",
+            entity_type="historical_claim",
+            entity_id="claim-han-existence",
+            current_review_status="seeded",
+            target_review_status="reviewed",
+            assigned_reviewer="atlas-editorial",
+            assigned_by="rico",
+            priority="high",
+            due_at=SEED_REVIEW_DUE_AT,
+            notes="Bootstrap review of the Han existence claim.",
+            created_at=SEED_UPDATED_AT,
+        ),
+    ]
 
     for claim in HISTORICAL_CLAIMS:
         if claim.review_status == "reviewed":
@@ -1015,7 +1043,6 @@ def _attach_links() -> tuple[list[Civilization], list[AtlasNode], list[AtlasRout
 
 CIVILIZATIONS, ATLAS_NODES, ATLAS_ROUTES = _attach_links()
 ERAS: list[Era] = WORLD_117.eras
-HISTORICAL_EVENTS: list[HistoricalEvent] = WORLD_117.events
 CIVILIZATIONS_BY_SLUG = {civilization.slug: civilization for civilization in CIVILIZATIONS}
 
 

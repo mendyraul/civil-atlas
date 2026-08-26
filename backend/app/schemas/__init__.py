@@ -223,6 +223,10 @@ class ArtifactIngestRecordInput(BaseModel):
 
     @model_validator(mode="after")
     def validate_ingest_range_and_layer(self) -> "ArtifactIngestRecordInput":
+        if self.byte_size <= 0:
+            raise ValueError("byte_size must be positive")
+        if not self.sha256.startswith("sha256:"):
+            raise ValueError("sha256 must use the sha256: prefix")
         if (
             self.valid_from_year is not None
             and self.valid_to_year is not None

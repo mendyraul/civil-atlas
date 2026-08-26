@@ -97,7 +97,7 @@ export function TimelineControl({
         <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'event')} type="button">Event →</button>
         <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'era')} type="button">Era →</button>
       </div>
-      <div className="relative mt-5 h-6" aria-hidden>
+      <div className="relative mt-5 h-6">
         {eras.map((era) => (
           <div
             className="absolute top-0 h-2 rounded-full bg-cyan-400/15"
@@ -127,6 +127,12 @@ export function TimelineControl({
         max={YEAR_MAX}
         min={YEAR_MIN}
         onChange={(event) => onYearChange(Number(event.target.value))}
+        onKeyDown={(event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          const delta = event.key === 'ArrowRight' ? 1 : -1;
+          onYearChange(Math.min(Math.max(year + delta, YEAR_MIN), YEAR_MAX));
+        }}
         step={1}
         type="range"
         value={year}

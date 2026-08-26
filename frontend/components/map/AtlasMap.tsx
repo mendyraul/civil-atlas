@@ -6,7 +6,12 @@ import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import type { AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
 import { MapLegend } from './MapLegend';
 
-const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || '/map-styles/minimal.json';
+const OFFLINE_MAP_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#07131f' } }],
+};
+const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || OFFLINE_MAP_STYLE;
 
 type AtlasMapProps = {
   initialCenter: [number, number];
@@ -206,7 +211,7 @@ function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
       ['case', ['==', ['get', 'civilizationId'], state.selectedId ?? ''], 18, 10],
     ]);
     map.setPaintProperty('civilizations-outline-glow', 'line-opacity', [
-      'case', ['==', ['get', 'id'], state.selectedId ?? ''], 0.18, 0.1,
+      'case', ['==', ['get', 'civilizationId'], state.selectedId ?? ''], 0.18, 0.1,
     ]);
   }
 
@@ -270,6 +275,7 @@ export function AtlasMap({
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [mapError, setMapError] = useState('');
   const [retryKey, setRetryKey] = useState(0);
+  const initialViewRef = useRef({ center: initialCenter, zoom: initialZoom });
 
   // Keep the latest callbacks in a ref so the map init effect can run exactly once.
   const handlersRef = useRef({
@@ -330,8 +336,8 @@ export function AtlasMap({
       map = new maplibregl.Map({
         container: containerRef.current,
         style: MAP_STYLE,
-        center: initialCenter,
-        zoom: initialZoom,
+        center: initialViewRef.current.center,
+        zoom: initialViewRef.current.zoom,
         attributionControl: { compact: true },
       });
     } catch (error) {
@@ -351,12 +357,15 @@ export function AtlasMap({
     });
     popupRef.current = popup;
 
-    const handleMapError = (event: maplibregl.ErrorEvent) => {
+    const handleMapError = (event?: maplibregl.ErrorEvent) => {
       setMapStatus('failed');
-      setMapError(event.error?.message || 'The basemap could not be loaded.');
+      setMapError(event?.error?.message || 'The basemap could not be loaded.');
     };
     const handleStyleData = () => {
       if (map.isStyleLoaded()) setMapStatus((status) => status === 'failed' ? status : 'ready');
+      if (requiredLayerIds.every((id) => Boolean(map.getLayer(id)))) {
+        applyCurrentMapState(map, currentMapStateRef.current);
+      }
     };
     map.on('error', handleMapError);
     map.on('styledata', handleStyleData);
@@ -434,13 +443,13 @@ export function AtlasMap({
             ['linear'],
             ['zoom'],
             1,
-            ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 12, 7],
+            ['case', ['==', ['get', 'civilizationId'], currentMapStateRef.current.selectedId ?? ''], 12, 7],
             5,
-            ['case', ['==', ['get', 'civilizationId'], selectedId ?? ''], 18, 10],
+            ['case', ['==', ['get', 'civilizationId'], currentMapStateRef.current.selectedId ?? ''], 18, 10],
           ],
           'line-opacity': [
             'case',
-            ['==', ['get', 'civilizationId'], selectedId ?? ''],
+            ['==', ['get', 'civilizationId'], currentMapStateRef.current.selectedId ?? ''],
             0.18,
             0.1,
           ],
@@ -454,7 +463,7 @@ export function AtlasMap({
         source: 'civilizations',
         paint: {
           'fill-color': ['get', 'color'],
-          'fill-opacity': fillOpacityExpression(selectedId),
+          'fill-opacity': fillOpacityExpression(currentMapStateRef.current.selectedId),
           // A4: cross-fade extents when the active year (and thus features) changes.
           'fill-opacity-transition': { duration: 450, delay: 0 },
         },
@@ -492,8 +501,8 @@ export function AtlasMap({
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
           'line-color': ['get', 'color'],
-          'line-width': lineWidthExpression(selectedId),
-          'line-opacity': lineOpacityExpression(selectedId),
+          'line-width': lineWidthExpression(currentMapStateRef.current.selectedId),
+          'line-opacity': lineOpacityExpression(currentMapStateRef.current.selectedId),
           'line-blur': 0.6,
           'line-dasharray': [
             'match', ['get', 'layerType'],
@@ -637,12 +646,6 @@ export function AtlasMap({
       applyCurrentMapState(map, currentMapStateRef.current);
     };
 
-    const handleStyleData = () => {
-      if (requiredLayerIds.every((id) => Boolean(map.getLayer(id)))) {
-        applyCurrentMapState(map, currentMapStateRef.current);
-      }
-    };
-
     map.on('load', handleLoad);
     map.on('styledata', handleStyleData);
 
@@ -659,7 +662,8 @@ export function AtlasMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (map) applyCurrentMapState(map, currentMapStateRef.current);
+    if (!map || !map.isStyleLoaded()) return;
+    applyCurrentMapState(map, currentMapStateRef.current);
   }, [
     polygonData,
     pointData,
@@ -708,12 +712,13 @@ export function AtlasMap({
   }, [selectedId, civilizations, civilizationLayers, nodes, routes]);
 
   return (
-    <div className="relative h-[68vh] min-h-[560px] w-full" role="group" aria-label="Interactive historical map. Use Tab to reach map controls and arrow keys to pan.">
+    <div className="relative h-[68vh] min-h-[560px] w-full" role="group" aria-label="Interactive historical atlas map. Use Tab to reach map controls and arrow keys to pan.">
       <div
-        aria-hidden={mapStatus !== 'ready'}
-        aria-label={`${civilizations.length} polity extents, ${nodes.length} places, and ${routes.length} routes are active.`}
+        aria-label="Interactive historical atlas map. Use Tab to reach map controls and arrow keys to pan."
         className="h-full w-full"
         ref={containerRef}
+        role="application"
+        tabIndex={0}
       />
       {mapStatus !== 'ready' && (
         <div
@@ -740,6 +745,13 @@ export function AtlasMap({
           </div>
         </div>
       )}
+      <div className="sr-only" aria-label="Map features">
+        {[...civilizations, ...nodes, ...routes].map((feature) => (
+          <button key={feature.id} onClick={() => feature.kind === 'civilization' ? onCivilizationSelect(feature.id) : feature.kind === 'node' ? onNodeSelect(feature.id) : onRouteSelect(feature.id)} type="button">
+            Open {feature.label}
+          </button>
+        ))}
+      </div>
       <MapLegend
         civilizations={civilizations.map((civilization) => ({
           id: civilization.id,

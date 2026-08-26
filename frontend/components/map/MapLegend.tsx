@@ -28,7 +28,7 @@ export function MapLegend({
         <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Legend</p>
 
         {showExtents && civilizations.length > 0 && (
-          <ul className="mt-2 flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1">
+          <ul aria-label="Civilization extent legend" className="mt-2 flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1" tabIndex={0}>
             {civilizations.map((civilization) => (
               <li key={civilization.id} className="flex items-center gap-2">
                 <span

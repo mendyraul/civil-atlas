@@ -1,0 +1,6 @@
+import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+test('map displays sources and layers', async ({page})=>{await page.goto('/atlas'); await expect(page.getByRole('application',{name:/historical atlas map/i})).toBeVisible(); await expect(page.getByText(/Sources/i).first()).toBeVisible(); await expect(page.getByText(/Layers/i).first()).toBeVisible();});
+test('selection survives refresh and entity links open requested feature',async({page})=>{await page.goto('/atlas?y=117&sel=roman-empire'); await expect(page).toHaveURL(/sel=roman-empire/); await page.reload(); await expect(page.getByText(/Roman Empire/).first()).toBeVisible(); await page.getByRole('button',{name:/Han Dynasty dynasty/i}).click(); await expect(page).toHaveURL(/sel=han-dynasty/);});
+test('keyboard interaction changes timeline',async({page})=>{await page.goto('/atlas'); const slider=page.getByRole('slider'); await slider.focus(); await slider.press('ArrowRight'); await expect(page).toHaveURL(/y=118/);});
+test('@a11y atlas has no automatically detectable violations',async({page})=>{await page.goto('/atlas'); const results=await new AxeBuilder({page}).analyze(); expect(results.violations).toEqual([]);});
