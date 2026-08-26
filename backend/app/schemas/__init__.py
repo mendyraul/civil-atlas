@@ -238,10 +238,18 @@ class ArtifactIngestPlan(BaseModel):
 class HistoricalClaim(BaseModel):
     id: str
     claim_type: str
+    predicate: str = "unspecified"
+    version: int = 1
     subject_id: str
     subject_kind: str
     object_id: str | None = None
     object_kind: str | None = None
+    value: str | int | float | bool | dict[str, object] | None = None
+    geographic_scope: dict[str, object] | None = None
+    source_id: str | None = None
+    citation_locator: str | None = None
+    confidence_rationale: str = ""
+    supersedes_claim_id: str | None = None
     confidence: str
     review_status: str
     notes: str
@@ -493,3 +501,54 @@ class GlobePayload(BaseModel):
     places: list[Place]
     edges: list[CivilizationEdge]
     evidence_links: list[EvidenceLink]
+
+
+class KnowledgeEntity(BaseModel):
+    id: str
+    slug: str
+    kind: str
+    canonical_name: str
+    valid_from_year: int | None = None
+    valid_to_year: int | None = None
+    review_state: str
+    overview_claim_ids: list[str] = Field(default_factory=list)
+    chronology_event_ids: list[str] = Field(default_factory=list)
+    map_layers: list[dict[str, object]] = Field(default_factory=list)
+    related_entity_ids: list[str] = Field(default_factory=list)
+    passage_ids: list[str] = Field(default_factory=list)
+
+
+class ClaimView(BaseModel):
+    id: str
+    version: int
+    subject_id: str
+    predicate: str
+    object_id: str | None = None
+    value: str | int | float | bool | dict[str, object] | None = None
+    valid_from_year: int | None = None
+    valid_to_year: int | None = None
+    geographic_scope: dict[str, object] | None = None
+    source_id: str
+    citation_locator: str
+    confidence: str
+    confidence_rationale: str
+    review_state: str
+    supersedes_claim_id: str | None = None
+
+
+class ComparisonView(BaseModel):
+    entities: list[KnowledgeEntity]
+    shared_predicates: list[str]
+    claims_by_entity: dict[str, list[ClaimView]]
+
+
+class SearchResult(BaseModel):
+    id: str
+    kind: str
+    label: str
+    matched_claim_ids: list[str] = Field(default_factory=list)
+
+
+class GraphView(BaseModel):
+    nodes: list[KnowledgeEntity]
+    edges: list[dict[str, object]]

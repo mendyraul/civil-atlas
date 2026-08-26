@@ -10,6 +10,7 @@ from sqlalchemy import (
     Table,
     Text,
     CheckConstraint,
+    UniqueConstraint,
 )
 
 metadata = MetaData()
@@ -194,10 +195,18 @@ historical_claims = Table(
     metadata,
     Column("id", String(64), primary_key=True),
     Column("claim_type", String(64), nullable=False),
+    Column("predicate", String(128), nullable=False, server_default="unspecified"),
+    Column("version", Integer, nullable=False, server_default="1"),
     Column("subject_id", String(64), nullable=False),
     Column("subject_kind", String(64), nullable=False),
     Column("object_id", String(64), nullable=True),
     Column("object_kind", String(64), nullable=True),
+    Column("value_json", JSON, nullable=True),
+    Column("geographic_scope_json", JSON, nullable=True),
+    Column("source_id", ForeignKey("sources.id"), nullable=True),
+    Column("citation_locator", String(255), nullable=True),
+    Column("confidence_rationale", Text, nullable=False, server_default=""),
+    Column("supersedes_claim_id", ForeignKey("historical_claims.id"), nullable=True),
     Column("valid_from_year", Integer, nullable=True),
     Column("valid_to_year", Integer, nullable=True),
     Column("confidence_level", String(64), nullable=False),
@@ -205,6 +214,8 @@ historical_claims = Table(
     Column("notes", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+    CheckConstraint("object_id IS NOT NULL OR value_json IS NOT NULL", name="ck_claim_object_or_value"),
+    UniqueConstraint("id", "version", name="uq_claim_version"),
 )
 
 historical_relationships = Table(
@@ -225,6 +236,89 @@ historical_relationships = Table(
     Column("source_note", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+relationship_claims = Table(
+    "relationship_claims",
+    metadata,
+    Column("relationship_id", ForeignKey("historical_relationships.id"), primary_key=True),
+    Column("claim_id", ForeignKey("historical_claims.id"), primary_key=True),
+)
+
+# Every knowledge-domain record is addressable through this registry.  Type-specific
+# tables keep fields typed without turning factual assertions into biography prose.
+entities = Table(
+    "entities", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("slug", String(255), nullable=False, unique=True),
+    Column("entity_kind", String(64), nullable=False),
+    Column("canonical_name", String(255), nullable=False),
+    Column("valid_from_year", Integer, nullable=True),
+    Column("valid_to_year", Integer, nullable=True),
+    Column("review_status", String(64), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+people = Table(
+    "people", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("birth_year", Integer, nullable=True),
+    Column("death_year", Integer, nullable=True),
+)
+
+offices = Table(
+    "offices", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("jurisdiction_entity_id", ForeignKey("entities.id"), nullable=True),
+    Column("office_category", String(64), nullable=False),
+)
+
+dynasties = Table(
+    "dynasties", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("founder_entity_id", ForeignKey("entities.id"), nullable=True),
+)
+
+events = Table(
+    "events", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("event_type", String(64), nullable=False),
+    Column("place_entity_id", ForeignKey("entities.id"), nullable=True),
+)
+
+concepts = Table(
+    "concepts", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("concept_category", String(64), nullable=False),
+)
+
+artifacts = Table(
+    "artifacts", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("artifact_category", String(64), nullable=False),
+    Column("holding_institution", String(255), nullable=True),
+    Column("catalog_identifier", String(255), nullable=True),
+)
+
+primary_source_passages = Table(
+    "primary_source_passages", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("source_id", ForeignKey("sources.id"), nullable=False),
+    Column("citation_locator", String(255), nullable=False),
+    Column("language", String(32), nullable=True),
+    Column("passage_text", Text, nullable=False),
+    Column("translation_text", Text, nullable=True),
+)
+
+thematic_metrics = Table(
+    "thematic_metrics", metadata,
+    Column("entity_id", ForeignKey("entities.id"), primary_key=True),
+    Column("subject_entity_id", ForeignKey("entities.id"), nullable=False),
+    Column("metric_key", String(128), nullable=False),
+    Column("numeric_value", Numeric(18, 6), nullable=False),
+    Column("unit", String(64), nullable=False),
+    Column("methodology_claim_id", ForeignKey("historical_claims.id"), nullable=False),
 )
 
 review_assignments = Table(
