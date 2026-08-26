@@ -5,7 +5,7 @@ import { LayerControls } from './LayerControls';
 import { DetailPanel } from './DetailPanel';
 import { TimelineControl } from '../timeline/TimelineControl';
 import { featureBadgeTone, formatYear } from '../../lib/atlas';
-import type { AtlasFeature, Confidence, Era, HistoricalEvent, ReviewStatus, WorldPayload } from '../../types/atlas';
+import type { AtlasFeature, Confidence, Era, HistoricalEvent, LearningChapter, ReviewStatus, WorldPayload } from '../../types/atlas';
 
 type LayerVisibility = {
   extents: boolean;
@@ -24,6 +24,13 @@ type AtlasPageProps = {
   events: HistoricalEvent[];
   filterCount: number;
   isPlaying: boolean;
+  playbackSpeed: number;
+  pauseOnEvent: boolean;
+  reducedMotion: boolean;
+  chapters: LearningChapter[];
+  chapterId: string;
+  stepId: string;
+  mode: 'explore' | 'guided';
   isSelectedFeatureFilteredOut: boolean;
   layerTypeOptions: LayerTypeOption[];
   reviewCounts: Record<ReviewStatus, number>;
@@ -43,6 +50,11 @@ type AtlasPageProps = {
   onReviewStatusToggle: (status: ReviewStatus) => void;
   onToggleLayer: (layer: keyof LayerVisibility) => void;
   onTogglePlay: () => void;
+  onPlaybackSpeedChange: (speed: number) => void;
+  onPauseOnEventChange: (enabled: boolean) => void;
+  onStep: (direction: -1 | 1, target: 'event' | 'era') => void;
+  onModeChange: (mode: 'explore' | 'guided') => void;
+  onLessonStep: (chapterId: string, stepId: string) => void;
 };
 
 export function AtlasPage({
@@ -74,6 +86,8 @@ export function AtlasPage({
   onReviewStatusToggle,
   onToggleLayer,
   onTogglePlay,
+  playbackSpeed, pauseOnEvent, reducedMotion, onPlaybackSpeedChange, onPauseOnEventChange, onStep,
+  chapters, chapterId, stepId, mode, onModeChange, onLessonStep,
 }: AtlasPageProps) {
   const sourceCount = world.civilizations.reduce((total, civilization) => total + civilization.evidence.length, 0);
   const badges = ['Approximate', 'Source-reported', 'Needs review'] as const;
@@ -81,6 +95,12 @@ export function AtlasPage({
   return (
     <div className="flex min-h-[calc(100vh-3rem)] flex-col gap-5">
       <section className="atlas-hero rounded-[32px] px-5 py-5 md:px-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/16 p-3">
+          <div><p className="atlas-kicker">Experience</p><p className="mt-1 text-sm text-slate-300">Choose a curated path or keep every research control available.</p></div>
+          <div className="flex rounded-full border border-white/10 p-1" role="group" aria-label="Atlas mode">
+            {(['explore', 'guided'] as const).map((option) => <button aria-pressed={mode === option} className={`rounded-full px-4 py-2 text-sm capitalize ${mode === option ? 'bg-cyan-400/18 text-cyan-50' : 'text-slate-400'}`} key={option} onClick={() => onModeChange(option)} type="button">{option === 'guided' ? 'Guided lesson' : 'Explore'}</button>)}
+          </div>
+        </div>
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
             <p className="atlas-kicker">Civil Atlas</p>
@@ -127,6 +147,21 @@ export function AtlasPage({
           </span>
         </div>
       </section>
+
+      {mode === 'guided' && chapters.map((chapter) => chapter.id === chapterId && (
+        <section className="atlas-panel rounded-[30px] p-5" key={chapter.id}>
+          <p className="atlas-kicker">Guided lesson · resumable link</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">{chapter.title}</h2>
+          <p className="mt-2 text-sm text-slate-300">{chapter.summary}</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-400">{chapter.objectives.map((objective) => <li key={objective}>{objective}</li>)}</ul>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">{chapter.steps.map((step, index) => (
+            <button className={`rounded-[20px] border p-4 text-left ${step.id === stepId ? 'border-cyan-300/50 bg-cyan-400/10' : 'border-white/10 bg-white/4'}`} key={step.id} onClick={() => onLessonStep(chapter.id, step.id)} type="button">
+              <span className="text-xs uppercase tracking-[0.16em] text-slate-500">Step {index + 1}</span><strong className="mt-2 block text-white">{step.title}</strong><span className="mt-2 block text-sm leading-6 text-slate-300">{step.narrative}</span>
+            </button>
+          ))}</div>
+          {chapter.steps.map((step) => step.id === stepId && <div className="mt-4 grid gap-3 lg:grid-cols-2" key={step.id}><div className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4"><p className="text-sm font-semibold text-amber-100">Annotations</p>{step.annotations.map((note) => <p className="mt-2 text-sm text-slate-300" key={note}>• {note}</p>)}</div><div className="rounded-2xl border border-white/10 p-4"><p className="text-sm text-white">{step.question}</p><p className="mt-3 text-xs leading-5 text-cyan-100"><strong>Source prompt:</strong> {step.sourcePrompt}</p></div></div>)}
+        </section>
+      ))}
 
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
         <section className="flex min-h-0 flex-col gap-5">
@@ -198,6 +233,12 @@ export function AtlasPage({
         isPlaying={isPlaying}
         year={year}
         onTogglePlay={onTogglePlay}
+        playbackSpeed={playbackSpeed}
+        pauseOnEvent={pauseOnEvent}
+        reducedMotion={reducedMotion}
+        onPlaybackSpeedChange={onPlaybackSpeedChange}
+        onPauseOnEventChange={onPauseOnEventChange}
+        onStep={onStep}
         onYearChange={onYearChange}
       />
     </div>

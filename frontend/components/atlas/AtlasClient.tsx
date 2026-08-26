@@ -2,6 +2,7 @@
 
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { world117 as demoWorld117 } from '../../data/demoWorld117';
+import { learningChapters } from '../../data/learningChapters';
 import {
   API_BASE_URL,
   DEFAULT_YEAR,
@@ -85,7 +86,21 @@ export function AtlasClient() {
   });
   const [filters, setFilters] = useState<FilterState>(emptyFilterState);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [pauseOnEvent, setPauseOnEvent] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [mode, setMode] = useState<'explore' | 'guided'>('explore');
+  const [chapterId, setChapterId] = useState(learningChapters[0].id);
+  const [stepId, setStepId] = useState(learningChapters[0].steps[0].id);
   const skipFirstUrlSyncRef = useRef(true);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => { setReducedMotion(query.matches); if (query.matches) setIsPlaying(false); };
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (DEMO_MODE) return;
@@ -134,6 +149,11 @@ export function AtlasClient() {
     const encodedLayers = params.get('layers');
     if (encodedLayers) setLayers((current) => ({ ...current, ...Object.fromEntries(encodedLayers.split(',').map((key) => [key, true])), ...Object.fromEntries(Object.keys(current).filter((key) => !encodedLayers.split(',').includes(key)).map((key) => [key, false])) }));
     setFilters({ confidence: (params.get('confidence')?.split(',').filter(Boolean) ?? []) as Confidence[], reviewStatus: (params.get('review')?.split(',').filter(Boolean) ?? []) as ReviewStatus[], layerTypes: params.get('types')?.split(',').filter(Boolean) ?? [] });
+    const urlChapter = learningChapters.find((chapter) => chapter.id === params.get('chapter'));
+    const urlStep = urlChapter?.steps.find((step) => step.id === params.get('step'));
+    if (urlChapter && urlStep) {
+      setMode('guided'); setChapterId(urlChapter.id); setStepId(urlStep.id);
+    }
   }, []);
 
   // Research mode: keep the URL in sync with year + selection so any view is shareable.
@@ -152,29 +172,51 @@ export function AtlasClient() {
     if (filters.confidence.length) params.set('confidence', filters.confidence.join(',')); else params.delete('confidence');
     if (filters.reviewStatus.length) params.set('review', filters.reviewStatus.join(',')); else params.delete('review');
     if (filters.layerTypes.length) params.set('types', filters.layerTypes.join(',')); else params.delete('types');
+    if (mode === 'guided') { params.set('chapter', chapterId); params.set('step', stepId); }
     const query = params.toString();
     window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
-  }, [year, selectedId, zoom, center, layers, filters]);
+  }, [year, selectedId, zoom, center, layers, filters, mode, chapterId, stepId]);
 
   // Workstream D: timeline autoplay.
   useEffect(() => {
-    if (!isPlaying) {
+    if (!isPlaying || reducedMotion) {
       return;
     }
     const intervalId = window.setInterval(() => {
       setYear((current) => {
-        const next = current + PLAYBACK_STEP_YEARS;
+        const proposed = current + PLAYBACK_STEP_YEARS;
+        const crossedEvent = baseWorld.events.filter((event) => event.startYear > current && event.startYear <= proposed).sort((a, b) => a.startYear - b.startYear)[0];
+        const next = pauseOnEvent && crossedEvent ? crossedEvent.startYear : proposed;
+        if (crossedEvent && pauseOnEvent) setIsPlaying(false);
         if (next >= YEAR_MAX) {
           setIsPlaying(false);
           return YEAR_MAX;
         }
         return next;
       });
-    }, PLAYBACK_TICK_MS);
+    }, PLAYBACK_TICK_MS / playbackSpeed);
     return () => window.clearInterval(intervalId);
-  }, [isPlaying]);
+  }, [isPlaying, playbackSpeed, pauseOnEvent, reducedMotion, baseWorld.events]);
+
+  function stepTimeline(direction: -1 | 1, target: 'event' | 'era') {
+    setIsPlaying(false);
+    const points = (target === 'event' ? baseWorld.events.flatMap((event) => [event.startYear, event.endYear]) : baseWorld.eras.flatMap((era) => [era.startYear, era.endYear])).filter((value, index, values) => values.indexOf(value) === index).sort((a, b) => a - b);
+    const destination = direction > 0 ? points.find((point) => point > year) : [...points].reverse().find((point) => point < year);
+    if (destination !== undefined) setYear(destination);
+  }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
+      if (event.code === 'Space') { event.preventDefault(); togglePlay(); }
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); stepTimeline(event.key === 'ArrowLeft' ? -1 : 1, event.shiftKey ? 'era' : 'event'); }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
 
   function togglePlay() {
+    if (reducedMotion) return;
     setIsPlaying((current) => {
       // Restart from the beginning if we're paused at the end of the timeline.
       if (!current && year >= YEAR_MAX) {
@@ -321,11 +363,24 @@ export function AtlasClient() {
       subtitle="Main atlas interface"
     >
       <AtlasPage
+        chapters={learningChapters}
+        chapterId={chapterId}
+        mode={mode}
+        stepId={stepId}
+        onModeChange={setMode}
+        onLessonStep={(nextChapterId, nextStepId) => {
+          const chapter = learningChapters.find((item) => item.id === nextChapterId);
+          const step = chapter?.steps.find((item) => item.id === nextStepId);
+          if (!step) return;
+          setChapterId(nextChapterId); setStepId(nextStepId); setYear(step.year);
+          if (step.selectedEntityId) setSelectedId(step.selectedEntityId);
+          setLayers({ extents: false, nodes: false, routes: false, sources: false, ...Object.fromEntries(step.visibleLayers.map((layer) => [layer, true])) });
+        }}
         backendStatus={backendStatus}
         confidenceCounts={confidenceCounts}
         detailWorld={activeWorld}
-        eras={activeWorld.eras}
-        events={activeWorld.events}
+        eras={baseWorld.eras}
+        events={baseWorld.events}
         filterCount={filterCount}
         isPlaying={isPlaying}
         isSelectedFeatureFilteredOut={isSelectedFeatureFilteredOut}
@@ -369,6 +424,12 @@ export function AtlasClient() {
         onReviewStatusToggle={toggleReviewStatus}
         onToggleLayer={toggleLayer}
         onTogglePlay={togglePlay}
+        playbackSpeed={playbackSpeed}
+        pauseOnEvent={pauseOnEvent}
+        reducedMotion={reducedMotion}
+        onPlaybackSpeedChange={setPlaybackSpeed}
+        onPauseOnEventChange={setPauseOnEvent}
+        onStep={stepTimeline}
         onYearChange={setYear}
         reviewCounts={reviewCounts}
         selectedConfidence={filters.confidence}

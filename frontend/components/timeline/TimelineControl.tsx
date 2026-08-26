@@ -10,6 +10,12 @@ type TimelineControlProps = {
   events: HistoricalEvent[];
   isPlaying: boolean;
   year: number;
+  playbackSpeed: number;
+  pauseOnEvent: boolean;
+  reducedMotion: boolean;
+  onPlaybackSpeedChange: (speed: number) => void;
+  onPauseOnEventChange: (enabled: boolean) => void;
+  onStep: (direction: -1 | 1, target: 'event' | 'era') => void;
   onTogglePlay: () => void;
   onYearChange: (year: number) => void;
 };
@@ -24,6 +30,12 @@ export function TimelineControl({
   events,
   isPlaying,
   year,
+  playbackSpeed,
+  pauseOnEvent,
+  reducedMotion,
+  onPlaybackSpeedChange,
+  onPauseOnEventChange,
+  onStep,
   onTogglePlay,
   onYearChange,
 }: TimelineControlProps) {
@@ -45,9 +57,7 @@ export function TimelineControl({
         <div>
           <p className="atlas-kicker">Timeline / playback</p>
           <h2 className="mt-2 text-xl font-semibold text-white">{formatYear(year)}</h2>
-          <p className="mt-2 text-sm text-slate-400">
-            Timeline defaults to 117 CE and drives active civilizations across the atlas.
-          </p>
+          <p className="mt-2 text-sm text-slate-400">Space plays or pauses; ←/→ step through events; Shift + ←/→ step through eras.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -70,6 +80,22 @@ export function TimelineControl({
             {copied ? 'Link copied' : 'Share view'}
           </button>
         </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Playback settings">
+        <span className="text-xs uppercase tracking-[0.16em] text-slate-500">Speed</span>
+        {[0.5, 1, 2, 4].map((speed) => (
+          <button className={`rounded-full border px-3 py-1.5 text-xs ${playbackSpeed === speed ? 'border-cyan-300/60 bg-cyan-400/14 text-white' : 'border-white/10 text-slate-300'}`} key={speed} onClick={() => onPlaybackSpeedChange(speed)} type="button">{speed}×</button>
+        ))}
+        <label className="ml-2 flex items-center gap-2 text-sm text-slate-300">
+          <input checked={pauseOnEvent} onChange={(event) => onPauseOnEventChange(event.target.checked)} type="checkbox" /> Pause on events
+        </label>
+        {reducedMotion && <span className="rounded-full border border-amber-300/30 px-3 py-1 text-xs text-amber-100">Reduced motion: autoplay disabled</span>}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(-1, 'era')} type="button">← Era</button>
+        <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(-1, 'event')} type="button">← Event</button>
+        <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'event')} type="button">Event →</button>
+        <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'era')} type="button">Era →</button>
       </div>
       <div className="relative mt-5 h-6" aria-hidden>
         {eras.map((era) => (
@@ -180,6 +206,10 @@ export function TimelineControl({
                 </div>
                 <p className="mt-3 text-sm leading-6 text-slate-300">{event.summary}</p>
                 <p className="mt-3 text-sm leading-6 text-slate-400">{event.impact}</p>
+                <div className="mt-3 rounded-xl border border-amber-300/15 bg-amber-300/5 p-3 text-xs leading-5 text-amber-50/80">
+                  <strong>Why the map changes:</strong> {event.transitionClaim ?? event.label}.{' '}
+                  {event.dateUncertainty ?? (event.startYear === event.endYear ? 'The source tradition assigns this change to a specific year.' : `This is an interval estimate between ${formatYear(event.startYear)} and ${formatYear(event.endYear)}; the map changes within a process, not at one certain instant.`)}
+                </div>
               </article>
             ))}
           </div>
