@@ -120,6 +120,88 @@ function lineOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecif
   ];
 }
 
+type MapState = {
+  evidenceIds: string[];
+  nodes: ReturnType<typeof nodeFeatureCollection>;
+  nodeItems: AtlasNode[];
+  polygons: ReturnType<typeof polygonFeatureCollection>;
+  routes: ReturnType<typeof routeFeatureCollection>;
+  selectedId?: string;
+  showEvidence: boolean;
+  showExtents: boolean;
+  showNodes: boolean;
+  showRoutes: boolean;
+};
+
+const requiredLayerIds = [
+  'civilizations-outline-glow',
+  'civilizations-fill',
+  'civilizations-line',
+  'nodes-halo',
+  'nodes-circle',
+  'nodes-label',
+  'routes-glow',
+  'routes-line',
+  'selected-evidence-glow',
+] as const;
+
+function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
+  (map.getSource('civilizations') as GeoJSONSource | undefined)?.setData(state.polygons);
+  (map.getSource('nodes') as GeoJSONSource | undefined)?.setData(state.nodes);
+  (map.getSource('routes') as GeoJSONSource | undefined)?.setData(state.routes);
+
+  if (map.getLayer('civilizations-line')) {
+    map.setPaintProperty('civilizations-line', 'line-width', lineWidthExpression(state.selectedId));
+    map.setPaintProperty(
+      'civilizations-line',
+      'line-opacity',
+      lineOpacityExpression(state.selectedId),
+    );
+    map.setPaintProperty(
+      'civilizations-fill',
+      'fill-opacity',
+      fillOpacityExpression(state.selectedId),
+    );
+    map.setPaintProperty('civilizations-outline-glow', 'line-width', [
+      'interpolate', ['linear'], ['zoom'], 1,
+      ['case', ['==', ['get', 'id'], state.selectedId ?? ''], 12, 7], 5,
+      ['case', ['==', ['get', 'id'], state.selectedId ?? ''], 18, 10],
+    ]);
+    map.setPaintProperty('civilizations-outline-glow', 'line-opacity', [
+      'case', ['==', ['get', 'id'], state.selectedId ?? ''], 0.18, 0.1,
+    ]);
+  }
+
+  const evidenceIds = new Set(state.evidenceIds);
+  (map.getSource('selected-evidence') as GeoJSONSource | undefined)?.setData({
+    type: 'FeatureCollection',
+    features: state.nodeItems
+      .filter((node) => node.evidence.some((record) => evidenceIds.has(record.id)))
+      .map((node) => ({
+        type: 'Feature' as const,
+        properties: { id: node.id },
+        geometry: { type: 'Point' as const, coordinates: node.coordinates },
+      })),
+  });
+
+  const visibility = (shown: boolean) => (shown ? 'visible' : 'none');
+  (['civilizations-outline-glow', 'civilizations-fill', 'civilizations-line'] as const)
+    .forEach((id) => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility(state.showExtents));
+    });
+  (['nodes-halo', 'nodes-circle', 'nodes-label'] as const)
+    .forEach((id) => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility(state.showNodes));
+    });
+  (['routes-glow', 'routes-line'] as const)
+    .forEach((id) => {
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility(state.showRoutes));
+    });
+  if (map.getLayer('selected-evidence-glow')) {
+    map.setLayoutProperty('selected-evidence-glow', 'visibility', visibility(state.showEvidence));
+  }
+}
+
 export function AtlasMap({
   civilizations,
   evidenceIds,
@@ -161,6 +243,30 @@ export function AtlasMap({
   );
   const pointData = useMemo(() => nodeFeatureCollection(nodes), [nodes]);
   const routeData = useMemo(() => routeFeatureCollection(routes), [routes]);
+  const currentMapStateRef = useRef<MapState>({
+    evidenceIds,
+    nodes: pointData,
+    nodeItems: nodes,
+    polygons: polygonData,
+    routes: routeData,
+    selectedId,
+    showEvidence,
+    showExtents,
+    showNodes,
+    showRoutes,
+  });
+  currentMapStateRef.current = {
+    evidenceIds,
+    nodes: pointData,
+    nodeItems: nodes,
+    polygons: polygonData,
+    routes: routeData,
+    selectedId,
+    showEvidence,
+    showExtents,
+    showNodes,
+    showRoutes,
+  };
 
   // A1 + init: create the map once and register interaction handlers.
   useEffect(() => {
@@ -194,7 +300,7 @@ export function AtlasMap({
       map.getCanvas().style.cursor = '';
     };
 
-    map.on('load', () => {
+    const handleLoad = () => {
       // A1: globe projection + atmosphere.
       map.setProjection({ type: 'globe' });
       map.setSky({
@@ -207,9 +313,10 @@ export function AtlasMap({
         'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 0.85, 6, 0.2],
       });
 
-      map.addSource('civilizations', { type: 'geojson', data: polygonData, promoteId: 'id' });
-      map.addSource('nodes', { type: 'geojson', data: pointData, promoteId: 'id' });
-      map.addSource('routes', { type: 'geojson', data: routeData, promoteId: 'id' });
+      const emptyData = { type: 'FeatureCollection' as const, features: [] };
+      map.addSource('civilizations', { type: 'geojson', data: emptyData, promoteId: 'id' });
+      map.addSource('nodes', { type: 'geojson', data: emptyData, promoteId: 'id' });
+      map.addSource('routes', { type: 'geojson', data: emptyData, promoteId: 'id' });
 
       // A6: soft glow underlayer beneath the crisp route lines.
       map.addLayer({
@@ -419,11 +526,23 @@ export function AtlasMap({
 
       map.on('zoom', () => handlersRef.current.onZoomChange(map.getZoom()));
       handlersRef.current.onZoomChange(map.getZoom());
-    });
+      applyCurrentMapState(map, currentMapStateRef.current);
+    };
+
+    const handleStyleData = () => {
+      if (requiredLayerIds.every((id) => Boolean(map.getLayer(id)))) {
+        applyCurrentMapState(map, currentMapStateRef.current);
+      }
+    };
+
+    map.on('load', handleLoad);
+    map.on('styledata', handleStyleData);
 
     return () => {
       popup.remove();
       popupRef.current = null;
+      map.off('load', handleLoad);
+      map.off('styledata', handleStyleData);
       map.remove();
       mapRef.current = null;
       hoverRef.current = null;
@@ -432,62 +551,19 @@ export function AtlasMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    (map.getSource('civilizations') as GeoJSONSource | undefined)?.setData(polygonData);
-  }, [polygonData]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    (map.getSource('nodes') as GeoJSONSource | undefined)?.setData(pointData);
-  }, [pointData]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    (map.getSource('routes') as GeoJSONSource | undefined)?.setData(routeData);
-  }, [routeData]);
-
-  // A4: fade extents in whenever the set of visible civilizations changes.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || !map.getLayer('civilizations-fill')) return;
-    map.setPaintProperty('civilizations-fill', 'fill-opacity', 0);
-    const frame = requestAnimationFrame(() => {
-      const current = mapRef.current;
-      if (!current || !current.getLayer('civilizations-fill')) return;
-      current.setPaintProperty(
-        'civilizations-fill',
-        'fill-opacity',
-        fillOpacityExpression(selectedId),
-      );
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [polygonData, selectedId]);
-
-  // A7 + selection outline: emphasize the selected civilization.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || !map.getLayer('civilizations-line')) return;
-    map.setPaintProperty('civilizations-line', 'line-width', lineWidthExpression(selectedId));
-    map.setPaintProperty('civilizations-line', 'line-opacity', lineOpacityExpression(selectedId));
-    map.setPaintProperty('civilizations-fill', 'fill-opacity', fillOpacityExpression(selectedId));
-    map.setPaintProperty('civilizations-outline-glow', 'line-width', [
-      'interpolate',
-      ['linear'],
-      ['zoom'],
-      1,
-      ['case', ['==', ['get', 'id'], selectedId ?? ''], 12, 7],
-      5,
-      ['case', ['==', ['get', 'id'], selectedId ?? ''], 18, 10],
-    ]);
-    map.setPaintProperty('civilizations-outline-glow', 'line-opacity', [
-      'case',
-      ['==', ['get', 'id'], selectedId ?? ''],
-      0.18,
-      0.1,
-    ]);
-  }, [selectedId]);
+    if (map) applyCurrentMapState(map, currentMapStateRef.current);
+  }, [
+    polygonData,
+    pointData,
+    routeData,
+    evidenceIds,
+    nodes,
+    selectedId,
+    showEvidence,
+    showExtents,
+    showNodes,
+    showRoutes,
+  ]);
 
   // A2: fly the camera to frame the newly selected feature.
   useEffect(() => {
@@ -521,58 +597,6 @@ export function AtlasMap({
 
     lastFlownRef.current = selectedId;
   }, [selectedId, civilizations, nodes, routes]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    map.setLayoutProperty('civilizations-outline-glow', 'visibility', showExtents ? 'visible' : 'none');
-    map.setLayoutProperty('civilizations-fill', 'visibility', showExtents ? 'visible' : 'none');
-    map.setLayoutProperty('civilizations-line', 'visibility', showExtents ? 'visible' : 'none');
-  }, [showExtents]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    const visibility = showNodes ? 'visible' : 'none';
-    map.setLayoutProperty('nodes-halo', 'visibility', visibility);
-    map.setLayoutProperty('nodes-circle', 'visibility', visibility);
-    map.setLayoutProperty('nodes-label', 'visibility', visibility);
-  }, [showNodes]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    const visibility = showRoutes ? 'visible' : 'none';
-    map.setLayoutProperty('routes-glow', 'visibility', visibility);
-    map.setLayoutProperty('routes-line', 'visibility', visibility);
-  }, [showRoutes]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    const selectedNodeIds = new Set<string>();
-    nodes.forEach((node) => {
-      if (evidenceIds.some((id) => node.evidence.some((record) => record.id === id))) {
-        selectedNodeIds.add(node.id);
-      }
-    });
-
-    (map.getSource('selected-evidence') as GeoJSONSource | undefined)?.setData({
-      type: 'FeatureCollection',
-      features: nodes
-        .filter((node) => selectedNodeIds.has(node.id))
-        .map((node) => ({
-          type: 'Feature' as const,
-          properties: { id: node.id },
-          geometry: {
-            type: 'Point' as const,
-            coordinates: node.coordinates,
-          },
-        })),
-    });
-
-    map.setLayoutProperty('selected-evidence-glow', 'visibility', showEvidence ? 'visible' : 'none');
-  }, [evidenceIds, nodes, showEvidence]);
 
   return (
     <div className="relative h-[68vh] min-h-[560px] w-full">
