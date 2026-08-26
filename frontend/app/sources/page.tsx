@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { SiteShell } from '../../components/atlas/SiteShell';
 import { evidenceTone, fetchSources, reviewTone } from '../../lib/atlas';
 
@@ -17,7 +18,7 @@ export default async function SourcesPage() {
                 <p className="text-xs uppercase tracking-[0.18em] text-[--muted]">
                   {source.featureKind} · {source.featureLabel}
                 </p>
-                <h2 className="mt-2 text-xl font-semibold">{source.title}</h2>
+                <h2 className="mt-2 text-xl font-semibold"><Link href={`/sources/${source.id}`}>{source.title}</Link></h2>
               </div>
             </div>
             <p className="mt-2 text-sm text-[--muted]">{source.citation}</p>

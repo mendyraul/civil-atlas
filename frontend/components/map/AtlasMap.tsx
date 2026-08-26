@@ -9,6 +9,8 @@ import { MapLegend } from './MapLegend';
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || '/map-styles/minimal.json';
 
 type AtlasMapProps = {
+  initialCenter: [number, number];
+  initialZoom: number;
   civilizations: Civilization[];
   civilizationLayers: CivilizationLayer[];
   evidenceIds: string[];
@@ -23,6 +25,7 @@ type AtlasMapProps = {
   onNodeSelect: (id: string) => void;
   onRouteSelect: (id: string) => void;
   onZoomChange: (zoom: number) => void;
+  onCenterChange: (center: [number, number]) => void;
 };
 
 type HoverRef = { source: string; id: string } | null;
@@ -241,6 +244,8 @@ function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
 }
 
 export function AtlasMap({
+  initialCenter,
+  initialZoom,
   civilizations,
   civilizationLayers,
   evidenceIds,
@@ -255,6 +260,7 @@ export function AtlasMap({
   onNodeSelect,
   onRouteSelect,
   onZoomChange,
+  onCenterChange,
 }: AtlasMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -271,12 +277,14 @@ export function AtlasMap({
     onNodeSelect,
     onRouteSelect,
     onZoomChange,
+    onCenterChange,
   });
   handlersRef.current = {
     onCivilizationSelect,
     onNodeSelect,
     onRouteSelect,
     onZoomChange,
+    onCenterChange,
   };
 
   const polygonData = useMemo(
@@ -322,8 +330,8 @@ export function AtlasMap({
       map = new maplibregl.Map({
         container: containerRef.current,
         style: MAP_STYLE,
-        center: [30, 25],
-        zoom: 1.7,
+        center: initialCenter,
+        zoom: initialZoom,
         attributionControl: { compact: true },
       });
     } catch (error) {
@@ -624,6 +632,7 @@ export function AtlasMap({
       });
 
       map.on('zoom', () => handlersRef.current.onZoomChange(map.getZoom()));
+      map.on('moveend', () => { const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); });
       handlersRef.current.onZoomChange(map.getZoom());
       applyCurrentMapState(map, currentMapStateRef.current);
     };

@@ -7,6 +7,7 @@ const navItems = [
   { href: '/places', label: 'Places' },
   { href: '/sources', label: 'Sources' },
   { href: '/entities/trajan', label: 'Entity dossier' },
+  { href: '/search', label: 'Search' },
 ];
 
 export function SiteShell({

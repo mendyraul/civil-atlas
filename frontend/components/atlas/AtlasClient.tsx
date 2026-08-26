@@ -75,6 +75,7 @@ export function AtlasClient() {
   const [year, setYear] = useState(DEFAULT_YEAR);
   const [selectedId, setSelectedId] = useState<string>('roman-empire');
   const [zoom, setZoom] = useState(2.1);
+  const [center, setCenter] = useState<[number, number]>([30, 25]);
   const [backendStatus, setBackendStatus] = useState<DataState>(DEMO_MODE ? 'demo' : 'loading');
   const [layers, setLayers] = useState<LayerVisibility>({
     extents: true,
@@ -127,6 +128,12 @@ export function AtlasClient() {
     if (urlSelected) {
       setSelectedId(urlSelected);
     }
+    const urlZoom = Number(params.get('z')); const longitude = Number(params.get('lng')); const latitude = Number(params.get('lat'));
+    if (Number.isFinite(urlZoom)) setZoom(urlZoom);
+    if (Number.isFinite(longitude) && Number.isFinite(latitude)) setCenter([longitude, latitude]);
+    const encodedLayers = params.get('layers');
+    if (encodedLayers) setLayers((current) => ({ ...current, ...Object.fromEntries(encodedLayers.split(',').map((key) => [key, true])), ...Object.fromEntries(Object.keys(current).filter((key) => !encodedLayers.split(',').includes(key)).map((key) => [key, false])) }));
+    setFilters({ confidence: (params.get('confidence')?.split(',').filter(Boolean) ?? []) as Confidence[], reviewStatus: (params.get('review')?.split(',').filter(Boolean) ?? []) as ReviewStatus[], layerTypes: params.get('types')?.split(',').filter(Boolean) ?? [] });
   }, []);
 
   // Research mode: keep the URL in sync with year + selection so any view is shareable.
@@ -135,14 +142,19 @@ export function AtlasClient() {
       skipFirstUrlSyncRef.current = false;
       return;
     }
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(window.location.search);
     params.set('y', String(year));
     if (selectedId) {
       params.set('sel', selectedId);
     }
+    params.set('z', zoom.toFixed(2)); params.set('lng', center[0].toFixed(3)); params.set('lat', center[1].toFixed(3));
+    params.set('layers', Object.entries(layers).filter(([, active]) => active).map(([key]) => key).join(','));
+    if (filters.confidence.length) params.set('confidence', filters.confidence.join(',')); else params.delete('confidence');
+    if (filters.reviewStatus.length) params.set('review', filters.reviewStatus.join(',')); else params.delete('review');
+    if (filters.layerTypes.length) params.set('types', filters.layerTypes.join(',')); else params.delete('types');
     const query = params.toString();
     window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
-  }, [year, selectedId]);
+  }, [year, selectedId, zoom, center, layers, filters]);
 
   // Workstream D: timeline autoplay.
   useEffect(() => {
@@ -328,6 +340,8 @@ export function AtlasClient() {
             }
           >
             <LazyAtlasMap
+              initialCenter={center}
+              initialZoom={zoom}
               civilizations={visibleWorld.civilizations}
               civilizationLayers={visibleWorld.layers.filter((layer) =>
                 visibleWorld.civilizations.some((item) => item.id === layer.civilizationId),
@@ -344,6 +358,7 @@ export function AtlasClient() {
               onNodeSelect={setSelectedId}
               onRouteSelect={setSelectedId}
               onZoomChange={setZoom}
+              onCenterChange={setCenter}
             />
           </Suspense>
         }

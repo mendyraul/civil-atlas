@@ -1,0 +1,7 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { SiteShell } from '../../../components/atlas/SiteShell';
+import { atlasHref, fetchSources, fetchWorld } from '../../../lib/atlas';
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> { const { id } = await params; const source = (await fetchSources()).find((item) => item.id === id); return source ? { title: `${source.title} | Civil Atlas`, description: source.notes, alternates: { canonical: `/sources/${id}` } } : {}; }
+export default async function Page({ params }: { params: Promise<{ id: string }> }) { const { id } = await params; const source = (await fetchSources()).find((item) => item.id === id); if (!source) notFound(); const world = await fetchWorld(); const entity = [...world.civilizations, ...world.nodes, ...world.routes].find((item) => item.id === source.featureId); return <SiteShell title={source.title} subtitle="Source record"><article className="atlas-panel rounded-[28px] p-6"><p>{source.citation}</p><p className="mt-4 leading-7">{source.notes}</p><p className="mt-4 text-sm">Confidence: {source.confidence} · Review: {source.reviewStatus.replace('_', ' ')}</p>{entity ? <Link className="mt-5 inline-block underline" href={atlasHref(entity)}>Open {entity.label} on atlas</Link> : null}</article></SiteShell>; }

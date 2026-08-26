@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { SiteShell } from '../../components/atlas/SiteShell';
-import { fetchCivilizations, featureBadgeTone, formatYear } from '../../lib/atlas';
+import { atlasHref, fetchCivilizations, featureBadgeTone, formatYear } from '../../lib/atlas';
 
 export default async function CivilizationsPage() {
   const civilizations = await fetchCivilizations();
@@ -38,9 +38,10 @@ export default async function CivilizationsPage() {
               <span className="text-[--muted]">
                 {civilization.civilizationType} · capital: {civilization.capital}
               </span>
-              <Link className="text-slate-900 underline" href="/atlas">
+              <div className="flex gap-3"><Link className="text-slate-900 underline" href={`/civilizations/${civilization.slug}`}>Details</Link>
+              <Link className="text-slate-900 underline" href={atlasHref(civilization)}>
                 View on atlas
-              </Link>
+              </Link></div>
             </div>
           </article>
         ))}
