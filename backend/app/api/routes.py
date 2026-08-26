@@ -80,6 +80,50 @@ def _validate_zoom(zoom: str) -> str:
     return zoom
 
 
+ENTITY_ALIASES = {
+    "roman-empire": ["Rome", "Imperium Romanum"],
+    "han-dynasty": ["Han", "漢朝", "Hàn cháo"],
+    "parthian-empire": ["Parthia", "Arsacid Empire"],
+    "aksumite-kingdom": ["Aksum", "Axum"],
+    "changan": ["Chang'an", "Changan", "長安"],
+    "ctesiphon": ["Tisfun", "al-Mada’in"],
+}
+
+
+@router.get("/search")
+def search_catalog(
+    q: str = Query(default=""), start_year: int | None = None, end_year: int | None = None,
+    region: str | None = None, polity_type: str | None = None, topic: str | None = None,
+    confidence: str | None = None, review_status: str | None = None,
+    page: int = Query(default=1, ge=1), page_size: int = Query(default=20, ge=1, le=100),
+    sort: str = Query(default="relevance"),
+) -> dict[str, object]:
+    """Server-side catalog search; the seed implementation mirrors a future FTS index contract."""
+    records: list[dict[str, object]] = []
+    for item in [*CIVILIZATIONS, *ATLAS_NODES, *ATLAS_ROUTES, *HISTORICAL_EVENTS, *SOURCE_RECORDS]:
+        data = item.model_dump()
+        entity_id = str(data.get("id", "")); kind = str(data.get("kind") or data.get("feature_kind") or ("event" if "event_type" in data else "source"))
+        title = str(data.get("display_name") or data.get("label") or data.get("title"))
+        summary = str(data.get("summary") or data.get("notes") or data.get("citation") or "")
+        aliases = ENTITY_ALIASES.get(entity_id, [])
+        haystack = " ".join([title, summary, str(data), *aliases]).casefold()
+        if q and q.casefold() not in haystack: continue
+        valid_from = data.get("start_year", data.get("valid_from_year")); valid_to = data.get("end_year", data.get("valid_to_year"))
+        if start_year is not None and isinstance(valid_to, int) and valid_to < start_year: continue
+        if end_year is not None and isinstance(valid_from, int) and valid_from > end_year: continue
+        if polity_type and data.get("civilization_type") != polity_type: continue
+        if confidence and data.get("confidence") != confidence: continue
+        if review_status and data.get("review_status") != review_status: continue
+        if region and region.casefold() not in haystack: continue
+        if topic and topic.casefold() not in haystack: continue
+        records.append({"id": entity_id, "kind": kind, "slug": data.get("slug", entity_id), "title": title, "summary": summary, "aliases": aliases, "start_year": valid_from, "end_year": valid_to, "confidence": data.get("confidence"), "review_status": data.get("review_status"), "polity_type": data.get("civilization_type")})
+    if sort == "title": records.sort(key=lambda record: str(record["title"]))
+    elif sort == "date": records.sort(key=lambda record: record["start_year"] if isinstance(record["start_year"], int) else 10**9)
+    facets = {name: sorted({str(record[name]) for record in records if record.get(name)}) for name in ("kind", "confidence", "review_status", "polity_type")}
+    offset = (page - 1) * page_size
+    return {"items": records[offset:offset + page_size], "total": len(records), "page": page, "page_size": page_size, "facets": facets}
+
+
 @router.get("/world/{year}", response_model=WorldPayload)
 def get_world_by_year(year: int) -> WorldPayload:
     return get_world(_validate_year(year))

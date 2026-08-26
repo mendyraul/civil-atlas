@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { SiteShell } from '../../components/atlas/SiteShell';
-import { fetchPlaces, featureBadgeTone, formatYear } from '../../lib/atlas';
+import { atlasHref, fetchPlaces, featureBadgeTone, formatYear } from '../../lib/atlas';
 
 export default async function PlacesPage() {
   const places = await fetchPlaces();
@@ -32,9 +32,10 @@ export default async function PlacesPage() {
               <span className="text-[--muted]">
                 {place.role.replace('_', ' ')} · {place.coordinates[1].toFixed(2)}, {place.coordinates[0].toFixed(2)}
               </span>
-              <Link className="text-slate-900 underline" href="/atlas">
+              <div className="flex gap-3"><Link className="text-slate-900 underline" href={`/places/${place.slug}`}>Details</Link>
+              <Link className="text-slate-900 underline" href={atlasHref(place)}>
                 Open atlas
-              </Link>
+              </Link></div>
             </div>
           </article>
         ))}

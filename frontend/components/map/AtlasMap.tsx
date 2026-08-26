@@ -9,6 +9,8 @@ import { MapLegend } from './MapLegend';
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
 type AtlasMapProps = {
+  initialCenter: [number, number];
+  initialZoom: number;
   civilizations: Civilization[];
   evidenceIds: string[];
   nodes: AtlasNode[];
@@ -22,6 +24,7 @@ type AtlasMapProps = {
   onNodeSelect: (id: string) => void;
   onRouteSelect: (id: string) => void;
   onZoomChange: (zoom: number) => void;
+  onCenterChange: (center: [number, number]) => void;
 };
 
 type HoverRef = { source: string; id: string } | null;
@@ -121,6 +124,8 @@ function lineOpacityExpression(selectedId?: string): maplibregl.ExpressionSpecif
 }
 
 export function AtlasMap({
+  initialCenter,
+  initialZoom,
   civilizations,
   evidenceIds,
   nodes,
@@ -134,6 +139,7 @@ export function AtlasMap({
   onNodeSelect,
   onRouteSelect,
   onZoomChange,
+  onCenterChange,
 }: AtlasMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -147,12 +153,14 @@ export function AtlasMap({
     onNodeSelect,
     onRouteSelect,
     onZoomChange,
+    onCenterChange,
   });
   handlersRef.current = {
     onCivilizationSelect,
     onNodeSelect,
     onRouteSelect,
     onZoomChange,
+    onCenterChange,
   };
 
   const polygonData = useMemo(
@@ -169,8 +177,8 @@ export function AtlasMap({
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: MAP_STYLE,
-      center: [30, 25],
-      zoom: 1.7,
+      center: initialCenter,
+      zoom: initialZoom,
       attributionControl: false,
     });
 
@@ -418,6 +426,7 @@ export function AtlasMap({
       });
 
       map.on('zoom', () => handlersRef.current.onZoomChange(map.getZoom()));
+      map.on('moveend', () => { const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); });
       handlersRef.current.onZoomChange(map.getZoom());
     });
 

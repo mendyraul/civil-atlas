@@ -103,6 +103,27 @@ export function getFeatureById(world: WorldPayload, id?: string) {
   );
 }
 
+export const entityAliases: Record<string, string[]> = {
+  'roman-empire': ['Rome', 'Imperium Romanum'],
+  'han-dynasty': ['Han', '漢朝', 'Hàn cháo'],
+  'parthian-empire': ['Arsacid Empire', 'Parthia'],
+  'kingdom-of-kush': ['Kush', 'Meroitic Kingdom'],
+  'aksumite-kingdom': ['Aksum', 'Axum', 'Kingdom of Axum'],
+  'maya-civilization': ['Maya', 'Mayan civilization'],
+  'satavahana-dynasty': ['Satavahana', 'Andhra dynasty'],
+  roma: ['Rome', 'Roma'],
+  'changan': ["Chang'an", 'Changan', '長安'],
+  ctesiphon: ['Ctesiphon', 'Tisfun', 'al-Mada’in'],
+};
+
+export function meaningfulYear(feature: Pick<AtlasFeature, 'startYear' | 'endYear'>) {
+  return Math.min(feature.endYear, Math.max(feature.startYear, DEFAULT_YEAR));
+}
+
+export function atlasHref(feature: Pick<AtlasFeature, 'id' | 'startYear' | 'endYear'>) {
+  return `/atlas?y=${meaningfulYear(feature)}&sel=${encodeURIComponent(feature.id)}`;
+}
+
 export function featureBadgeTone(badge: string) {
   switch (badge) {
     case 'Approximate':

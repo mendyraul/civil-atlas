@@ -6,6 +6,7 @@ const navItems = [
   { href: '/civilizations', label: 'Civilizations' },
   { href: '/places', label: 'Places' },
   { href: '/sources', label: 'Sources' },
+  { href: '/search', label: 'Search' },
 ];
 
 export function SiteShell({
