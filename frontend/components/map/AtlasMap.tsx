@@ -1,12 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl, { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import type { AtlasNode, AtlasRoute, Civilization } from '../../types/atlas';
 import { MapLegend } from './MapLegend';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// The default style is deliberately self-contained: CI, classrooms, and offline
+// deployments must not depend on a production tile provider.
+const OFFLINE_MAP_STYLE: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#07131f' } }],
+};
+const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || OFFLINE_MAP_STYLE;
 
 type AtlasMapProps = {
   civilizations: Civilization[];
@@ -140,6 +147,8 @@ export function AtlasMap({
   const hoverRef = useRef<HoverRef>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const lastFlownRef = useRef<string | undefined>(undefined);
+  const [loadError, setLoadError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Keep the latest callbacks in a ref so the map init effect can run exactly once.
   const handlersRef = useRef({
@@ -175,6 +184,13 @@ export function AtlasMap({
     });
 
     mapRef.current = map;
+    map.on('error', (event) => {
+      // Style/resource errors are recoverable and should never leave a blank,
+      // unexplained canvas. GeoJSON remains local and can be retried safely.
+      if (!map.isStyleLoaded() || String(event.error?.message ?? '').toLowerCase().includes('style')) {
+        setLoadError(true);
+      }
+    });
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
     const popup = new maplibregl.Popup({
@@ -428,7 +444,7 @@ export function AtlasMap({
       mapRef.current = null;
       hoverRef.current = null;
     };
-  }, []);
+  }, [retryKey]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -576,7 +592,28 @@ export function AtlasMap({
 
   return (
     <div className="relative h-[68vh] min-h-[560px] w-full">
-      <div className="h-full w-full" ref={containerRef} />
+      <div
+        aria-label="Interactive historical atlas map"
+        className="h-full w-full"
+        ref={containerRef}
+        role="application"
+        tabIndex={0}
+      />
+      {loadError ? (
+        <div className="absolute inset-x-4 top-4 z-10 rounded-xl bg-slate-950/95 p-4 text-white" role="alert">
+          <p>Basemap resources are unavailable. Atlas data is safe and you can retry.</p>
+          <button className="mt-2 rounded bg-cyan-700 px-3 py-2" onClick={() => { setLoadError(false); setRetryKey((value) => value + 1); }} type="button">
+            Retry map
+          </button>
+        </div>
+      ) : null}
+      <div className="sr-only" aria-label="Map features">
+        {[...civilizations, ...nodes, ...routes].map((feature) => (
+          <button key={feature.id} onClick={() => feature.kind === 'civilization' ? onCivilizationSelect(feature.id) : feature.kind === 'node' ? onNodeSelect(feature.id) : onRouteSelect(feature.id)} type="button">
+            Open {feature.label}
+          </button>
+        ))}
+      </div>
       <MapLegend
         civilizations={civilizations.map((civilization) => ({
           id: civilization.id,

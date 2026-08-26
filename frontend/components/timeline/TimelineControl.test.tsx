@@ -1,0 +1,2 @@
+import { render, screen } from '@testing-library/react'; import userEvent from '@testing-library/user-event'; import { describe, expect, it, vi } from 'vitest'; import { TimelineControl } from './TimelineControl';
+describe('TimelineControl',()=>{it('supports keyboard timeline changes',async()=>{const change=vi.fn(); render(<TimelineControl eras={[]} events={[]} isPlaying={false} year={117} onTogglePlay={vi.fn()} onYearChange={change}/>); const slider=screen.getByRole('slider'); slider.focus(); await userEvent.keyboard('{ArrowRight}'); expect(change).toHaveBeenCalled();});});

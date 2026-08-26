@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class EvidenceRecord(BaseModel):
@@ -105,6 +105,22 @@ class ArtifactIngestRecordInput(BaseModel):
     layer_id: str | None = None
     create_derived_geometry: bool = False
     metadata_json: dict[str, object] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_ingest_record(self) -> "ArtifactIngestRecordInput":
+        if self.byte_size <= 0:
+            raise ValueError("byte_size must be positive")
+        if not self.sha256.startswith("sha256:"):
+            raise ValueError("sha256 must use the sha256: prefix")
+        if (
+            self.valid_from_year is not None
+            and self.valid_to_year is not None
+            and self.valid_from_year > self.valid_to_year
+        ):
+            raise ValueError("valid_from_year must not exceed valid_to_year")
+        if self.create_derived_geometry and not self.layer_id:
+            raise ValueError("derived geometry requires layer_id")
+        return self
 
 
 class ArtifactIngestRequest(BaseModel):
