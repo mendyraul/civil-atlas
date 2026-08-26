@@ -208,6 +208,11 @@ export type HistoricalEvent = {
   startYear: number;
   endYear: number;
   displayDate: string;
+  /** How the displayed date should be interpreted, rather than assuming a single instant. */
+  datePrecision?: 'exact' | 'circa' | 'interval';
+  dateUncertainty?: string;
+  transitionClaim?: string;
+  responsibleLayerIds?: string[];
   summary: string;
   impact: string;
   civilizationIds: string[];
@@ -215,6 +220,34 @@ export type HistoricalEvent = {
   confidence: Confidence;
   reviewStatus: ReviewStatus;
   evidence: EvidenceRecord[];
+};
+
+export type AtlasCamera = {
+  center: [number, number];
+  zoom: number;
+  bearing?: number;
+  pitch?: number;
+};
+
+export type LearningStep = {
+  id: string;
+  title: string;
+  narrative: string;
+  year: number;
+  selectedEntityId?: string;
+  camera: AtlasCamera;
+  visibleLayers: Array<'extents' | 'nodes' | 'routes' | 'sources'>;
+  annotations: string[];
+  question?: string;
+  sourcePrompt: string;
+};
+
+export type LearningChapter = {
+  id: string;
+  title: string;
+  summary: string;
+  objectives: string[];
+  steps: LearningStep[];
 };
 
 export type WorldPayload = {

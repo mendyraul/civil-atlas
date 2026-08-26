@@ -1379,6 +1379,8 @@ const events: HistoricalEvent[] = [
     startYear: 106,
     endYear: 106,
     displayDate: '106 CE',
+    datePrecision: 'exact',
+    transitionClaim: 'Roman administration replaces the Nabataean kingdom with the province of Arabia Petraea.',
     summary:
       'Roman rule absorbs the Nabataean kingdom and reorganizes the southern Levant frontier into a new province.',
     impact:
@@ -1406,6 +1408,9 @@ const events: HistoricalEvent[] = [
     startYear: 114,
     endYear: 117,
     displayDate: '114-117 CE',
+    datePrecision: 'interval',
+    dateUncertainty: 'Campaign control changed across 114–117 CE; 117 is a viewing convention, not a single synchronized boundary change.',
+    transitionClaim: 'Trajanic campaigns temporarily expand the source-reported eastern Roman extent.',
     summary:
       'Roman campaigns push into Armenia and Mesopotamia, producing the most expansionist Roman reading of the eastern frontier.',
     impact:
@@ -1433,6 +1438,9 @@ const events: HistoricalEvent[] = [
     startYear: 91,
     endYear: 123,
     displayDate: '91-123 CE',
+    datePrecision: 'interval',
+    dateUncertainty: 'The evidence describes a sequence between 91 and 123 CE, with uneven control across different corridors.',
+    transitionClaim: 'Later Han military and diplomatic activity restores influence along western corridors.',
     summary:
       'Later Han political and military activity reasserts long-distance corridor influence beyond the immediate agrarian core.',
     impact:
@@ -1460,6 +1468,7 @@ const events: HistoricalEvent[] = [
     startYear: 50,
     endYear: 200,
     displayDate: '50-200 CE',
+    datePrecision: 'interval',
     summary:
       'Meroe continues as a major center for Kushite statecraft, craft production, and Nile corridor comparison.',
     impact:
@@ -1487,6 +1496,7 @@ const events: HistoricalEvent[] = [
     startYear: 70,
     endYear: 150,
     displayDate: '70-150 CE',
+    datePrecision: 'interval',
     summary:
       'Inland and coastal exchange activity across the Deccan strengthens the usefulness of Satavahana route and node comparisons.',
     impact:
@@ -1514,6 +1524,7 @@ const events: HistoricalEvent[] = [
     startYear: 50,
     endYear: 150,
     displayDate: '50-150 CE',
+    datePrecision: 'interval',
     summary:
       'Aksum and Adulis become more meaningful together as an inland-port pairing inside wider Red Sea traffic.',
     impact:
