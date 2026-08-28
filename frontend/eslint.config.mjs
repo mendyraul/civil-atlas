@@ -1,11 +1,17 @@
-import { FlatCompat } from '@eslint/eslintrc';
 import { globalIgnores } from 'eslint/config';
-
-const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
+import nextVitals from 'eslint-config-next/core-web-vitals';
 
 const config = [
-  ...compat.extends('next/core-web-vitals'),
+  ...nextVitals,
   globalIgnores(['.next/**', 'coverage/**', 'playwright-report/**']),
+  {
+    // The map keeps synchronous refs for event handlers registered once, and
+    // the atlas effects synchronize external URL/browser state by design.
+    rules: {
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
 ];
 
 export default config;

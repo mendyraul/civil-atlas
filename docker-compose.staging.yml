@@ -1,0 +1,145 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${STAGING_API_PUBLIC_URL:?STAGING_API_PUBLIC_URL is required}
+        NEXT_PUBLIC_MAP_STYLE_URL: ${NEXT_PUBLIC_MAP_STYLE_URL:-/map-styles/minimal.json}
+        NEXT_PUBLIC_DEMO_MODE: "false"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${STAGING_API_PUBLIC_URL:?STAGING_API_PUBLIC_URL is required}
+      NEXT_PUBLIC_MAP_STYLE_URL: ${NEXT_PUBLIC_MAP_STYLE_URL:-/map-styles/minimal.json}
+      NEXT_PUBLIC_DEMO_MODE: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      APP_ENV: staging
+      DATABASE_URL: ${STAGING_DATABASE_URL:?STAGING_DATABASE_URL is required}
+      CORS_ORIGINS: ${STAGING_CORS_ORIGINS:?STAGING_CORS_ORIGINS is required}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?S3_ACCESS_KEY_ID is required}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?S3_SECRET_ACCESS_KEY is required}
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_USE_PATH_STYLE: "true"
+      S3_SIGNED_URL_TTL_SECONDS: ${S3_SIGNED_URL_TTL_SECONDS:-900}
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-raw-sources}
+      S3_BUCKET_NORMALIZED: ${S3_BUCKET_NORMALIZED:-normalized-sources}
+      S3_BUCKET_DERIVED: ${S3_BUCKET_DERIVED:-derived-tiles}
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:-exports}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${STAGING_POSTGRES_DB:-civil_atlas}
+      POSTGRES_USER: ${STAGING_POSTGRES_USER:-civil_atlas}
+      POSTGRES_PASSWORD: ${STAGING_POSTGRES_PASSWORD:?STAGING_POSTGRES_PASSWORD is required}
+    volumes:
+      - staging-postgres-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-backup:
+    image: postgres:16
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${STAGING_POSTGRES_DB:-civil_atlas}
+      PGUSER: ${STAGING_POSTGRES_USER:-civil_atlas}
+      PGPASSWORD: ${STAGING_POSTGRES_PASSWORD:?STAGING_POSTGRES_PASSWORD is required}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        while true; do
+          timestamp=$$(date -u +%Y%m%dT%H%M%SZ)
+          pg_dump --format=custom --file="/backups/civil-atlas-$$timestamp.dump"
+          find /backups -type f -name 'civil-atlas-*.dump' -mtime "+$$BACKUP_RETENTION_DAYS" -delete
+          sleep "$$BACKUP_INTERVAL_SECONDS"
+        done
+
+  minio:
+    image: quay.io/minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?S3_ACCESS_KEY_ID is required}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?S3_SECRET_ACCESS_KEY is required}
+    volumes:
+      - staging-minio-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-bootstrap:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?S3_ACCESS_KEY_ID is required}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?S3_SECRET_ACCESS_KEY is required}
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW:-raw-sources}
+      S3_BUCKET_NORMALIZED: ${S3_BUCKET_NORMALIZED:-normalized-sources}
+      S3_BUCKET_DERIVED: ${S3_BUCKET_DERIVED:-derived-tiles}
+      S3_BUCKET_BACKUPS: ${S3_BUCKET_BACKUPS:-db-backups}
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:-exports}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mc alias set staging http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "staging/$$S3_BUCKET_RAW"
+        mc mb --ignore-existing "staging/$$S3_BUCKET_NORMALIZED"
+        mc mb --ignore-existing "staging/$$S3_BUCKET_DERIVED"
+        mc mb --ignore-existing "staging/$$S3_BUCKET_BACKUPS"
+        mc mb --ignore-existing "staging/$$S3_BUCKET_EXPORTS"
+
+volumes:
+  staging-postgres-data:
+  staging-minio-data:

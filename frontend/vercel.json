@@ -3,6 +3,7 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_MAP_STYLE_URL": "/map-styles/minimal.json"
+    "NEXT_PUBLIC_MAP_STYLE_URL": "/map-styles/minimal.json",
+    "NEXT_PUBLIC_DEMO_MODE": "false"
   }
 }

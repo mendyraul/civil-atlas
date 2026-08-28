@@ -1,6 +1,14 @@
 import json
 from pathlib import Path
-from app.seed.catalog import EVIDENCE_LINKS, HISTORICAL_CLAIMS, REVIEW_ASSIGNMENTS, REVIEW_DECISIONS
+from app.seed.catalog import (
+    DATASET_VERSION,
+    EVIDENCE_LINKS,
+    HISTORICAL_CLAIMS,
+    MANIFEST_SHA256,
+    REVIEW_ASSIGNMENTS,
+    REVIEW_DECISIONS,
+)
+from app.seed.import_world117 import import_fixture
 from app.services.atlas import get_world
 FIXTURE=json.loads((Path(__file__).parent/'fixtures/schema_cases.json').read_text())
 def test_temporal_queries_are_closed_and_support_bce():
@@ -30,3 +38,10 @@ def test_schema_fixture_covers_edge_cases():
     assert len(next(x for x in geometry if x['id']=='polygon-hole')['coordinates']) == 2
     ring=next(x for x in geometry if x['id']=='antimeridian')['coordinates'][0]
     assert max(p[0] for p in ring)-min(p[0] for p in ring)>180
+
+
+def test_versioned_manifest_is_repeatable_and_audited():
+    result = import_fixture(dry_run=True)
+    assert result["dataset_version"] == DATASET_VERSION
+    assert result["manifest_sha256"] == f"sha256:{MANIFEST_SHA256}"
+    assert result["records_discovered"] > 0

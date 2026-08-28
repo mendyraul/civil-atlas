@@ -73,7 +73,7 @@ Manual frontend run:
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -108,9 +108,20 @@ point `NEXT_PUBLIC_MAP_STYLE_URL` at that style.
 
 ## Seed data
 
-The current seed spans roughly `600 BCE` to `1800 CE`, with `117 CE` as the
-main focal year. It includes seven civilizations, a small place set, a small
-edge set, and manual source/evidence records.
+The current versioned import manifest spans roughly `600 BCE` to `1800 CE`,
+with `117 CE` as the main focal year. It includes seven civilizations, a small
+place set, a small edge set, and manual source/evidence records. Import it with:
+
+```bash
+cd backend
+python -m app.seed.import_world117 --dry-run
+python -m app.seed.import_world117 --actor operator:staging
+```
+
+The manifest lives at
+`backend/data/imports/world117/v1/manifest.json`. Increment its dataset version
+when changing records; the importer validates provenance, records its manifest
+hash, and is safe to rerun.
 
 ## Source-of-truth philosophy
 
@@ -123,7 +134,8 @@ sources, claims, confidence levels, review status, and valid time ranges.
 - Boundaries are schematic placeholder or source-reported approximations
 - No external source ingestion yet
 - No PostGIS geometry columns yet
-- No persistence/write workflow yet; seed data still lives in code
+- Source ingestion and editorial review are currently operator/API foundations;
+  the end-to-end editor UI is not yet available
 - The frontend is still optimized for the MVP atlas flow, not a full research UI
 # Data modes
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router, router as world_router
@@ -20,14 +20,31 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
-def healthcheck() -> dict[str, object]:
+def _ready_payload() -> dict[str, object]:
     return {
         "status": "ok",
         "database": "available",
         "data": get_data_version(),
         "api_version": settings.app_version,
     }
+
+
+@app.get("/health/live")
+def liveness() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/health/ready")
+def readiness() -> dict[str, object]:
+    try:
+        return _ready_payload()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="database is unavailable") from exc
+
+
+@app.get("/health")
+def healthcheck() -> dict[str, object]:
+    return readiness()
 
 
 app.include_router(world_router, prefix="/api/v1")

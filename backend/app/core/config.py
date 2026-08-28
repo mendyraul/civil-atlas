@@ -23,6 +23,7 @@ class StorageContract(BaseModel):
 
 
 class Settings(BaseModel):
+    app_env: str = "development"
     app_name: str = "Civil Atlas API"
     app_version: str = "0.1.0"
     app_description: str = (
@@ -50,7 +51,32 @@ def _int_from_env(name: str, default: int) -> int:
         return default
 
 
+def _list_from_env(name: str, default: list[str]) -> list[str]:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+runtime_env = os.getenv("APP_ENV", "development").strip().lower()
+database_url = os.getenv("DATABASE_URL")
+if runtime_env in {"staging", "production"}:
+    required = {
+        "DATABASE_URL": database_url,
+        "CORS_ORIGINS": os.getenv("CORS_ORIGINS"),
+        "S3_ACCESS_KEY_ID": os.getenv("S3_ACCESS_KEY_ID"),
+        "S3_SECRET_ACCESS_KEY": os.getenv("S3_SECRET_ACCESS_KEY"),
+    }
+    missing = [name for name, value in required.items() if not value]
+    if missing:
+        raise RuntimeError(
+            f"{runtime_env} configuration is missing required settings: {', '.join(missing)}"
+        )
+
+
 settings = Settings(
+    app_env=runtime_env,
+    cors_origins=_list_from_env("CORS_ORIGINS", ["http://localhost:3000"]),
     database_url=os.getenv(
         "DATABASE_URL", Settings.model_fields["database_url"].default
     ).replace("postgresql://", "postgresql+psycopg://", 1),

@@ -17,7 +17,6 @@ from app.models.tables import (
     primary_source_passages,
     thematic_metrics,
     civilization_layers,
-    metadata,
 )
 
 ENTITY_TABLES = {
