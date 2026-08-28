@@ -441,6 +441,81 @@ def get_graph(entity_id: str | None = Query(default=None)) -> GraphView:
     return GraphView(nodes=nodes, edges=edges)
 
 
+@api_router.get("/entities", response_model=list[KnowledgeEntity])
+def list_entities(kind: str | None = Query(default=None)) -> list[KnowledgeEntity]:
+    return [entity for entity in ENTITIES if kind is None or entity.kind == kind]
+
+
+@api_router.get("/entities/{slug}", response_model=KnowledgeEntity)
+def get_entity(slug: str) -> KnowledgeEntity:
+    entity = ENTITIES_BY_SLUG.get(slug)
+    if entity is None:
+        raise HTTPException(status_code=404, detail="Entity not found.")
+    return entity
+
+
+@api_router.get("/claims/{claim_id}", response_model=ClaimView)
+def get_claim(claim_id: str) -> ClaimView:
+    claim = CLAIMS_BY_ID.get(claim_id)
+    if claim is None:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+    return claim
+
+
+@api_router.get("/comparisons", response_model=ComparisonView)
+def compare_entities(ids: list[str] = Query(...)) -> ComparisonView:
+    selected = [entity for entity in ENTITIES if entity.id in ids]
+    if len(selected) != len(set(ids)):
+        raise HTTPException(status_code=404, detail="One or more entities were not found.")
+    claims_by_entity = {
+        entity.id: [claim for claim in CLAIMS if claim.subject_id == entity.id]
+        for entity in selected
+    }
+    predicate_sets = [{claim.predicate for claim in claims} for claims in claims_by_entity.values()]
+    shared = sorted(set.intersection(*predicate_sets)) if predicate_sets else []
+    return ComparisonView(entities=selected, shared_predicates=shared, claims_by_entity=claims_by_entity)
+
+
+@api_router.get("/search", response_model=list[SearchResult])
+def search_entities(
+    q: str = Query(..., min_length=2),
+    kind: str | None = Query(default=None),
+) -> list[SearchResult]:
+    needle = q.casefold()
+    return [
+        SearchResult(
+            id=entity.id,
+            kind=entity.kind,
+            label=entity.canonical_name,
+            matched_claim_ids=entity.overview_claim_ids,
+        )
+        for entity in ENTITIES
+        if (kind is None or entity.kind == kind)
+        and needle in entity.canonical_name.casefold()
+    ]
+
+
+@api_router.get("/graph", response_model=GraphView)
+def get_graph(entity_id: str | None = Query(default=None)) -> GraphView:
+    edges = [
+        edge
+        for edge in RELATIONSHIPS
+        if entity_id is None
+        or entity_id in {edge["subject_id"], edge["target_id"]}
+    ]
+    node_ids = {value for edge in edges for value in (edge["subject_id"], edge["target_id"])}
+    nodes = (
+        ENTITIES
+        if entity_id is None
+        else [
+            entity
+            for entity in ENTITIES
+            if entity.id in node_ids or entity.id == entity_id
+        ]
+    )
+    return GraphView(nodes=nodes, edges=edges)
+
+
 def _storage_contract_view() -> StorageContractView:
     storage = settings.storage
     return StorageContractView(
