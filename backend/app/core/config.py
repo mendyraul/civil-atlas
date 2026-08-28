@@ -31,6 +31,7 @@ class Settings(BaseModel):
     )
     cors_origins: list[str] = ["http://localhost:3000"]
     database_url: str = "postgresql+psycopg://civil_atlas:civil_atlas@localhost:5432/civil_atlas"
+    editorial_api_key: str | None = None
     storage: StorageContract = StorageContract()
 
 
@@ -64,6 +65,7 @@ if runtime_env in {"staging", "production"}:
     required = {
         "DATABASE_URL": database_url,
         "CORS_ORIGINS": os.getenv("CORS_ORIGINS"),
+        "EDITORIAL_API_KEY": os.getenv("EDITORIAL_API_KEY"),
         "S3_ACCESS_KEY_ID": os.getenv("S3_ACCESS_KEY_ID"),
         "S3_SECRET_ACCESS_KEY": os.getenv("S3_SECRET_ACCESS_KEY"),
     }
@@ -80,6 +82,7 @@ settings = Settings(
     database_url=os.getenv(
         "DATABASE_URL", Settings.model_fields["database_url"].default
     ).replace("postgresql://", "postgresql+psycopg://", 1),
+    editorial_api_key=os.getenv("EDITORIAL_API_KEY"),
     storage=StorageContract(
         access_key_id=os.getenv(
             "S3_ACCESS_KEY_ID", StorageContract.model_fields["access_key_id"].default

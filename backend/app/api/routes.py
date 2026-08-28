@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Query
+from hmac import compare_digest
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from app.core.config import settings
 from app.schemas import (
@@ -36,23 +38,27 @@ from app.schemas import (
     KnowledgeEntity,
     SearchResult,
 )
-from app.services.knowledge import (
-    CLAIMS,
-    CLAIMS_BY_ID,
-    ENTITIES,
-    ENTITIES_BY_SLUG,
-    RELATIONSHIPS,
-)
 from app.services.atlas import (
     YEAR_MAX, YEAR_MIN, get_data_version, get_entity, get_globe, get_places,
-    get_world, list_entities,
+    get_world, list_entities, search_entity_payloads,
 )
 from app.services.ingest import build_ingest_plan
 from app.services.learning import LESSONS, grade_attempt
-from app.seed.catalog import ATLAS_NODES, ATLAS_ROUTES, CIVILIZATIONS, HISTORICAL_EVENTS, SOURCE_RECORDS
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
+
+
+def require_editorial_key(
+    editorial_key: str | None = Header(default=None, alias="X-Editorial-Key"),
+) -> None:
+    """Protect operational import/review metadata from visitor-facing clients."""
+    if settings.app_env == "development" and not settings.editorial_api_key:
+        return
+    if not settings.editorial_api_key or not editorial_key or not compare_digest(
+        editorial_key, settings.editorial_api_key
+    ):
+        raise HTTPException(status_code=401, detail="editorial authorization required")
 
 
 def _validate_year(year: int) -> int:
@@ -93,8 +99,7 @@ def search_catalog(
 ) -> dict[str, object]:
     """Server-side catalog search; the seed implementation mirrors a future FTS index contract."""
     records: list[dict[str, object]] = []
-    for item in [*CIVILIZATIONS, *ATLAS_NODES, *ATLAS_ROUTES, *HISTORICAL_EVENTS, *SOURCE_RECORDS]:
-        data = item.model_dump()
+    for data in search_entity_payloads(("civilizations", "nodes", "routes", "events", "source_records")):
         entity_id = str(data.get("id", "")); kind = str(data.get("kind") or data.get("feature_kind") or ("event" if "event_type" in data else "source"))
         title = str(data.get("display_name") or data.get("label") or data.get("title"))
         summary = str(data.get("summary") or data.get("notes") or data.get("citation") or "")
@@ -190,37 +195,37 @@ def get_claims_v1() -> list[HistoricalClaim]:
     return list_entities("claims", HistoricalClaim)
 
 
-@router.get("/artifacts", response_model=list[SourceArtifact])
+@router.get("/artifacts", response_model=list[SourceArtifact], dependencies=[Depends(require_editorial_key)])
 def get_artifacts_v1() -> list[SourceArtifact]:
-    return list_entities("artifacts", SourceArtifact)
+    return list_entities("artifacts", SourceArtifact, published_only=False)
 
 
-@router.get("/import-jobs", response_model=list[ImportJob])
+@router.get("/import-jobs", response_model=list[ImportJob], dependencies=[Depends(require_editorial_key)])
 def get_import_jobs_v1() -> list[ImportJob]:
-    return list_entities("import_jobs", ImportJob)
+    return list_entities("import_jobs", ImportJob, published_only=False)
 
 
-@router.get("/review-assignments", response_model=list[ReviewAssignment])
+@router.get("/review-assignments", response_model=list[ReviewAssignment], dependencies=[Depends(require_editorial_key)])
 def get_review_assignments_v1() -> list[ReviewAssignment]:
-    return list_entities("review_assignments", ReviewAssignment)
+    return list_entities("review_assignments", ReviewAssignment, published_only=False)
 
 
-@router.get("/review-decisions", response_model=list[ReviewDecision])
+@router.get("/review-decisions", response_model=list[ReviewDecision], dependencies=[Depends(require_editorial_key)])
 def get_review_decisions_v1() -> list[ReviewDecision]:
-    return list_entities("review_decisions", ReviewDecision)
+    return list_entities("review_decisions", ReviewDecision, published_only=False)
 
 
-@router.get("/revisions", response_model=list[RevisionRecord])
+@router.get("/revisions", response_model=list[RevisionRecord], dependencies=[Depends(require_editorial_key)])
 def get_revisions_v1() -> list[RevisionRecord]:
-    return list_entities("revisions", RevisionRecord)
+    return list_entities("revisions", RevisionRecord, published_only=False)
 
 
-@router.get("/storage-contract", response_model=StorageContractView)
+@router.get("/storage-contract", response_model=StorageContractView, dependencies=[Depends(require_editorial_key)])
 def get_storage_contract_v1() -> StorageContractView:
     return _storage_contract_view()
 
 
-@router.post("/ingest-plans", response_model=ArtifactIngestPlan)
+@router.post("/ingest-plans", response_model=ArtifactIngestPlan, dependencies=[Depends(require_editorial_key)])
 def create_ingest_plan_v1(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
     return build_ingest_plan(payload)
 
@@ -327,37 +332,37 @@ def get_relationships() -> list[HistoricalRelationship]:
     return list_entities("relationships", HistoricalRelationship)
 
 
-@api_router.get("/artifacts", response_model=list[SourceArtifact])
+@api_router.get("/artifacts", response_model=list[SourceArtifact], dependencies=[Depends(require_editorial_key)])
 def get_artifacts() -> list[SourceArtifact]:
-    return list_entities("artifacts", SourceArtifact)
+    return list_entities("artifacts", SourceArtifact, published_only=False)
 
 
-@api_router.get("/import-jobs", response_model=list[ImportJob])
+@api_router.get("/import-jobs", response_model=list[ImportJob], dependencies=[Depends(require_editorial_key)])
 def get_import_jobs() -> list[ImportJob]:
-    return list_entities("import_jobs", ImportJob)
+    return list_entities("import_jobs", ImportJob, published_only=False)
 
 
-@api_router.get("/review-assignments", response_model=list[ReviewAssignment])
+@api_router.get("/review-assignments", response_model=list[ReviewAssignment], dependencies=[Depends(require_editorial_key)])
 def get_review_assignments() -> list[ReviewAssignment]:
-    return list_entities("review_assignments", ReviewAssignment)
+    return list_entities("review_assignments", ReviewAssignment, published_only=False)
 
 
-@api_router.get("/review-decisions", response_model=list[ReviewDecision])
+@api_router.get("/review-decisions", response_model=list[ReviewDecision], dependencies=[Depends(require_editorial_key)])
 def get_review_decisions() -> list[ReviewDecision]:
-    return list_entities("review_decisions", ReviewDecision)
+    return list_entities("review_decisions", ReviewDecision, published_only=False)
 
 
-@api_router.get("/revisions", response_model=list[RevisionRecord])
+@api_router.get("/revisions", response_model=list[RevisionRecord], dependencies=[Depends(require_editorial_key)])
 def get_revisions() -> list[RevisionRecord]:
-    return list_entities("revisions", RevisionRecord)
+    return list_entities("revisions", RevisionRecord, published_only=False)
 
 
-@api_router.get("/storage-contract", response_model=StorageContractView)
+@api_router.get("/storage-contract", response_model=StorageContractView, dependencies=[Depends(require_editorial_key)])
 def get_storage_contract() -> StorageContractView:
     return _storage_contract_view()
 
 
-@api_router.post("/ingest-plans", response_model=ArtifactIngestPlan)
+@api_router.post("/ingest-plans", response_model=ArtifactIngestPlan, dependencies=[Depends(require_editorial_key)])
 def create_ingest_plan(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
     return build_ingest_plan(payload)
 
@@ -380,13 +385,14 @@ def get_claims() -> list[HistoricalClaim]:
 
 
 @api_router.get("/entities", response_model=list[KnowledgeEntity])
-def list_entities(kind: str | None = Query(default=None)) -> list[KnowledgeEntity]:
-    return [entity for entity in ENTITIES if kind is None or entity.kind == kind]
+def list_knowledge_entities(kind: str | None = Query(default=None)) -> list[KnowledgeEntity]:
+    entities = list_entities("knowledge_entities", KnowledgeEntity)
+    return [entity for entity in entities if kind is None or entity.kind == kind]
 
 
 @api_router.get("/entities/{slug}", response_model=KnowledgeEntity)
-def get_entity(slug: str) -> KnowledgeEntity:
-    entity = ENTITIES_BY_SLUG.get(slug)
+def get_knowledge_entity(slug: str) -> KnowledgeEntity:
+    entity = get_entity("knowledge_entities", slug, KnowledgeEntity)
     if entity is None:
         raise HTTPException(status_code=404, detail="Entity not found.")
     return entity
@@ -394,7 +400,7 @@ def get_entity(slug: str) -> KnowledgeEntity:
 
 @api_router.get("/claims/{claim_id}", response_model=ClaimView)
 def get_claim(claim_id: str) -> ClaimView:
-    claim = CLAIMS_BY_ID.get(claim_id)
+    claim = get_entity("knowledge_claims", claim_id, ClaimView)
     if claim is None:
         raise HTTPException(status_code=404, detail="Claim not found.")
     return claim
@@ -402,11 +408,19 @@ def get_claim(claim_id: str) -> ClaimView:
 
 @api_router.get("/comparisons", response_model=ComparisonView)
 def compare_entities(ids: list[str] = Query(...)) -> ComparisonView:
-    selected = [entity for entity in ENTITIES if entity.id in ids]
+    selected = [
+        entity
+        for entity in list_entities("knowledge_entities", KnowledgeEntity)
+        if entity.id in ids
+    ]
     if len(selected) != len(set(ids)):
         raise HTTPException(status_code=404, detail="One or more entities were not found.")
     claims_by_entity = {
-        entity.id: [claim for claim in CLAIMS if claim.subject_id == entity.id]
+        entity.id: [
+            claim
+            for claim in list_entities("knowledge_claims", ClaimView)
+            if claim.subject_id == entity.id
+        ]
         for entity in selected
     }
     predicate_sets = [{claim.predicate for claim in claims} for claims in claims_by_entity.values()]
@@ -427,7 +441,7 @@ def search_entities(
             label=entity.canonical_name,
             matched_claim_ids=entity.overview_claim_ids,
         )
-        for entity in ENTITIES
+        for entity in list_entities("knowledge_entities", KnowledgeEntity)
         if (kind is None or entity.kind == kind)
         and needle in entity.canonical_name.casefold()
     ]
@@ -437,17 +451,17 @@ def search_entities(
 def get_graph(entity_id: str | None = Query(default=None)) -> GraphView:
     edges = [
         edge
-        for edge in RELATIONSHIPS
+        for edge in search_entity_payloads(("knowledge_relationships",))
         if entity_id is None
         or entity_id in {edge["subject_id"], edge["target_id"]}
     ]
     node_ids = {value for edge in edges for value in (edge["subject_id"], edge["target_id"])}
     nodes = (
-        ENTITIES
+        list_entities("knowledge_entities", KnowledgeEntity)
         if entity_id is None
         else [
             entity
-            for entity in ENTITIES
+            for entity in list_entities("knowledge_entities", KnowledgeEntity)
             if entity.id in node_ids or entity.id == entity_id
         ]
     )

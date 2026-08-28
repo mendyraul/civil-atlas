@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS atlas_entities (
   external_id TEXT NOT NULL,
   payload JSONB NOT NULL,
   content_hash TEXT NOT NULL,
+  published BOOLEAN NOT NULL DEFAULT FALSE,
   revision_number INTEGER NOT NULL DEFAULT 1 CHECK (revision_number > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -45,3 +46,4 @@ ALTER TABLE revision_records
   ADD CONSTRAINT fk_revision_decision FOREIGN KEY (review_decision_id) REFERENCES review_decisions(id);
 
 CREATE INDEX IF NOT EXISTS idx_atlas_entities_version ON atlas_entities(updated_at, revision_number);
+CREATE INDEX IF NOT EXISTS idx_atlas_entities_public ON atlas_entities(entity_type, published, external_id);

@@ -25,13 +25,14 @@ jobs:
       - run: |
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/001_init.sql
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/002_repository_integrity.sql
+          PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/003_publication_state.sql
         env:
           PGHOST: localhost
           PGPORT: 5432
           PGUSER: civil_atlas
           PGDATABASE: civil_atlas
           PGPASSWORD: civil_atlas
-      - run: python -m app.seed.import_world117
+      - run: python -m app.seed.import_world117 --publish --actor ci:fixture
         working-directory: backend
       - run: pytest -q
         working-directory: backend

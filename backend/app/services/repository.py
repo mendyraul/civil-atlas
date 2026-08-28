@@ -8,6 +8,26 @@ from typing import Any
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+PUBLIC_ENTITY_TYPES = {
+    "civilizations",
+    "layers",
+    "nodes",
+    "routes",
+    "places",
+    "civilization_places",
+    "edges",
+    "sources",
+    "source_records",
+    "eras",
+    "events",
+    "relationships",
+    "claims",
+    "evidence",
+    "knowledge_entities",
+    "knowledge_claims",
+    "knowledge_relationships",
+}
+
 
 class AtlasRepository:
     """Database-backed repository for validated, externally identified atlas documents."""
@@ -15,23 +35,49 @@ class AtlasRepository:
     def __init__(self, session: Session):
         self.session = session
 
-    def list(self, entity_type: str) -> list[dict[str, Any]]:
+    def list(self, entity_type: str, *, published_only: bool = True) -> list[dict[str, Any]]:
         rows = self.session.execute(
-            text("SELECT payload FROM atlas_entities WHERE entity_type=:type ORDER BY external_id"),
-            {"type": entity_type},
+            text("""
+                SELECT payload FROM atlas_entities
+                WHERE entity_type=:type AND (:published_only = FALSE OR published = TRUE)
+                ORDER BY external_id
+            """),
+            {"type": entity_type, "published_only": published_only},
         )
         return [dict(row.payload) for row in rows]
 
-    def get(self, entity_type: str, external_id: str) -> dict[str, Any] | None:
+    def get(
+        self, entity_type: str, external_id: str, *, published_only: bool = True
+    ) -> dict[str, Any] | None:
         row = self.session.execute(
-            text("SELECT payload FROM atlas_entities WHERE entity_type=:type AND external_id=:id"),
-            {"type": entity_type, "id": external_id},
+            text("""
+                SELECT payload FROM atlas_entities
+                WHERE entity_type=:type AND external_id=:id
+                  AND (:published_only = FALSE OR published = TRUE)
+            """),
+            {"type": entity_type, "id": external_id, "published_only": published_only},
         ).first()
         return dict(row.payload) if row else None
 
+    def search(self, entity_types: tuple[str, ...]) -> list[dict[str, Any]]:
+        """Return public documents for the catalog search endpoint."""
+        if not entity_types:
+            return []
+        rows = self.session.execute(
+            text("""
+                SELECT entity_type, payload FROM atlas_entities
+                WHERE entity_type = ANY(:entity_types) AND published = TRUE
+                ORDER BY external_id
+            """),
+            {"entity_types": list(entity_types)},
+        )
+        return [{"entity_type": row.entity_type, **dict(row.payload)} for row in rows]
+
     def data_version(self) -> dict[str, Any]:
         row = self.session.execute(text("""
-            SELECT count(*) AS entity_count, max(updated_at) AS updated_at,
+            SELECT count(*) AS entity_count,
+                   count(*) FILTER (WHERE published = TRUE) AS public_entity_count,
+                   max(updated_at) AS updated_at,
                    coalesce(max(revision_number), 0) AS revision
             FROM atlas_entities
         """)).one()
@@ -39,26 +85,35 @@ class AtlasRepository:
             "version": f"db-r{row.revision}",
             "revision": row.revision,
             "entity_count": row.entity_count,
+            "public_entity_count": row.public_entity_count,
             "updated_at": row.updated_at,
         }
 
-    def upsert(self, entity_type: str, external_id: str, payload: dict[str, Any], actor: str) -> str:
+    def upsert(
+        self,
+        entity_type: str,
+        external_id: str,
+        payload: dict[str, Any],
+        actor: str,
+        *,
+        published: bool = False,
+    ) -> str:
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
         digest = sha256(canonical.encode()).hexdigest()
         existing = self.session.execute(text("""
-            SELECT id, content_hash, revision_number FROM atlas_entities
+            SELECT id, content_hash, published, revision_number FROM atlas_entities
             WHERE entity_type=:type AND external_id=:external_id FOR UPDATE
         """), {"type": entity_type, "external_id": external_id}).mappings().first()
         now = datetime.now(timezone.utc)
-        if existing and existing["content_hash"] == digest:
+        if existing and existing["content_hash"] == digest and existing["published"] == published:
             return "duplicate"
         if existing:
             revision = existing["revision_number"] + 1
             self.session.execute(text("""
                 UPDATE atlas_entities SET payload=CAST(:payload AS jsonb), content_hash=:hash,
-                  revision_number=:revision, updated_at=:now WHERE id=:id
+                  published=:published, revision_number=:revision, updated_at=:now WHERE id=:id
             """), {"payload": json.dumps(payload), "hash": digest, "revision": revision,
-                    "now": now, "id": existing["id"]})
+                    "published": published, "now": now, "id": existing["id"]})
             self.session.execute(text("""
                 INSERT INTO revision_records
                   (id, external_id, entity_type, entity_id, revision_kind, summary,
@@ -72,8 +127,10 @@ class AtlasRepository:
         internal_id = f"entity:{entity_type}:{external_id}"
         self.session.execute(text("""
             INSERT INTO atlas_entities
-              (id, entity_type, external_id, payload, content_hash, revision_number, created_at, updated_at)
-            VALUES (:id, :type, :external_id, CAST(:payload AS jsonb), :hash, 1, :now, :now)
+              (id, entity_type, external_id, payload, content_hash, published,
+               revision_number, created_at, updated_at)
+            VALUES (:id, :type, :external_id, CAST(:payload AS jsonb), :hash, :published,
+                    1, :now, :now)
         """), {"id": internal_id, "type": entity_type, "external_id": external_id,
-                "payload": json.dumps(payload), "hash": digest, "now": now})
+                "payload": json.dumps(payload), "hash": digest, "published": published, "now": now})
         return "created"

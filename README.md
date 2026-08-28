@@ -115,13 +115,24 @@ place set, a small edge set, and manual source/evidence records. Import it with:
 ```bash
 cd backend
 python -m app.seed.import_world117 --dry-run
-python -m app.seed.import_world117 --actor operator:staging
+python -m app.seed.import_world117 --publish --actor operator:staging
 ```
 
 The manifest lives at
 `backend/data/imports/world117/v1/manifest.json`. Increment its dataset version
 when changing records; the importer validates provenance, records its manifest
-hash, and is safe to rerun.
+hash, and is safe to rerun. Imports are private by default; `--publish` is an
+explicit release of eligible public atlas entity types. `needs_review` and
+`placeholder` records stay private. Review assignments, decisions, revisions,
+import jobs, and source artifacts remain operational records.
+
+## Vercel
+
+Vercel serves the frontend only. Configure the project root as `frontend` (or
+use the checked-in root `vercel.json`), set
+`NEXT_PUBLIC_API_BASE_URL` to the public HTTPS FastAPI origin, and keep
+`NEXT_PUBLIC_DEMO_MODE=false`. See [the Vercel deployment runbook](docs/vercel.md)
+for the GitHub author identity and release checks.
 
 ## Source-of-truth philosophy
 

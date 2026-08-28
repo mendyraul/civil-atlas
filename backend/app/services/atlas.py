@@ -10,6 +10,7 @@ from app.schemas import (
     CivilizationPlace, Era, EvidenceLink, GlobePayload, HistoricalClaim,
     HistoricalEvent, HistoricalRelationship, ImportJob, Place, ReviewAssignment,
     ReviewDecision, RevisionRecord, Source, SourceArtifact, SourceRecord, WorldPayload,
+    ClaimView, KnowledgeEntity,
 )
 from app.services.repository import AtlasRepository
 
@@ -26,18 +27,29 @@ MODEL_TYPES: dict[str, type[BaseModel]] = {
     "claims": HistoricalClaim, "evidence": EvidenceLink, "artifacts": SourceArtifact,
     "import_jobs": ImportJob, "review_assignments": ReviewAssignment,
     "review_decisions": ReviewDecision, "revisions": RevisionRecord,
+    "knowledge_entities": KnowledgeEntity, "knowledge_claims": ClaimView,
 }
 
 
-def list_entities(kind: str, model: type[T]) -> list[T]:
+def list_entities(kind: str, model: type[T], *, published_only: bool = True) -> list[T]:
     with session_scope() as session:
-        return [model.model_validate(item) for item in AtlasRepository(session).list(kind)]
+        return [
+            model.model_validate(item)
+            for item in AtlasRepository(session).list(kind, published_only=published_only)
+        ]
 
 
-def get_entity(kind: str, external_id: str, model: type[T]) -> T | None:
+def get_entity(
+    kind: str, external_id: str, model: type[T], *, published_only: bool = True
+) -> T | None:
     with session_scope() as session:
-        value = AtlasRepository(session).get(kind, external_id)
+        value = AtlasRepository(session).get(kind, external_id, published_only=published_only)
         return model.model_validate(value) if value else None
+
+
+def search_entity_payloads(entity_types: tuple[str, ...]) -> list[dict[str, object]]:
+    with session_scope() as session:
+        return AtlasRepository(session).search(entity_types)
 
 
 def get_data_version() -> dict[str, object]:

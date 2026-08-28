@@ -26,6 +26,9 @@
 - `revision_records`: human-readable change/audit trail for geometry, metadata,
   and review operations
 - `evidence_links`: links from sources to specific entities and claim types
+- `atlas_entities.published`: explicit release gate used by all public API
+  reads; it is separate from `review_status` so a provisional seed can be
+  retained for editorial work without being released accidentally
 
 ## Relationships
 
@@ -60,6 +63,9 @@
 
 - Confidence values: `low`, `medium`, `medium_high`, `high`
 - Review values: `placeholder`, `seeded`, `needs_review`, `reviewed`
+- Publication is a separate boolean release gate. Imports default to
+  `published=false`; only an explicit release import makes public entity types
+  visible through the API.
 - Every map-facing object should carry both, even when geometry is only a
   placeholder
 - Timeline-facing eras and events should also carry source-backed explanation
