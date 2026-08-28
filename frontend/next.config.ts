@@ -10,6 +10,7 @@ if (process.env.VERCEL === '1' && process.env.NEXT_PUBLIC_DEMO_MODE !== 'true' &
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ['127.0.0.1'],
   outputFileTracingRoot: path.join(__dirname),
 };
 
