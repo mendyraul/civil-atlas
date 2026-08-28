@@ -8,6 +8,8 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        ports:
+          - 5432:5432
         env:
           POSTGRES_DB: civil_atlas
           POSTGRES_USER: civil_atlas
