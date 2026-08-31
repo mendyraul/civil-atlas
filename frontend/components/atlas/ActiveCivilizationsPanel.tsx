@@ -40,6 +40,7 @@ export function ActiveCivilizationsPanel({
               }`}
               key={civilization.id}
               onClick={() => onSelect(civilization.id)}
+              aria-pressed={isSelected}
               type="button"
             >
               <div className="flex items-center justify-between gap-3">

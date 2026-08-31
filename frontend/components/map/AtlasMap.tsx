@@ -297,6 +297,7 @@ export function AtlasMap({
     () => layerFeatureCollection(civilizationLayers, civilizations),
     [civilizationLayers, civilizations],
   );
+  const previousPolygonDataRef = useRef(polygonData);
   const pointData = useMemo(() => nodeFeatureCollection(nodes), [nodes]);
   const routeData = useMemo(() => routeFeatureCollection(routes), [routes]);
   const currentMapStateRef = useRef<MapState>({
@@ -677,10 +678,32 @@ export function AtlasMap({
     showRoutes,
   ]);
 
+  // A4: GeoJSON replacement is a hard data swap in MapLibre. Briefly fading
+  // the fill out makes a year/filter change feel intentional while keeping
+  // the outline and labels available during the transition.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded() || previousPolygonDataRef.current === polygonData) return;
+    previousPolygonDataRef.current = polygonData;
+
+    map.setPaintProperty('civilizations-fill', 'fill-opacity', 0);
+    const frame = window.requestAnimationFrame(() => {
+      if (mapRef.current === map && map.isStyleLoaded()) {
+        applyCurrentMapState(map, currentMapStateRef.current);
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [polygonData]);
+
   // A2: fly the camera to frame the newly selected feature.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || !selectedId) return;
+    if (!selectedId) {
+      lastFlownRef.current = undefined;
+      return;
+    }
+    if (!map || !map.isStyleLoaded()) return;
     if (lastFlownRef.current === selectedId) return;
 
     const civilization = civilizations.find((item) => item.id === selectedId);

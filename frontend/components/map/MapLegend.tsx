@@ -66,7 +66,7 @@ export function MapLegend({
         )}
 
         <p className="mt-3 border-t border-white/10 pt-2 text-[10px] leading-4 text-amber-300/90">
-          Approximate influence field, not a surveyed border
+          Approximate source-reported extent
         </p>
       </div>
     </div>

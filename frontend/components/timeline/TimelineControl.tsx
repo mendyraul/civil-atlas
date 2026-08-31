@@ -97,22 +97,27 @@ export function TimelineControl({
         <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'event')} type="button">Event →</button>
         <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'era')} type="button">Era →</button>
       </div>
-      <div className="relative mt-5 h-6">
+      <div className="atlas-timeline-track relative mt-5 h-8" aria-label="Historical timeline markers">
         {eras.map((era) => (
           <div
-            className="absolute top-0 h-2 rounded-full bg-cyan-400/15"
+            className="atlas-timeline-era absolute top-1 h-2 rounded-full bg-cyan-400/15"
             key={era.id}
             style={{
               left: `${yearToPercent(era.startYear)}%`,
               width: `${Math.max(yearToPercent(era.endYear) - yearToPercent(era.startYear), 0.5)}%`,
             }}
             title={`${era.label} (${formatYear(era.startYear)} to ${formatYear(era.endYear)})`}
-          />
+          ><span className="sr-only">{era.label}</span></div>
         ))}
+        <div
+          aria-hidden
+          className="atlas-timeline-now absolute top-0 h-8 w-px bg-amber-200/80"
+          style={{ left: `${yearToPercent(year)}%` }}
+        />
         {events.map((event) => (
           <button
             aria-label={`Jump to ${event.label} (${event.displayDate})`}
-            className="absolute bottom-0 h-4 w-[2px] -translate-x-1/2 rounded-full bg-amber-300/80 transition hover:h-5 hover:bg-amber-200"
+            className="atlas-timeline-event absolute bottom-0 h-4 w-[2px] -translate-x-1/2 rounded-full bg-amber-300/80 transition hover:h-5 hover:bg-amber-200"
             key={event.id}
             onClick={() => onYearChange(event.startYear)}
             style={{ left: `${yearToPercent(event.startYear)}%` }}

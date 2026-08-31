@@ -46,6 +46,7 @@ export function LayerControls({ values, counts, onToggle }: LayerControlsProps) 
               }`}
               key={layer}
               onClick={() => onToggle(layer)}
+              aria-pressed={enabled}
               type="button"
             >
               <div>

@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { API_BASE_URL, HAS_REMOTE_API } from '../../lib/atlas';
 
 const navItems = [
@@ -19,6 +22,8 @@ export function SiteShell({
   title: string;
   subtitle: string;
 }>) {
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen px-4 py-4 md:px-6 md:py-5">
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -56,7 +61,12 @@ export function SiteShell({
         <nav className="mt-4 flex flex-wrap gap-2">
           {navItems.map((item) => (
             <Link
-              className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-300 transition hover:border-cyan-300/40 hover:text-white"
+              aria-current={pathname === item.href ? 'page' : undefined}
+              className={`rounded-full border px-4 py-2 text-sm transition ${
+                pathname === item.href
+                  ? 'border-cyan-300/45 bg-cyan-400/12 text-cyan-50 shadow-[0_0_22px_rgba(75,198,214,0.12)]'
+                  : 'border-white/10 bg-white/6 text-slate-300 hover:border-cyan-300/40 hover:text-white'
+              }`}
               href={item.href}
               key={item.href}
             >

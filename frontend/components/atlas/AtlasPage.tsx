@@ -118,15 +118,15 @@ export function AtlasPage({
           </div>
 
           <div className="grid gap-3 md:grid-cols-3 xl:w-[420px] xl:grid-cols-1">
-            <div className="rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
+            <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Selected year</p>
               <p className="mt-3 text-3xl font-semibold text-white">{formatYear(year)}</p>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
+            <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Visible polities</p>
               <p className="mt-3 text-3xl font-semibold text-white">{world.civilizations.length}</p>
             </div>
-            <div className="rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
+            <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Data channel</p>
               <p className="mt-3 text-xl font-semibold text-white">
                 {{ live: 'Database live', demo: 'Demo snapshot', loading: 'Loading database', stale: 'Database stale', unavailable: 'Database unavailable' }[backendStatus]}
@@ -196,7 +196,7 @@ export function AtlasPage({
         </section>
 
         <section className="atlas-map-shell overflow-hidden rounded-[30px]">
-          <div className="border-b border-white/10 px-5 py-4">
+          <div className="border-b border-white/10 bg-white/[0.018] px-5 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="atlas-kicker">Atlas viewport</p>
@@ -205,13 +205,13 @@ export function AtlasPage({
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                <span className="rounded-full border border-white/10 px-3 py-1">
+                <span className="atlas-map-chip rounded-full border border-white/10 px-3 py-1">
                   Map-first dashboard
                 </span>
-                <span className="rounded-full border border-white/10 px-3 py-1">
+                <span className="atlas-map-chip rounded-full border border-white/10 px-3 py-1">
                   Routes: {world.routes.length}
                 </span>
-                <span className="rounded-full border border-white/10 px-3 py-1">
+                <span className="atlas-map-chip rounded-full border border-white/10 px-3 py-1">
                   Nodes: {world.nodes.length}
                 </span>
               </div>
@@ -221,7 +221,7 @@ export function AtlasPage({
           <details className="border-t border-white/10 p-5" open>
             <summary className="cursor-pointer font-semibold text-cyan-200">Map information as a table</summary>
             <p className="mt-2 text-sm text-slate-300" aria-live="polite">Active layers: {layers.extents ? 'polity extents, ' : ''}{layers.nodes ? 'places, ' : ''}{layers.routes ? 'routes, ' : ''}{layers.sources ? 'evidence' : ''}. Symbols use outlines, dashed routes, and point shapes in addition to color.</p>
-            <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Visible polity extent descriptions</caption><thead><tr><th className="p-2">Polity</th><th className="p-2">Dates</th><th className="p-2">Narrative extent</th><th className="p-2">Evidence</th></tr></thead><tbody>{world.civilizations.map((item) => <tr className="border-t border-white/10" key={item.id}><th scope="row" className="p-2">{item.label}</th><td className="p-2">{formatYear(item.startYear)}–{formatYear(item.endYear)}</td><td className="p-2">{item.extentNote}</td><td className="p-2">{item.confidence.replace('_', ' ')}, {item.reviewStatus.replace('_', ' ')}</td></tr>)}</tbody></table></div>
+            <div className="atlas-data-table mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Visible polity extent descriptions</caption><thead><tr><th className="p-2">Polity</th><th className="p-2">Dates</th><th className="p-2">Narrative extent</th><th className="p-2">Evidence</th></tr></thead><tbody>{world.civilizations.map((item) => <tr className="border-t border-white/10" key={item.id}><th scope="row" className="p-2">{item.label}</th><td className="p-2">{formatYear(item.startYear)}–{formatYear(item.endYear)}</td><td className="p-2">{item.extentNote}</td><td className="p-2">{item.confidence.replace('_', ' ')}, {item.reviewStatus.replace('_', ' ')}</td></tr>)}</tbody></table></div>
           </details>
         </section>
 

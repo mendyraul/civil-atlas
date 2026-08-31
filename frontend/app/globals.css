@@ -18,10 +18,13 @@ html {
 }
 
 body {
+  min-height: 100vh;
   color: var(--foreground);
   background: transparent;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
 }
+
+::selection { background: rgba(75, 198, 214, 0.32); color: #fff; }
 
 :focus-visible { outline: 3px solid #f6c762; outline-offset: 3px; }
 .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 9999; border-radius: .5rem; background: #fff; color: #07111b; padding: .75rem 1rem; }
@@ -38,12 +41,40 @@ body {
   backdrop-filter: blur(18px);
 }
 
+.atlas-panel,
+.atlas-hero,
+.atlas-map-shell {
+  isolation: isolate;
+}
+
 .atlas-hero {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(135deg, rgba(10, 24, 38, 0.96), rgba(8, 17, 29, 0.86)),
     radial-gradient(circle at top left, rgba(80, 182, 209, 0.18), transparent 32%);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+  position: relative;
+  overflow: hidden;
+}
+
+.atlas-hero::after {
+  background: linear-gradient(90deg, transparent, rgba(75, 198, 214, 0.22), transparent);
+  content: "";
+  height: 1px;
+  left: 10%;
+  position: absolute;
+  right: 10%;
+  top: 0;
+}
+
+.atlas-metric-card {
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.atlas-metric-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(75, 198, 214, 0.28);
+  transform: translateY(-2px);
 }
 
 .atlas-map-shell {
@@ -51,6 +82,36 @@ body {
   background:
     linear-gradient(180deg, rgba(6, 16, 28, 0.96), rgba(6, 13, 24, 0.92));
   box-shadow: 0 28px 72px rgba(0, 0, 0, 0.32);
+}
+
+.atlas-map-chip {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.atlas-data-table th {
+  color: #dce9f7;
+  font-weight: 600;
+}
+
+.atlas-data-table td,
+.atlas-data-table th {
+  vertical-align: top;
+}
+
+.atlas-data-table tbody tr {
+  transition: background 180ms ease;
+}
+
+.atlas-data-table tbody tr:hover {
+  background: rgba(75, 198, 214, 0.055);
+}
+
+.atlas-timeline-track {
+  background: linear-gradient(180deg, transparent 0.9rem, rgba(255, 255, 255, 0.08) 0.9rem, rgba(255, 255, 255, 0.08) 1rem, transparent 1rem);
+}
+
+.atlas-timeline-now {
+  box-shadow: 0 0 14px rgba(246, 199, 98, 0.8);
 }
 
 .atlas-kicker {
