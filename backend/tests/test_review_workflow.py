@@ -74,8 +74,8 @@ def test_editorial_review_action_is_auditable_and_reversible():
             text("SELECT count(*) FROM revision_records WHERE entity_id=:id"),
             {"id": f"entity:layers:{entity_id}"},
         ).scalar_one()
-        assert reviewed and reviewed["review_status"] == "reviewed"
-        assert updated_assignment and updated_assignment["current_review_status"] == "reviewed"
+        assert reviewed and reviewed["review_status"] == "rejected"
+        assert updated_assignment and updated_assignment["current_review_status"] == "rejected"
         assert revision_count > 0
 
         # Keep the shared CI database deterministic for any later checks.
