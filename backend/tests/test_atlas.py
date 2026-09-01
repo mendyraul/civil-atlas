@@ -41,7 +41,11 @@ def test_schema_fixture_covers_edge_cases():
 
 
 def test_versioned_manifest_is_repeatable_and_audited():
-    result = import_fixture(dry_run=True)
-    assert result["dataset_version"] == DATASET_VERSION
-    assert result["manifest_sha256"] == f"sha256:{MANIFEST_SHA256}"
-    assert result["records_discovered"] > 0
+    dry_run = import_fixture(dry_run=True)
+    assert dry_run["dataset_version"] == DATASET_VERSION
+    assert dry_run["manifest_sha256"] == f"sha256:{MANIFEST_SHA256}"
+    assert dry_run["records_discovered"] > 0
+    first = import_fixture(actor="test:repeatability")
+    second = import_fixture(actor="test:repeatability")
+    assert first["created"] + first["updated"] + first["duplicate"] > 0
+    assert second["duplicate"] == first["created"] + first["updated"] + first["duplicate"]

@@ -45,6 +45,24 @@ def test_editorial_review_action_is_auditable_and_reversible():
     )
     assert published.previous_review_status == "reviewed"
     assert published.new_review_status == "reviewed"
+    changes_requested = _apply_review_action(
+        ReviewActionRequest(
+            assignment_id=assignment_id,
+            decision_type="request_changes",
+            reviewer="test:editorial",
+            rationale="Integration test change request.",
+        )
+    )
+    assert changes_requested.new_review_status == "needs_review"
+    rejected = _apply_review_action(
+        ReviewActionRequest(
+            assignment_id=assignment_id,
+            decision_type="reject",
+            reviewer="test:editorial",
+            rationale="Integration test rejection.",
+        )
+    )
+    assert rejected.new_review_status == "rejected"
 
     with session_scope() as session:
         repository = AtlasRepository(session)
