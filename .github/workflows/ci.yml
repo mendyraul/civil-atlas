@@ -60,6 +60,12 @@ jobs:
         working-directory: frontend
       - run: npm test
         working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://api.ci.invalid
+          NEXT_PUBLIC_DEMO_MODE: 'false'
+          NEXT_PUBLIC_MAP_STYLE_URL: /map-styles/minimal.json
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: npm run test:e2e
