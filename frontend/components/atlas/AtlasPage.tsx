@@ -55,6 +55,7 @@ type AtlasPageProps = {
   onStep: (direction: -1 | 1, target: 'event' | 'era') => void;
   onModeChange: (mode: 'explore' | 'guided') => void;
   onLessonStep: (chapterId: string, stepId: string) => void;
+  onExport: () => void;
 };
 
 export function AtlasPage({
@@ -88,6 +89,7 @@ export function AtlasPage({
   onTogglePlay,
   playbackSpeed, pauseOnEvent, reducedMotion, onPlaybackSpeedChange, onPauseOnEventChange, onStep,
   chapters, chapterId, stepId, mode, onModeChange, onLessonStep,
+  onExport,
 }: AtlasPageProps) {
   const sourceCount = world.civilizations.reduce((total, civilization) => total + civilization.evidence.length, 0);
   const badges = ['Approximate', 'Source-reported', 'Needs review'] as const;
@@ -145,6 +147,13 @@ export function AtlasPage({
           <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
             {sourceCount} civilization evidence records
           </span>
+          <button
+            className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100 transition hover:border-cyan-200/70 hover:bg-cyan-300/20"
+            onClick={onExport}
+            type="button"
+          >
+            Export current view
+          </button>
         </div>
       </section>
 

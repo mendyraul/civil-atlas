@@ -360,6 +360,24 @@ export function AtlasClient() {
     }));
   }
 
+  function exportCurrentView() {
+    const payload = {
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      query: { year, selectedId, zoom, center, layers, filters },
+      world: visibleWorld,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `civil-atlas-${year}-view.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <SiteShell
       title="Civil Atlas"
@@ -379,6 +397,7 @@ export function AtlasClient() {
           if (step.selectedEntityId) setSelectedId(step.selectedEntityId);
           setLayers({ extents: false, nodes: false, routes: false, sources: false, ...Object.fromEntries(step.visibleLayers.map((layer) => [layer, true])) });
         }}
+        onExport={exportCurrentView}
         backendStatus={backendStatus}
         confidenceCounts={confidenceCounts}
         detailWorld={activeWorld}
