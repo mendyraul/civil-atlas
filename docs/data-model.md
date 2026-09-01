@@ -30,6 +30,14 @@
   reads; it is separate from `review_status` so a provisional seed can be
   retained for editorial work without being released accidentally
 
+The versioned importer keeps `atlas_entities` as the canonical publication-
+gated document store and projects civilizations, layers, places, and routes
+into the typed spatial tables. Polygon, point, and line geometry is stored in
+PostGIS with SRID 4326 and indexed with GiST; the original GeoJSON remains
+alongside it for reproducible interchange and tile generation. A normal
+non-publishing import preserves an already released record's publication bit;
+only an explicit publish import or editorial action changes release state.
+
 ## Relationships
 
 - One civilization can have many layers

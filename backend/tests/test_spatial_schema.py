@@ -95,3 +95,46 @@ def test_postgis_geometry_columns_support_spatial_predicates():
                 transaction.rollback()
     finally:
         engine.dispose()
+
+
+def test_versioned_import_populates_typed_spatial_projection():
+    engine = _database_engine()
+    try:
+        with engine.connect() as connection:
+            counts = connection.execute(
+                text(
+                    """
+                    SELECT 'layers' AS kind, count(*) AS count
+                    FROM civilization_layers
+                    WHERE geom IS NOT NULL
+                    UNION ALL
+                    SELECT 'places', count(*)
+                    FROM places
+                    WHERE geom IS NOT NULL
+                    UNION ALL
+                    SELECT 'edges', count(*)
+                    FROM civilization_edges
+                    WHERE geom IS NOT NULL
+                    """
+                )
+            ).all()
+            assert {row[0]: row[1] for row in counts} == {
+                "layers": 9,
+                "places": 21,
+                "edges": 7,
+            }
+            assert connection.execute(
+                text(
+                    """
+                    SELECT count(*)
+                    FROM civilization_layers AS layer
+                    JOIN atlas_entities AS entity
+                      ON entity.entity_type = 'layers'
+                     AND entity.external_id = layer.id
+                     AND entity.published = TRUE
+                    WHERE layer.valid_from_year <= 117 AND layer.valid_to_year >= 117
+                    """
+                )
+            ).scalar_one() == 6
+    finally:
+        engine.dispose()

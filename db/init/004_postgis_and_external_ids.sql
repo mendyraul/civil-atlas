@@ -4,6 +4,8 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 ALTER TABLE civilization_layers
   ADD COLUMN IF NOT EXISTS geom geometry(Geometry, 4326);
+ALTER TABLE civilization_layers
+  ADD COLUMN IF NOT EXISTS is_placeholder BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE places
   ADD COLUMN IF NOT EXISTS geom geometry(Point, 4326);
 ALTER TABLE civilization_edges

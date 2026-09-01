@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS civilization_layers (
   geometry_json JSONB,
   geom geometry(Geometry, 4326),
   geometry_placeholder TEXT,
+  is_placeholder BOOLEAN NOT NULL DEFAULT FALSE,
   confidence_level TEXT NOT NULL,
   review_status TEXT NOT NULL,
   source_note TEXT NOT NULL,
@@ -38,7 +39,7 @@ CREATE TABLE IF NOT EXISTS civilization_layers (
 );
 
 COMMENT ON COLUMN civilization_layers.geometry_json IS
-  'GeoJSON placeholder storage for MVP seed layers. Planned future migration path: geometry(MultiPolygon, 4326) or vector-tile source tables.';
+  'Canonical GeoJSON representation retained for interchange; geom is the PostGIS query projection.';
 
 CREATE TABLE IF NOT EXISTS places (
   id TEXT PRIMARY KEY,
@@ -87,7 +88,7 @@ CREATE TABLE IF NOT EXISTS civilization_edges (
 );
 
 COMMENT ON COLUMN civilization_edges.path_geojson IS
-  'Optional MVP route polyline as GeoJSON until PostGIS line geometry is enabled.';
+  'Canonical route representation retained for interchange; geom is the PostGIS query projection.';
 
 CREATE TABLE IF NOT EXISTS sources (
   id TEXT PRIMARY KEY,

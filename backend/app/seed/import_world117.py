@@ -119,8 +119,17 @@ def import_fixture(
                         and kind in PUBLIC_ENTITY_TYPES
                         and record.get("review_status") in {"seeded", "reviewed"}
                     ),
+                    preserve_published=not publish,
                 )
+                if kind in {"civilizations", "layers", "nodes", "edges"}:
+                    repository.upsert_spatial_projection(kind, record)
                 counts[result] += 1
+        # Routes carry line geometry but reference places, so project them
+        # only after the place and edge projections have been materialized.
+        for raw in catalog.DATASETS["routes"]:
+            repository.upsert_spatial_projection(
+                "routes", catalog.DATASET_MODELS["routes"].model_validate(raw).model_dump(mode="json")
+            )
         for kind, records in (
             ("knowledge_entities", knowledge.ENTITIES),
             ("knowledge_claims", knowledge.CLAIMS),
@@ -145,6 +154,7 @@ def import_fixture(
                         publish
                         and record.get("review_status") in {"seeded", "reviewed"}
                     ),
+                    preserve_published=not publish,
                 )
                 counts[result] += 1
     return counts

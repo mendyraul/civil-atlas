@@ -155,6 +155,16 @@ def get_world_by_year(year: int) -> WorldPayload:
     return get_world(_validate_year(year))
 
 
+def _get_spatial_layers(year: int) -> dict[str, object]:
+    with session_scope() as session:
+        return AtlasRepository(session).spatial_layers(year)
+
+
+@router.get("/spatial/layers")
+def get_spatial_layers_v1(year: int = Query(default=117)) -> dict[str, object]:
+    return _get_spatial_layers(_validate_year(year))
+
+
 @router.get("/civilizations", response_model=list[Civilization])
 def get_civilizations_v1() -> list[Civilization]:
     return list_entities("civilizations", Civilization)
@@ -332,6 +342,11 @@ def data_version() -> dict[str, object]:
 @api_router.get("/civilizations", response_model=list[Civilization])
 def get_civilizations() -> list[Civilization]:
     return list_entities("civilizations", Civilization)
+
+
+@api_router.get("/spatial/layers")
+def get_spatial_layers(year: int = Query(default=117)) -> dict[str, object]:
+    return _get_spatial_layers(_validate_year(year))
 
 
 @api_router.get("/civilizations/{slug}", response_model=Civilization)

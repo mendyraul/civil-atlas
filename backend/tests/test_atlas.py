@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from sqlalchemy import text
 from app.seed.catalog import (
     DATASET_VERSION,
     EVIDENCE_LINKS,
@@ -10,6 +11,7 @@ from app.seed.catalog import (
 )
 from app.seed.import_world117 import import_fixture
 from app.services.atlas import get_world
+from app.db.session import session_scope
 FIXTURE=json.loads((Path(__file__).parent/'fixtures/schema_cases.json').read_text())
 def test_temporal_queries_are_closed_and_support_bce():
     world=get_world(-500)
@@ -49,3 +51,8 @@ def test_versioned_manifest_is_repeatable_and_audited():
     second = import_fixture(actor="test:repeatability")
     assert first["created"] + first["updated"] + first["duplicate"] > 0
     assert second["duplicate"] == first["created"] + first["updated"] + first["duplicate"]
+    with session_scope() as session:
+        public_count = session.execute(
+            text("SELECT count(*) FROM atlas_entities WHERE published = TRUE")
+        ).scalar_one()
+    assert public_count > 0

@@ -34,6 +34,9 @@ explicit release action: public atlas records are released, while import jobs,
 review assignments, review decisions, revisions, and source artifacts remain
 private operational records. Records marked `needs_review` or `placeholder`
 remain unpublished even when the command is run with `--publish`.
+The same import also refreshes the typed PostGIS projection used by the spatial
+layer endpoint; a validation-only or non-publishing rerun does not withdraw
+records that were already released.
 
 ## Backups and monitoring
 
