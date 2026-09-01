@@ -19,7 +19,7 @@ history is settled.
 
 - Frontend: Next.js, TypeScript, Tailwind CSS, MapLibre GL JS
 - Backend: FastAPI, Python
-- Database: PostgreSQL with PostGIS-ready GeoJSON placeholders
+- Database: PostgreSQL/PostGIS with GeoJSON fallback and spatial indexes
 - Infrastructure: Docker Compose
 
 ## Services
@@ -143,8 +143,10 @@ sources, claims, confidence levels, review status, and valid time ranges.
 ## Known limitations
 
 - Boundaries are schematic placeholder or source-reported approximations
-- No external source ingestion yet
-- No PostGIS geometry columns yet
+- No external source adapter yet; versioned manifest imports and operator/API
+  review workflow are available
+- PostGIS geometry storage is in place, but production geometry population and
+  vector-tile generation remain future scale work
 - Source ingestion and editorial review are currently operator/API foundations;
   the end-to-end editor UI is not yet available
 - The frontend is still optimized for the MVP atlas flow, not a full research UI
