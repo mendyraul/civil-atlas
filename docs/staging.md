@@ -40,12 +40,13 @@ records that were already released.
 
 ## Backups and monitoring
 
-`db-backup` writes daily PostgreSQL custom-format dumps to `./backups` and
-retains 14 days by default. `db-backup-upload` mirrors completed dumps to the
-S3-compatible `db-backups` bucket. Copy those dumps to separate durable
-storage and perform the documented restore drill before promoting a release;
-the local directory and MinIO volume are not substitutes for off-host
-retention. See [the backup runbook](backups.md).
+The database image enables PostgreSQL WAL archiving and pgBackRest full backups
+to the S3-compatible `db-backups` bucket. `db-backup` also writes daily custom-
+format dumps to `./backups` as a portable fallback, and `db-backup-upload`
+mirrors those dumps. Copy the pgBackRest repository and logical dumps to
+separate durable storage and perform the documented restore drill before
+promoting a release; the local directory and MinIO volume are not substitutes
+for off-host retention. See [the backup runbook](backups.md).
 
 Monitor `GET /health/live` for process liveness and `GET /health/ready` for a
 database-backed readiness signal. Alert on non-200 responses, unhealthy Compose
