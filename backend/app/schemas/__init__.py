@@ -153,6 +153,20 @@ class StorageContractView(BaseModel):
     exports: StorageBucketContract
 
 
+class CoveragePack(BaseModel):
+    id: str
+    label: str
+    direction: str
+    regions: list[str]
+    era_ids: list[str]
+    focal_years: list[int]
+    maturity: str
+    coverage_tier: str
+    review_status: str
+    load_strategy: str
+    source_policy: str
+
+
 class SourceArtifact(BaseModel):
     id: str
     artifact_type: str

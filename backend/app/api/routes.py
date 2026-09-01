@@ -37,6 +37,7 @@ from app.schemas import (
     SourceRecord,
     WorldPayload,
     ComparisonView,
+    CoveragePack,
     GraphView,
     KnowledgeEntity,
     SearchResult,
@@ -49,6 +50,7 @@ from app.services.ingest import build_ingest_plan
 from app.services.learning import LESSONS, grade_attempt
 from app.db.session import session_scope
 from app.services.repository import AtlasRepository
+from app.seed.coverage import COVERAGE_PACKS
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
@@ -125,6 +127,11 @@ def search_catalog(
     facets = {name: sorted({str(record[name]) for record in records if record.get(name)}) for name in ("kind", "confidence", "review_status", "polity_type")}
     offset = (page - 1) * page_size
     return {"items": records[offset:offset + page_size], "total": len(records), "page": page, "page_size": page_size, "facets": facets}
+
+
+@router.get("/coverage/packs", response_model=list[CoveragePack])
+def get_coverage_packs_v1() -> list[CoveragePack]:
+    return COVERAGE_PACKS
 
 
 @router.get("/lessons", response_model=list[Lesson], tags=["learning"])
@@ -342,6 +349,11 @@ def data_version() -> dict[str, object]:
 @api_router.get("/civilizations", response_model=list[Civilization])
 def get_civilizations() -> list[Civilization]:
     return list_entities("civilizations", Civilization)
+
+
+@api_router.get("/coverage/packs", response_model=list[CoveragePack])
+def get_coverage_packs() -> list[CoveragePack]:
+    return COVERAGE_PACKS
 
 
 @api_router.get("/spatial/layers")

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "dataset_slug": "coverage-plan",
+  "dataset_version": "1.0.0",
+  "packs": [
+    {
+      "id": "west-mediterranean-117",
+      "label": "Western Mediterranean and Europe",
+      "direction": "west",
+      "regions": ["Iberia", "Gaul", "Italy", "North Africa"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "foundation",
+      "coverage_tier": "seeded",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_world_or_regional_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
+    },
+    {
+      "id": "near-east-117",
+      "label": "Near East and Iranian plateau",
+      "direction": "east",
+      "regions": ["Levant", "Mesopotamia", "Iran", "Caucasus"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "pilot",
+      "coverage_tier": "seeded",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_world_or_regional_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
+    },
+    {
+      "id": "south-nile-red-sea-117",
+      "label": "Nile and Red Sea corridor",
+      "direction": "south",
+      "regions": ["Egypt", "Nubia", "Horn of Africa", "Red Sea"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "pilot",
+      "coverage_tier": "seeded",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_regional_or_local_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
+    },
+    {
+      "id": "east-asia-117",
+      "label": "Later Han and East Asian corridors",
+      "direction": "east",
+      "regions": ["North China", "Central Asia", "Silk Road"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "foundation",
+      "coverage_tier": "seeded",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_world_or_regional_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
+    },
+    {
+      "id": "south-asia-117",
+      "label": "South Asian and Indian Ocean networks",
+      "direction": "south",
+      "regions": ["Deccan", "Gangetic plain", "Indian Ocean"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "pilot",
+      "coverage_tier": "seeded",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_regional_or_local_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
+    },
+    {
+      "id": "americas-117",
+      "label": "Mesoamerican urban regions",
+      "direction": "west",
+      "regions": ["Maya lowlands", "Maya highlands", "Mesoamerica"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "planned",
+      "coverage_tier": "region_seed",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_regional_or_local_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
+    }
+  ]
+}
