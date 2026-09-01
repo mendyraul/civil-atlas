@@ -12,8 +12,31 @@ from sqlalchemy import (
     CheckConstraint,
     UniqueConstraint,
 )
+from sqlalchemy.types import UserDefinedType
+from sqlalchemy.ext.compiler import compiles
 
 metadata = MetaData()
+
+
+class PostGISGeometry(UserDefinedType):
+    """PostGIS type without adding a GeoAlchemy dependency to the API."""
+
+    cache_ok = True
+
+    def __init__(self, geometry_type: str = "Geometry", srid: int = 4326):
+        self.geometry_type = geometry_type
+        self.srid = srid
+
+    def get_col_spec(self, **_: object) -> str:
+        return f"geometry({self.geometry_type}, {self.srid})"
+
+
+@compiles(PostGISGeometry, "sqlite")
+def compile_postgis_geometry_for_sqlite(
+    type_: PostGISGeometry, compiler: object, **_: object
+) -> str:
+    """Keep metadata round-trip tests portable when SQLite is used locally."""
+    return "TEXT"
 
 civilizations = Table(
     "civilizations",
@@ -52,6 +75,7 @@ civilization_layers = Table(
         nullable=False,
         comment="Authoritative GeoJSON Polygon or MultiPolygon for this interpretation layer.",
     ),
+    Column("geom", PostGISGeometry(), nullable=True),
     Column("geometry_placeholder", Text, nullable=True),
     Column("is_placeholder", Integer, nullable=False, default=0),
     Column("confidence_level", String(64), nullable=False),
@@ -73,6 +97,7 @@ places = Table(
     Column("modern_name", String(255), nullable=True),
     Column("latitude", String(32), nullable=False),
     Column("longitude", String(32), nullable=False),
+    Column("geom", PostGISGeometry("Point"), nullable=True),
     Column("start_year", Integer, nullable=False),
     Column("end_year", Integer, nullable=False),
     Column("place_type", String(64), nullable=False),
@@ -117,6 +142,7 @@ civilization_edges = Table(
         nullable=True,
         comment="Optional MVP route polyline as GeoJSON until PostGIS line geometry is enabled.",
     ),
+    Column("geom", PostGISGeometry("LineString"), nullable=True),
 )
 
 sources = Table(
@@ -129,10 +155,25 @@ sources = Table(
     Column("url", Text, nullable=True),
     Column("citation", Text, nullable=False),
     Column("license", String(64), nullable=False),
+    Column("dataset_version", String(128), nullable=True),
     Column("reliability_tier", String(64), nullable=False),
     Column("retrieved_at", DateTime(timezone=True), nullable=True),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+external_ids = Table(
+    "external_ids",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("entity_kind", String(64), nullable=False),
+    Column("entity_id", String(255), nullable=False),
+    Column("scheme", String(64), nullable=False),
+    Column("external_id", String(255), nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("entity_kind", "entity_id", "scheme", name="uq_external_ids_entity_scheme"),
+    UniqueConstraint("scheme", "external_id", name="uq_external_ids_scheme_value"),
 )
 
 source_artifacts = Table(

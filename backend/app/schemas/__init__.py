@@ -276,6 +276,13 @@ class ReviewDecision(BaseModel):
     created_at: str
 
 
+class ReviewActionRequest(BaseModel):
+    assignment_id: str
+    decision_type: Literal["approve", "request_changes", "reject", "publish"]
+    reviewer: str
+    rationale: str = Field(min_length=1)
+
+
 class RevisionRecord(BaseModel):
     id: str
     entity_type: str
@@ -539,6 +546,7 @@ class Source(BaseModel):
     url: str | None = None
     citation: str
     license: str
+    dataset_version: str | None = None
     reliability_tier: str
     retrieved_at: str | None = None
     created_at: str

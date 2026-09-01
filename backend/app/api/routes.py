@@ -1,4 +1,6 @@
+from datetime import datetime, timezone
 from hmac import compare_digest
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
@@ -26,6 +28,7 @@ from app.schemas import (
     Place,
     ReviewAssignment,
     ReviewDecision,
+    ReviewActionRequest,
     RevisionRecord,
     Source,
     SourceArtifact,
@@ -44,6 +47,8 @@ from app.services.atlas import (
 )
 from app.services.ingest import build_ingest_plan
 from app.services.learning import LESSONS, grade_attempt
+from app.db.session import session_scope
+from app.services.repository import AtlasRepository
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
@@ -230,6 +235,72 @@ def create_ingest_plan_v1(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
     return build_ingest_plan(payload)
 
 
+def _review_entity_type(entity_type: str) -> str:
+    return {
+        "civilization": "civilizations",
+        "civilization_layer": "layers",
+        "historical_claim": "claims",
+        "historical_event": "events",
+        "historical_relationship": "relationships",
+        "source_record": "source_records",
+        "node": "nodes",
+        "route": "routes",
+    }.get(entity_type, entity_type)
+
+
+def _apply_review_action(payload: ReviewActionRequest) -> ReviewDecision:
+    target_status = {
+        "approve": "reviewed",
+        "request_changes": "needs_review",
+        "reject": "rejected",
+        "publish": "reviewed",
+    }[payload.decision_type]
+    now = datetime.now(timezone.utc).isoformat()
+    with session_scope() as session:
+        repository = AtlasRepository(session)
+        assignment = repository.get("review_assignments", payload.assignment_id, published_only=False)
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Review assignment not found.")
+        previous_status = str(assignment.get("current_review_status", ""))
+        entity_type = _review_entity_type(str(assignment.get("entity_type", "")))
+        entity_id = str(assignment.get("entity_id", ""))
+        try:
+            repository.update_review_status(entity_type, entity_id, target_status, payload.reviewer)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Review target not found.") from error
+
+        assignment["current_review_status"] = target_status
+        assignment["target_review_status"] = target_status
+        assignment["assigned_reviewer"] = payload.reviewer
+        assignment["notes"] = payload.rationale
+        repository.upsert(
+            "review_assignments", payload.assignment_id, assignment, payload.reviewer,
+            published=False,
+        )
+        decision = ReviewDecision(
+            id=f"review-decision:{uuid4()}",
+            assignment_id=payload.assignment_id,
+            entity_type=str(assignment.get("entity_type", entity_type)),
+            entity_id=entity_id,
+            decision_type=payload.decision_type,
+            previous_review_status=previous_status,
+            new_review_status=target_status,
+            reviewer=payload.reviewer,
+            rationale=payload.rationale,
+            created_at=now,
+        )
+        repository.upsert(
+            "review_decisions", decision.id, decision.model_dump(mode="json"), payload.reviewer,
+            published=False,
+        )
+        return decision
+
+
+@router.post("/review-actions", response_model=ReviewDecision, dependencies=[Depends(require_editorial_key)])
+def apply_review_action_v1(payload: ReviewActionRequest) -> ReviewDecision:
+    return _apply_review_action(payload)
+
+
 @api_router.get("/health")
 def healthcheck() -> dict[str, object]:
     try:
@@ -365,6 +436,11 @@ def get_storage_contract() -> StorageContractView:
 @api_router.post("/ingest-plans", response_model=ArtifactIngestPlan, dependencies=[Depends(require_editorial_key)])
 def create_ingest_plan(payload: ArtifactIngestRequest) -> ArtifactIngestPlan:
     return build_ingest_plan(payload)
+
+
+@api_router.post("/review-actions", response_model=ReviewDecision, dependencies=[Depends(require_editorial_key)])
+def apply_review_action(payload: ReviewActionRequest) -> ReviewDecision:
+    return _apply_review_action(payload)
 
 
 @api_router.get("/evidence", response_model=list[EvidenceLink])

@@ -85,13 +85,14 @@ services:
         mc mb --ignore-existing "local/$$S3_BUCKET_EXPORTS"
 
   db:
-    image: postgres:16
+    image: postgis/postgis:16-3.5
+    platform: linux/amd64
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-civil_atlas}
       POSTGRES_USER: ${POSTGRES_USER:-civil_atlas}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-civil_atlas}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro

@@ -29,16 +29,16 @@ active bucket and prefix contract.
 
 ## Buckets
 
-- `civil-atlas-raw`
+- `raw-sources`
   - prefix: `sources`
   - purpose: immutable raw captures, manifests, scans, and source payloads
-- `civil-atlas-normalized`
+- `normalized-sources`
   - prefix: `imports`
   - purpose: normalized records and import manifests
-- `civil-atlas-derived`
+- `derived-tiles`
   - prefix: `geometries`
   - purpose: derived geometry, presentation artifacts, and future tiles
-- `civil-atlas-exports`
+- `exports`
   - prefix: `exports`
   - purpose: researcher exports, classroom bundles, and share artifacts
 
@@ -82,8 +82,8 @@ need to satisfy.
 
 Expected outcome:
 
-- raw object key under `civil-atlas-raw/sources/...`
-- normalized source record under `civil-atlas-normalized/imports/...`
-- optional derived geometry under `civil-atlas-derived/geometries/...`
+- raw object key under `raw-sources/sources/...`
+- normalized source record under `normalized-sources/imports/...`
+- optional derived geometry under `derived-tiles/geometries/...`
 - review assignments for editorial and geometry review when the record is not
   already treated as reviewed

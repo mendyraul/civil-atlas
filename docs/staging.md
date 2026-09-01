@@ -38,9 +38,11 @@ remain unpublished even when the command is run with `--publish`.
 ## Backups and monitoring
 
 `db-backup` writes daily PostgreSQL custom-format dumps to `./backups` and
-retains 14 days by default. Copy those dumps to separate durable storage and
-perform a restore drill before promoting a release. The backup loop is not a
-substitute for off-host retention.
+retains 14 days by default. `db-backup-upload` mirrors completed dumps to the
+S3-compatible `db-backups` bucket. Copy those dumps to separate durable
+storage and perform the documented restore drill before promoting a release;
+the local directory and MinIO volume are not substitutes for off-host
+retention. See [the backup runbook](backups.md).
 
 Monitor `GET /health/live` for process liveness and `GET /health/ready` for a
 database-backed readiness signal. Alert on non-200 responses, unhealthy Compose

@@ -7,7 +7,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg://civil_atlas:civil_atlas@localhost:5432/civil_atlas
     services:
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.5
         ports:
           - 5432:5432
         env:
@@ -33,6 +33,7 @@ jobs:
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/001_init.sql
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/002_repository_integrity.sql
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/003_publication_state.sql
+          PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/004_postgis_and_external_ids.sql
         env:
           PGHOST: localhost
           PGPORT: 5432

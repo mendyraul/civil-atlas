@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TABLE IF NOT EXISTS civilizations (
   id TEXT PRIMARY KEY,
   slug TEXT NOT NULL UNIQUE,
@@ -26,6 +28,7 @@ CREATE TABLE IF NOT EXISTS civilization_layers (
   valid_from_year INTEGER NOT NULL,
   valid_to_year INTEGER NOT NULL,
   geometry_json JSONB,
+  geom geometry(Geometry, 4326),
   geometry_placeholder TEXT,
   confidence_level TEXT NOT NULL,
   review_status TEXT NOT NULL,
@@ -44,6 +47,7 @@ CREATE TABLE IF NOT EXISTS places (
   modern_name TEXT,
   latitude DOUBLE PRECISION NOT NULL,
   longitude DOUBLE PRECISION NOT NULL,
+  geom geometry(Point, 4326),
   start_year INTEGER NOT NULL,
   end_year INTEGER NOT NULL,
   place_type TEXT NOT NULL,
@@ -78,7 +82,8 @@ CREATE TABLE IF NOT EXISTS civilization_edges (
   confidence_level TEXT NOT NULL,
   review_status TEXT NOT NULL,
   source_note TEXT NOT NULL,
-  path_geojson JSONB
+  path_geojson JSONB,
+  geom geometry(LineString, 4326)
 );
 
 COMMENT ON COLUMN civilization_edges.path_geojson IS
@@ -92,6 +97,7 @@ CREATE TABLE IF NOT EXISTS sources (
   url TEXT,
   citation TEXT NOT NULL,
   license TEXT NOT NULL,
+  dataset_version TEXT,
   reliability_tier TEXT NOT NULL,
   retrieved_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -227,8 +233,32 @@ CREATE TABLE IF NOT EXISTS historical_claim_sources (
   PRIMARY KEY (claim_id, source_id)
 );
 
+CREATE TABLE IF NOT EXISTS external_ids (
+  id BIGSERIAL PRIMARY KEY,
+  entity_kind TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  scheme TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (entity_kind, entity_id, scheme),
+  UNIQUE (scheme, external_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_civilization_layers_civilization_id
   ON civilization_layers (civilization_id);
+
+CREATE INDEX IF NOT EXISTS idx_civilization_layers_geom
+  ON civilization_layers USING GIST (geom);
+
+CREATE INDEX IF NOT EXISTS idx_places_geom
+  ON places USING GIST (geom);
+
+CREATE INDEX IF NOT EXISTS idx_civilization_edges_geom
+  ON civilization_edges USING GIST (geom);
+
+CREATE INDEX IF NOT EXISTS idx_external_ids_entity
+  ON external_ids (entity_kind, entity_id);
 
 CREATE INDEX IF NOT EXISTS idx_places_slug
   ON places (slug);

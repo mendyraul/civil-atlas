@@ -58,7 +58,8 @@ services:
       start_period: 20s
 
   db:
-    image: postgres:16
+    image: postgis/postgis:16-3.5
+    platform: linux/amd64
     environment:
       POSTGRES_DB: ${STAGING_POSTGRES_DB:-civil_atlas}
       POSTGRES_USER: ${STAGING_POSTGRES_USER:-civil_atlas}
@@ -98,6 +99,36 @@ services:
           pg_dump --format=custom --file="/backups/civil-atlas-$$timestamp.dump"
           find /backups -type f -name 'civil-atlas-*.dump' -mtime "+$$BACKUP_RETENTION_DAYS" -delete
           sleep "$$BACKUP_INTERVAL_SECONDS"
+        done
+
+  db-backup-upload:
+    image: quay.io/minio/mc:latest
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:?S3_ACCESS_KEY_ID is required}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:?S3_SECRET_ACCESS_KEY is required}
+      S3_BUCKET_BACKUPS: ${S3_BUCKET_BACKUPS:-db-backups}
+      BACKUP_UPLOAD_INTERVAL_SECONDS: ${BACKUP_UPLOAD_INTERVAL_SECONDS:-300}
+    volumes:
+      - ./backups:/backups:ro
+    depends_on:
+      db-backup:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      minio-bootstrap:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mc alias set staging http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        while true; do
+          for backup in /backups/civil-atlas-*.dump; do
+            [ -f "$$backup" ] || continue
+            mc cp "$$backup" "staging/$$S3_BUCKET_BACKUPS/"
+          done
+          sleep "$$BACKUP_UPLOAD_INTERVAL_SECONDS"
         done
 
   minio:

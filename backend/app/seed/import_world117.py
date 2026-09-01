@@ -103,6 +103,8 @@ def import_fixture(
             seen: set[str] = set()
             for raw in records:
                 record = schema.model_validate(raw).model_dump(mode="json")
+                if kind == "sources":
+                    record.setdefault("dataset_version", catalog.DATASET_VERSION)
                 external_id = str(record.get("slug") or record["id"])
                 if external_id in seen:
                     raise ValueError(f"duplicate external identifier in {kind}: {external_id}")

@@ -2,27 +2,27 @@
 
 ## Buckets
 
-- `civil-atlas-raw`
+- `raw-sources`
   - `sources/<namespace>/<feature-kind>/<source-record-id>.json`
   - immutable raw captures, scans, notes, manifests, and dataset payloads
-- `civil-atlas-normalized`
+- `normalized-sources`
   - `imports/<dataset-slug>/<run-date>/manifest.json`
   - normalized records and import manifests that describe how raw data was
     translated into atlas-native entities
-- `civil-atlas-derived`
+- `derived-tiles`
   - `geometries/<civilization-id>/<layer-id>.geojson`
   - derived boundary variants, influence zones, thumbnails, and later vector
     tiles
-- `civil-atlas-exports`
+- `exports`
   - reserved for researcher exports, classroom bundles, and share artifacts
 
 ## Import flow
 
 1. A dataset import creates an `import_job`.
-2. Raw payloads land in `civil-atlas-raw`.
-3. The import manifest and normalized outputs land in `civil-atlas-normalized`.
+2. Raw payloads land in `raw-sources`.
+3. The import manifest and normalized outputs land in `normalized-sources`.
 4. Geometry or presentation artifacts generated from normalized records land in
-   `civil-atlas-derived`.
+   `derived-tiles`.
 5. `source_artifacts` link every stored file back to `source_records`,
    `historical_claims`, `civilization_layers`, and the originating
    `import_job`.
@@ -37,6 +37,11 @@
 3. Any geometry or metadata change gets a `revision_record`.
 4. If a revision depends on a stored artifact, the revision points back to that
    artifact id.
+
+Editorial clients submit `POST /api/v1/review-actions` (or the legacy `/api`
+route) with the assignment id, reviewer, rationale, and one of `approve`,
+`request_changes`, `reject`, or `publish`. The API updates the target status,
+records the decision and revision, and only publishes eligible reviewed records.
 
 ## Why this structure exists
 

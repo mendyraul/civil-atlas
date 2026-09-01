@@ -134,3 +134,47 @@ class AtlasRepository:
         """), {"id": internal_id, "type": entity_type, "external_id": external_id,
                 "payload": json.dumps(payload), "hash": digest, "published": published, "now": now})
         return "created"
+
+    def update_review_status(
+        self,
+        entity_type: str,
+        external_id: str,
+        review_status: str,
+        actor: str,
+    ) -> dict[str, Any]:
+        """Update a public entity status while retaining its import lineage."""
+        row = self.session.execute(text("""
+            SELECT id, payload, published, revision_number
+            FROM atlas_entities
+            WHERE entity_type=:type AND external_id=:external_id
+            FOR UPDATE
+        """), {"type": entity_type, "external_id": external_id}).mappings().first()
+        if not row:
+            raise KeyError(f"{entity_type}/{external_id} was not found")
+
+        payload = dict(row["payload"])
+        previous_status = payload.get("review_status")
+        payload["review_status"] = review_status
+        canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+        digest = sha256(canonical.encode()).hexdigest()
+        revision = row["revision_number"] + 1
+        published = review_status in {"reviewed", "seeded"} and entity_type in PUBLIC_ENTITY_TYPES
+        now = datetime.now(timezone.utc)
+        self.session.execute(text("""
+            UPDATE atlas_entities
+            SET payload=CAST(:payload AS jsonb), content_hash=:hash,
+                published=:published, revision_number=:revision, updated_at=:now
+            WHERE id=:id
+        """), {"payload": json.dumps(payload), "hash": digest, "published": published,
+                "revision": revision, "now": now, "id": row["id"]})
+        self.session.execute(text("""
+            INSERT INTO revision_records
+              (id, external_id, entity_type, entity_id, revision_kind, summary,
+               diff_excerpt, actor, created_at)
+            VALUES (:id, :id, :type, :entity_id, 'review_status', :summary,
+                    :excerpt, :actor, :now)
+        """), {"id": f"revision:{entity_type}:{external_id}:{revision}",
+                "type": entity_type, "entity_id": row["id"],
+                "summary": f"Changed {external_id} review status from {previous_status} to {review_status}",
+                "excerpt": canonical[:1000], "actor": actor, "now": now})
+        return payload
