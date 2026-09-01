@@ -16,6 +16,9 @@ loading clients at `/api/v1/coverage/packs`.
 4. **Westward breadth:** expand Mesoamerican and later American packs only when
    each new record has a source, license, confidence, review state, and valid
    time bounds.
+5. **Northward breadth:** add Northern European, Baltic, and steppe records as
+   reviewed regional packs, retaining uncertainty where political boundaries
+   are reconstructed rather than directly attested.
 
 Each pack declares its era IDs, focal years, maturity, coverage tier, review
 status, source policy, and zoom loading strategy. `foundation` means the pack

@@ -80,6 +80,19 @@
       "review_status": "needs_review",
       "load_strategy": "load_at_regional_or_local_zoom",
       "source_policy": "versioned_open_or_clearly_licensed_sources"
+    },
+    {
+      "id": "north-europe-steppe-117",
+      "label": "Northern Europe and steppe corridors",
+      "direction": "north",
+      "regions": ["British Isles", "Northern Europe", "Baltic", "Pontic steppe"],
+      "era_ids": ["classical-antiquity"],
+      "focal_years": [117],
+      "maturity": "planned",
+      "coverage_tier": "region_seed",
+      "review_status": "needs_review",
+      "load_strategy": "load_at_regional_or_local_zoom",
+      "source_policy": "versioned_open_or_clearly_licensed_sources"
     }
   ]
 }
