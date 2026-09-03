@@ -23,12 +23,39 @@ export function MapLegend({
   if (!hasContent) return null;
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-4 z-10 max-w-[240px]">
-      <div className="pointer-events-auto rounded-2xl border border-white/10 bg-black/55 px-4 py-3 text-xs text-slate-200 shadow-[0_8px_30px_rgba(0,0,0,0.45)] backdrop-blur-md">
+    <div className="pointer-events-none absolute bottom-5 left-5 z-10 max-w-[310px]">
+      <div className="pointer-events-auto rounded-[20px] border border-white/12 bg-[#07131f]/80 px-4 py-3 text-xs text-slate-200 shadow-[0_12px_38px_rgba(0,0,0,0.52)] backdrop-blur-xl">
         <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Legend</p>
 
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#f18a4d]/80 bg-[#c95a2f]/70" />
+            <span>Direct control</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#f6c762] border-dashed bg-[#f6c762]/20" />
+            <span>Contested zone</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#4bc6d6]/80 bg-[#4bc6d6]/45" />
+            <span>Influence</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="h-0 w-5 border-t border-[#f3e9d2]" />
+            <span>Reviewed</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-white/35 bg-transparent [background-image:repeating-linear-gradient(135deg,transparent_0,transparent_4px,rgba(255,255,255,.35)_4px,rgba(255,255,255,.35)_5px)]" />
+            <span>Seeded</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#f6c762] border-dashed bg-transparent" />
+            <span>Needs review</span>
+          </div>
+        </div>
+
         {showExtents && civilizations.length > 0 && (
-          <ul aria-label="Civilization extent legend" className="mt-2 flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1" tabIndex={0}>
+          <ul aria-label="Civilization color legend" className="mt-3 flex max-h-40 flex-col gap-1.5 overflow-y-auto pr-1" tabIndex={0}>
             {civilizations.map((civilization) => (
               <li key={civilization.id} className="flex items-center gap-2">
                 <span
@@ -66,7 +93,7 @@ export function MapLegend({
         )}
 
         <p className="mt-3 border-t border-white/10 pt-2 text-[10px] leading-4 text-amber-300/90">
-          Approximate source-reported extent
+          Schematic or source-reported extent · not a precise border
         </p>
       </div>
     </div>

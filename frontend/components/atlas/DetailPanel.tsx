@@ -132,7 +132,7 @@ function metaRows(feature: AtlasFeature, world: WorldPayload) {
 export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPanelProps) {
   if (!feature) {
     return (
-      <aside className="atlas-panel flex h-full flex-col rounded-[28px] p-5">
+      <aside className="atlas-panel atlas-dossier flex h-full flex-col rounded-[28px] p-5">
         <p className="atlas-kicker">Selected details</p>
         <h2 className="mt-3 text-2xl font-semibold text-white">No selection yet</h2>
         <p className="mt-4 text-sm leading-7 text-slate-300">
@@ -162,7 +162,7 @@ export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPan
   });
 
   return (
-    <aside className="atlas-panel flex h-full flex-col rounded-[28px] p-5">
+    <aside className="atlas-panel atlas-dossier flex h-full flex-col rounded-[28px] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="atlas-kicker">Selected details</p>

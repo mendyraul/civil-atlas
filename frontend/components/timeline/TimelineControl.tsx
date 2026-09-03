@@ -52,7 +52,7 @@ export function TimelineControl({
   }
 
   return (
-    <section className="atlas-panel rounded-[30px] px-5 py-5">
+    <section className="atlas-panel atlas-timeline-control rounded-[30px] px-5 py-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="atlas-kicker">Timeline / playback</p>

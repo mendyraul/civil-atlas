@@ -35,7 +35,7 @@ type AtlasMapProps = {
 
 type HoverRef = { source: string; id: string } | null;
 
-const CONFIDENCE_OPACITY = { low: 0.11, medium: 0.17, medium_high: 0.23, high: 0.29 } as const;
+const CONFIDENCE_OPACITY = { low: 0.14, medium: 0.2, medium_high: 0.28, high: 0.35 } as const;
 
 function layerFeatureCollection(items: CivilizationLayer[], civilizations: Civilization[]) {
   const civilizationById = new Map(civilizations.map((item) => [item.id, item]));
@@ -52,6 +52,7 @@ function layerFeatureCollection(items: CivilizationLayer[], civilizations: Civil
       properties: {
         id: layer.id,
         civilizationId: civilization.id,
+        civilizationLabel: civilization.displayName,
         label: layer.interpretationLabel || layer.name,
         color: civilization.color,
         layerType: layer.layerType,
@@ -180,6 +181,7 @@ const requiredLayerIds = [
   'civilizations-outline-glow',
   'civilizations-fill',
   'civilizations-line',
+  'civilizations-label',
   'nodes-halo',
   'nodes-circle',
   'nodes-label',
@@ -228,7 +230,7 @@ function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
   });
 
   const visibility = (shown: boolean) => (shown ? 'visible' : 'none');
-    (['civilizations-outline-glow', 'civilizations-fill', 'civilizations-line'] as const)
+    (['civilizations-outline-glow', 'civilizations-fill', 'civilizations-line', 'civilizations-label'] as const)
       .forEach((id) => {
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility(state.showExtents));
     });
@@ -243,9 +245,9 @@ function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
     .forEach((id) => {
       if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility(state.showRoutes));
     });
-  if (map.getLayer('selected-evidence-glow')) {
-    map.setLayoutProperty('selected-evidence-glow', 'visibility', visibility(state.showEvidence));
-  }
+  (['selected-evidence-glow', 'selected-evidence-core'] as const).forEach((id) => {
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility(state.showEvidence));
+  });
 }
 
 export function AtlasMap({
@@ -409,8 +411,8 @@ export function AtlasMap({
         paint: {
           'line-color': '#4bc6d6',
           'line-width': ['interpolate', ['linear'], ['zoom'], 1, 4, 4, 8, 7, 12],
-          'line-opacity': 0.18,
-          'line-blur': 6,
+          'line-opacity': 0.25,
+          'line-blur': 5,
         },
       });
 
@@ -427,7 +429,7 @@ export function AtlasMap({
             '#4bc6d6',
           ],
           'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1, 4, 2, 7, 3],
-          'line-opacity': 0.82,
+          'line-opacity': 0.78,
           'line-dasharray': [2, 1.4],
         },
       });
@@ -491,7 +493,7 @@ export function AtlasMap({
           type: 'fill',
           source: 'civilizations',
           filter: ['==', ['get', 'isPlaceholder'], true],
-          paint: { 'fill-pattern': 'schematic-hatch', 'fill-opacity': 0.48 },
+          paint: { 'fill-pattern': 'schematic-hatch', 'fill-opacity': 0.3 },
         });
       }
 
@@ -512,6 +514,35 @@ export function AtlasMap({
             ['literal', [1, 1]],
           ],
           'line-opacity-transition': { duration: 450, delay: 0 },
+        },
+      });
+
+      map.addLayer({
+        id: 'civilizations-label',
+        type: 'symbol',
+        source: 'civilizations',
+        filter: ['==', ['get', 'isPrimary'], true],
+        minzoom: 1.3,
+        layout: {
+          'text-field': ['get', 'civilizationLabel'],
+          'text-font': ['Noto Sans Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 1.3, 10, 4, 15, 6, 18],
+          'text-letter-spacing': 0.08,
+          'text-max-width': 9,
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+        },
+        paint: {
+          'text-color': '#f3e9d2',
+          'text-opacity': [
+            'case',
+            ['==', ['get', 'civilizationId'], currentMapStateRef.current.selectedId ?? ''],
+            0.98,
+            0.7,
+          ],
+          'text-halo-color': '#08131f',
+          'text-halo-width': 1.8,
+          'text-halo-blur': 0.3,
         },
       });
 
@@ -582,6 +613,20 @@ export function AtlasMap({
           'circle-radius': ['interpolate', ['linear'], ['zoom'], NODE_VISIBILITY_ZOOM, 8, 7, 15],
           'circle-color': '#f6c762',
           'circle-opacity': 0.16,
+        },
+      });
+
+      map.addLayer({
+        id: 'selected-evidence-core',
+        type: 'circle',
+        source: 'selected-evidence',
+        minzoom: NODE_VISIBILITY_ZOOM,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], NODE_VISIBILITY_ZOOM, 2.5, 7, 4],
+          'circle-color': '#f6c762',
+          'circle-stroke-color': '#fff2c7',
+          'circle-stroke-width': 1,
+          'circle-opacity': 0.92,
         },
       });
 
@@ -743,6 +788,7 @@ export function AtlasMap({
         role="application"
         tabIndex={0}
       />
+      <div aria-hidden className="atlas-map-atmosphere" />
       {mapStatus !== 'ready' && (
         <div
           aria-live="assertive"

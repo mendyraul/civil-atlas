@@ -95,10 +95,10 @@ export function AtlasPage({
   const badges = ['Approximate', 'Source-reported', 'Needs review'] as const;
 
   return (
-    <main className="flex min-h-[calc(100vh-3rem)] flex-col gap-5">
-      <section className="atlas-hero rounded-[32px] px-5 py-5 md:px-6">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/16 p-3">
-          <div><p className="atlas-kicker">Experience</p><p className="mt-1 text-sm text-slate-300">Choose a curated path or keep every research control available.</p></div>
+    <main className="atlas-page flex min-h-[calc(100vh-3rem)] flex-col gap-5">
+      <section className="atlas-hero atlas-hero--compact rounded-[32px] px-5 py-5 md:px-6">
+        <div className="atlas-hero-mode mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/16 p-3">
+          <div><p className="atlas-kicker">Experience</p><p className="atlas-hero-mode-copy mt-1 text-sm text-slate-300">Choose a curated path or keep every research control available.</p></div>
           <div className="flex rounded-full border border-white/10 p-1" role="group" aria-label="Atlas mode">
             {(['explore', 'guided'] as const).map((option) => <button aria-pressed={mode === option} className={`rounded-full px-4 py-2 text-sm capitalize ${mode === option ? 'bg-cyan-400/18 text-cyan-50' : 'text-slate-400'}`} key={option} onClick={() => onModeChange(option)} type="button">{option === 'guided' ? 'Guided lesson' : 'Explore'}</button>)}
           </div>
@@ -108,10 +108,10 @@ export function AtlasPage({
             <p className="atlas-kicker">Civil Atlas</p>
             <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h1 className="font-serif text-4xl tracking-[-0.05em] text-white md:text-6xl">
+                <h1 className="font-serif text-3xl tracking-[-0.05em] text-white md:text-5xl">
                   Explore civilizations through time
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
+                <p className="atlas-hero-description mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
                   A map-first historical dashboard for time-aware polities, routes, places, and evidence.
                   The visual language favors provenance and uncertainty over fake certainty.
                 </p>
@@ -119,7 +119,7 @@ export function AtlasPage({
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3 xl:w-[420px] xl:grid-cols-1">
+          <div className="grid gap-3 md:grid-cols-3 xl:w-[390px] xl:grid-cols-3">
             <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Selected year</p>
               <p className="mt-3 text-3xl font-semibold text-white">{formatYear(year)}</p>
@@ -172,7 +172,7 @@ export function AtlasPage({
         </section>
       ))}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+      <div className="atlas-workspace grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[250px_minmax(0,1fr)_320px]">
         <section className="flex min-h-0 flex-col gap-5">
           <ActiveCivilizationsPanel
             civilizations={world.civilizations}
@@ -205,7 +205,7 @@ export function AtlasPage({
         </section>
 
         <section className="atlas-map-shell overflow-hidden rounded-[30px]">
-          <div className="border-b border-white/10 bg-white/[0.018] px-5 py-4">
+          <div className="atlas-map-header border-b border-white/10 bg-white/[0.018] px-5 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="atlas-kicker">Atlas viewport</p>
@@ -226,7 +226,7 @@ export function AtlasPage({
               </div>
             </div>
           </div>
-          <div className="relative">{map}</div>
+          <div className="atlas-map-stage relative">{map}</div>
           <details className="border-t border-white/10 p-5" open>
             <summary className="cursor-pointer font-semibold text-cyan-200">Map information as a table</summary>
             <p className="mt-2 text-sm text-slate-300" aria-live="polite">Active layers: {layers.extents ? 'polity extents, ' : ''}{layers.nodes ? 'places, ' : ''}{layers.routes ? 'routes, ' : ''}{layers.sources ? 'evidence' : ''}. Symbols use outlines, dashed routes, and point shapes in addition to color.</p>
