@@ -143,8 +143,9 @@ sources, claims, confidence levels, review status, and valid time ranges.
 ## Known limitations
 
 - Boundaries are schematic placeholder or source-reported approximations
-- No external source adapter yet; versioned manifest imports and operator/API
-  review workflow are available
+- A local Pleiades JSON adapter supports selected-record imports with archived
+  source bytes, provenance, and review assignments; live fetching remains future work.
+  See [the Pleiades pilot runbook](docs/pleiades-pilot.md).
 - PostGIS geometry storage is in place, but production geometry population and
   vector-tile generation remain future scale work
 - Source ingestion and editorial review are currently operator/API foundations;

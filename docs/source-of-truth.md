@@ -50,4 +50,6 @@ Likely future import candidates include:
 - Library of Congress
 - Europeana
 
-The MVP intentionally does not ingest any of them yet.
+The local [Pleiades pilot](pleiades-pilot.md) now imports selected records from
+operator-supplied snapshots into the unpublished review workflow. Other adapters
+and live fetching remain future work.

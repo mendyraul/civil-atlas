@@ -202,6 +202,9 @@ class ImportJob(BaseModel):
     records_imported: int = 0
     artifacts_created: int = 0
     notes: str
+    dataset_version: str | None = None
+    manifest_sha256: str | None = None
+    adapter_version: str | None = None
 
 
 class ArtifactIngestRecordInput(BaseModel):

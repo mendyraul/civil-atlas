@@ -285,6 +285,8 @@ def _apply_review_action(payload: ReviewActionRequest) -> ReviewDecision:
             repository.update_review_status(entity_type, entity_id, target_status, payload.reviewer)
         except KeyError as error:
             raise HTTPException(status_code=404, detail="Review target not found.") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
 
         assignment["current_review_status"] = target_status
         assignment["target_review_status"] = target_status

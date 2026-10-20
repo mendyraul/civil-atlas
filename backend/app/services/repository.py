@@ -339,6 +339,10 @@ class AtlasRepository:
             raise KeyError(f"{entity_type}/{external_id} was not found")
 
         payload = dict(row["payload"])
+        if payload.get("import_review_blocked") and review_status in {"reviewed", "seeded"}:
+            raise ValueError(
+                "Source data no longer supports this record; reimport valid evidence before approval."
+            )
         previous_status = payload.get("review_status")
         payload["review_status"] = review_status
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)

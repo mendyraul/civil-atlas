@@ -6,9 +6,10 @@ amount of unreviewed geometry and claims faster than the team can audit it.
 
 ## Sequence
 
-1. Add a source-ingestion adapter interface with one pilot adapter (Pleiades or
-   World Historical Gazetteer), preserving external identifiers, retrieval
-   timestamps, licenses, and raw artifacts.
+1. Exercise the local [Pleiades ingestion pilot](pleiades-pilot.md), which provides
+   an adapter interface, preserved raw bytes and licenses, repeatable versioned
+   imports, and editorial assignments. Live object storage and staging drills
+   remain required before expanding coverage.
 2. Add an operator import-run screen for manifest preview, validation errors,
    dry runs, retries, and an immutable import audit record.
 3. Add an editorial queue backed by `review_assignments`, with claim and
