@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import maplibregl, { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import type { AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
 import { MapLegend } from './MapLegend';
+
+// Next.js emits a same-origin, content-hashed worker asset for both bundlers.
+maplibregl.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
 
 const OFFLINE_MAP_STYLE: maplibregl.StyleSpecification = {
   version: 8,
