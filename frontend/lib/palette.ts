@@ -1,11 +1,11 @@
 export const civilizationColors = {
-  'roman-empire': '#c95a2f',
-  'han-dynasty': '#d4a63a',
-  'parthian-empire': '#357266',
-  'kingdom-of-kush': '#7f4a2b',
-  'aksumite-kingdom': '#245c96',
+  'roman-empire': '#942d30',
+  'han-dynasty': '#d4ae50',
+  'parthian-empire': '#498578',
+  'kingdom-of-kush': '#ba8058',
+  'aksumite-kingdom': '#5a8dad',
   'maya-civilization': '#2f7d4c',
-  'satavahana-dynasty': '#8a4fb4',
+  'satavahana-dynasty': '#92719e',
   'kushan-empire': '#b23a48',
 } as const;
 

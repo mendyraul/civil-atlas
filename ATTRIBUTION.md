@@ -14,6 +14,13 @@ is in [docs/licensing-register.md](docs/licensing-register.md).
 
 Individual records also name their own contributors and source citations.
 
+The static frontend preview includes the original Cliopatria v0.2.1 boundary
+coordinates and validity intervals in `frontend/data/cliopatria117.json`.
+Geometry is unchanged; Civil Atlas adds record identifiers and review metadata.
+These are approximate source interpretations, with low confidence, rather than
+independently verified historical frontiers. The bundled preview no longer
+substitutes schematic polygons where source coverage is missing.
+
 ## Displayed but not stored
 
 | Source | License | Credit line |

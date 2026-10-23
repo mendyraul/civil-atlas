@@ -4,6 +4,13 @@ Vercel hosts only the Next.js frontend. The FastAPI service, PostgreSQL
 database, and object storage must be deployed separately and the frontend must
 be given the public HTTPS URL of that API.
 
+When `NEXT_PUBLIC_DEMO_MODE=true`, the static preview uses the original
+Cliopatria v0.2.1 borders bundled in `frontend/data/cliopatria117.json`, with
+their source citations, low confidence and inclusive validity intervals.
+It does not fall back to schematic borders outside those intervals. Other
+demo records and guided narratives remain illustrative; spatial research
+still requires a deployed API. See [attribution](../ATTRIBUTION.md).
+
 ## GitHub identity
 
 Deployments are associated with the author of the pushed commit. The repository

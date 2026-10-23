@@ -27,31 +27,20 @@ export function MapLegend({
       <div className="pointer-events-auto rounded-[20px] border border-white/12 bg-[#07131f]/80 px-4 py-3 text-xs text-slate-200 shadow-[0_12px_38px_rgba(0,0,0,0.52)] backdrop-blur-xl">
         <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Legend</p>
 
-        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-b border-white/10 pb-3">
+        <div className="mt-3 grid gap-2 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
-            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#f18a4d]/80 bg-[#c95a2f]/70" />
-            <span>Direct control</span>
+            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#942d30] bg-[#942d30]/85" />
+            <span>Source-reported territory</span>
           </div>
           <div className="flex items-center gap-2">
-            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#f6c762] border-dashed bg-[#f6c762]/20" />
-            <span>Contested zone</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#4bc6d6]/80 bg-[#4bc6d6]/45" />
-            <span>Influence</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span aria-hidden className="h-0 w-5 border-t border-[#f3e9d2]" />
-            <span>Reviewed</span>
+            <span aria-hidden className="h-0 w-5 border-t border-dashed border-[#f6c762]" />
+            <span>Contested / influence interpretation</span>
           </div>
           <div className="flex items-center gap-2">
             <span aria-hidden className="h-3 w-5 rounded-[2px] border border-white/35 bg-transparent [background-image:repeating-linear-gradient(135deg,transparent_0,transparent_4px,rgba(255,255,255,.35)_4px,rgba(255,255,255,.35)_5px)]" />
-            <span>Seeded</span>
+            <span>Schematic placeholder, when present</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span aria-hidden className="h-3 w-5 rounded-[2px] border border-[#f6c762] border-dashed bg-transparent" />
-            <span>Needs review</span>
-          </div>
+          <p className="text-[10px] text-slate-300">Review and confidence are listed in Layer status.</p>
         </div>
 
         {showExtents && civilizations.length > 0 && (
