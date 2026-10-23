@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "id": "connected-world-117",
+  "title": "A connected world around 117 CE",
+  "summary": "Three source-linked geographic readings: Rome at 117 CE, Han at 123 CE, and Aksum at 130 CE. Territorial annotations reference reviewed source polygons; no invented campaign or trade paths are supplied.",
+  "dataset_version": "connected-world-v1",
+  "attribution": "Civil Atlas contributors. Borders: Cliopatria, Seshat Global History Databank (Bennett et al., Scientific Data 12, 247, 2025), CC BY 4.0.",
+  "license": "ODbL-1.0",
+  "review_status": "needs_review",
+  "steps": [
+    {
+      "id": "roman-reading",
+      "title": "Rome and the Mediterranean",
+      "narrative": "Explore the Roman Empire (Cliopatria) interpretation reported by Cliopatria for 117 to 126. This view selects 117; the source's interval does not establish an exact, unchanged frontier throughout that period. Compare the outline with geographic context and inspect its source citation.",
+      "year": 117,
+      "camera": {
+        "center": [
+          25,
+          38
+        ],
+        "zoom": 2.7,
+        "bearing": 0,
+        "pitch": 0
+      },
+      "entity_ids": [
+        "roman-empire"
+      ],
+      "layer_ids": [
+        "cliopatria-roman-empire-117ce-126ce"
+      ],
+      "annotation_ids": [
+        "connected-world-roman-reading"
+      ],
+      "asset_ids": [],
+      "source_record_ids": [
+        "cliopatria-record-roman-empire-117ce-126ce"
+      ],
+      "hold_seconds": 8
+    },
+    {
+      "id": "han-reading",
+      "title": "Han territory in its geographic setting",
+      "narrative": "Explore the Han Dynasty (Cliopatria) interpretation reported by Cliopatria for 117 to 153. This view selects 123; the source's interval does not establish an exact, unchanged frontier throughout that period. Compare the outline with geographic context and inspect its source citation.",
+      "year": 123,
+      "camera": {
+        "center": [
+          105,
+          35
+        ],
+        "zoom": 2.8,
+        "bearing": 0,
+        "pitch": 0
+      },
+      "entity_ids": [
+        "han-dynasty"
+      ],
+      "layer_ids": [
+        "cliopatria-han-dynasty-117ce-153ce"
+      ],
+      "annotation_ids": [
+        "connected-world-han-reading"
+      ],
+      "asset_ids": [],
+      "source_record_ids": [
+        "cliopatria-record-han-dynasty-117ce-153ce"
+      ],
+      "hold_seconds": 8
+    },
+    {
+      "id": "red-sea-reading",
+      "title": "Aksum and the Red Sea region",
+      "narrative": "Explore the Kingdom of Axum (Cliopatria) interpretation reported by Cliopatria for -50 to 237. This view selects 130; the source's interval does not establish an exact, unchanged frontier throughout that period. Compare the outline with geographic context and inspect its source citation.",
+      "year": 130,
+      "camera": {
+        "center": [
+          39,
+          14
+        ],
+        "zoom": 4.2,
+        "bearing": 0,
+        "pitch": 0
+      },
+      "entity_ids": [
+        "aksumite-kingdom"
+      ],
+      "layer_ids": [
+        "cliopatria-aksumite-kingdom-50bce-237ce"
+      ],
+      "annotation_ids": [
+        "connected-world-red-sea-reading"
+      ],
+      "asset_ids": [],
+      "source_record_ids": [
+        "cliopatria-record-aksumite-kingdom-50bce-237ce"
+      ],
+      "hold_seconds": 8
+    }
+  ],
+  "annotations": [
+    {
+      "id": "connected-world-roman-reading",
+      "title": "Rome and the Mediterranean",
+      "note": "Territory follows the referenced Cliopatria polygon, including its original holes and islands. This is a low-confidence scholarly interpretation rather than a surveyed frontier.",
+      "valid_from_year": 117,
+      "valid_to_year": 117,
+      "boundary_layer_id": "cliopatria-roman-empire-117ce-126ce",
+      "source_record_ids": [
+        "cliopatria-record-roman-empire-117ce-126ce"
+      ],
+      "kind": "territory",
+      "review_status": "needs_review",
+      "confidence": "low"
+    },
+    {
+      "id": "connected-world-han-reading",
+      "title": "Han territory in its geographic setting",
+      "note": "Territory follows the referenced Cliopatria polygon, including its original holes and islands. This is a low-confidence scholarly interpretation rather than a surveyed frontier.",
+      "valid_from_year": 123,
+      "valid_to_year": 123,
+      "boundary_layer_id": "cliopatria-han-dynasty-117ce-153ce",
+      "source_record_ids": [
+        "cliopatria-record-han-dynasty-117ce-153ce"
+      ],
+      "kind": "territory",
+      "review_status": "needs_review",
+      "confidence": "low"
+    },
+    {
+      "id": "connected-world-red-sea-reading",
+      "title": "Aksum and the Red Sea region",
+      "note": "Territory follows the referenced Cliopatria polygon, including its original holes and islands. This is a low-confidence scholarly interpretation rather than a surveyed frontier.",
+      "valid_from_year": 130,
+      "valid_to_year": 130,
+      "boundary_layer_id": "cliopatria-aksumite-kingdom-50bce-237ce",
+      "source_record_ids": [
+        "cliopatria-record-aksumite-kingdom-50bce-237ce"
+      ],
+      "kind": "territory",
+      "review_status": "needs_review",
+      "confidence": "low"
+    }
+  ],
+  "assets": []
+}

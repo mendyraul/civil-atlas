@@ -151,13 +151,23 @@ export function interpretationLabel(value?: string) {
   return value;
 }
 
+/** Normalize the backend's snake_case JSON keys at the frontend boundary. */
+export function normalizeApiPayload<T>(value: unknown): T {
+  function visit(item: unknown): unknown {
+    if (Array.isArray(item)) return item.map(visit);
+    if (item !== null && typeof item === 'object') return Object.fromEntries(Object.entries(item).map(([key, nested]) => [key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase()), visit(nested)]));
+    return item;
+  }
+  return visit(value) as T;
+}
+
 async function fetchApi<T>(path: string): Promise<T> {
   if (!HAS_REMOTE_API) {
     throw new Error('Civil Atlas API is not configured');
   }
   const response = await fetch(buildApiUrl(path), { cache: 'no-store' });
   if (!response.ok) throw new Error(`Civil Atlas API returned ${response.status}`);
-  return (await response.json()) as T;
+  return normalizeApiPayload<T>(await response.json());
 }
 
 export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {

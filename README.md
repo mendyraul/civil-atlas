@@ -173,3 +173,13 @@ Civil Atlas is open source and non-commercial.
 are in [ATTRIBUTION.md](ATTRIBUTION.md). Which sources may be imported is tracked in
 [docs/licensing-register.md](docs/licensing-register.md). See
 [CONTRIBUTING.md](CONTRIBUTING.md) before adding a source.
+
+## Historical research toolkit
+
+The atlas now includes linked geographic comparisons, dated personal map notes,
+curated episode playback, geographic research queries, and per-layer provenance
+status. A local, read-only MCP server exposes the same query service without an
+AI-provider dependency. See [the toolkit guide](docs/research-toolkit.md) for
+content authoring, source review, episode imports/assets, API contracts and MCP
+setup. Published episode territory references reviewed source polygons; freehand
+notes remain personal and unreviewed.

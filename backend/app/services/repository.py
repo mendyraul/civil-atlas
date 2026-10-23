@@ -9,6 +9,8 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 PUBLIC_ENTITY_TYPES = {
+    "episodes",
+    "annotations",
     "civilizations",
     "layers",
     "nodes",
@@ -343,6 +345,15 @@ class AtlasRepository:
             raise ValueError(
                 "Source data no longer supports this record; reimport valid evidence before approval."
             )
+        if entity_type in {"episodes", "annotations"} and review_status == "seeded":
+            raise ValueError("Curated content requires explicit review")
+        if entity_type in {"episodes", "annotations"} and review_status == "reviewed":
+            from app.services.episodes import validate_episode, validate_annotation, pack_from_record
+            from app.schemas.toolkit import Annotation
+            if entity_type == "episodes":
+                validate_episode(pack_from_record(payload), self)
+            else:
+                validate_annotation(Annotation.model_validate({k: v for k, v in payload.items() if k in Annotation.model_fields}), self)
         previous_status = payload.get("review_status")
         payload["review_status"] = review_status
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)

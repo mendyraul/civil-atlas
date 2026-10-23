@@ -603,3 +603,30 @@ def _storage_contract_view() -> StorageContractView:
             purpose="Researcher exports, classroom bundles, and shareable artifacts.",
         ),
     )
+
+
+from app.schemas.toolkit import EpisodePack, ResearchQuery, ResearchResult
+from app.services.research import execute_query
+from app.services.episodes import public_episodes
+
+
+@router.post("/research/query", response_model=ResearchResult, tags=["research"])
+def research_query(payload: ResearchQuery):
+    try:
+        return execute_query(payload)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@router.get("/episodes", response_model=list[EpisodePack], tags=["episodes"])
+def episodes():
+    with session_scope() as session:
+        return public_episodes(AtlasRepository(session))
+
+
+@router.get("/episodes/{identifier}", response_model=EpisodePack, tags=["episodes"])
+def episode(identifier: str):
+    pack = next((p for p in episodes() if p.id == identifier), None)
+    if pack is None:
+        raise HTTPException(status_code=404, detail="Published episode not found")
+    return pack

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { API_BASE_URL, HAS_REMOTE_API } from '../../lib/atlas';
+import { API_BASE_URL, HAS_REMOTE_API, DEMO_MODE } from '../../lib/atlas';
 
 const navItems = [
   { href: '/atlas', label: 'Atlas' },
@@ -34,12 +34,12 @@ export function SiteShell({
               CA
             </div>
             <div>
-              <div className="site-shell-kicker text-xs uppercase tracking-[0.22em] text-slate-500">Historical operations dashboard</div>
+              <div className="site-shell-kicker text-xs uppercase tracking-[0.22em] text-slate-500">A WORLD THROUGH TIME</div>
               <div className="mt-1 text-lg font-semibold text-white">Civil Atlas</div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {HAS_REMOTE_API ? (
+            {HAS_REMOTE_API && !DEMO_MODE ? (
               <a
                 className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-300/40 hover:text-white"
                 href={`${API_BASE_URL}/docs`}
@@ -50,7 +50,7 @@ export function SiteShell({
               </a>
             ) : (
               <span className="rounded-full border border-dashed border-white/10 px-4 py-2 text-sm text-slate-500">
-                Seed-only demo
+                {DEMO_MODE ? 'Demo snapshot' : 'API not configured'}
               </span>
             )}
             <span className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400">
@@ -76,6 +76,7 @@ export function SiteShell({
         </nav>
       </header>
       <div id="main-content" tabIndex={-1}>{children}</div>
+      <footer className="site-footer"><span>Civil Atlas · history with evidence</span><div><a href={`https://github.com/mendyraul/civil-atlas${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ? `/tree/${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA}` : ''}`}>Source code ↗</a><Link href="/sources">Data sources & licenses</Link></div></footer>
     </div>
   );
 }
