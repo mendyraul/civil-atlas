@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "mediterranean-india-connections",
+  "title": "Mediterranean\u2013India connections",
+  "summary": "Draft: reviewed ports, routes, and exchange evidence are required before publication.",
+  "dataset_version": "mediterranean-india-connections-draft-v1",
+  "attribution": "Civil Atlas contributors. Borders: Cliopatria, Seshat Global History Databank (Bennett et al., Scientific Data 12, 247, 2025), CC BY 4.0.",
+  "license": "ODbL-1.0",
+  "review_status": "needs_review",
+  "steps": [
+    {
+      "id": "red-sea-reading",
+      "title": "Aksum and the Red Sea region",
+      "narrative": "Draft: reviewed ports, routes, and exchange evidence are required before publication.",
+      "year": 130,
+      "camera": {
+        "center": [
+          39,
+          14
+        ],
+        "zoom": 4.2,
+        "bearing": 0,
+        "pitch": 0
+      },
+      "entity_ids": [
+        "aksumite-kingdom"
+      ],
+      "layer_ids": [],
+      "annotation_ids": [],
+      "asset_ids": [],
+      "source_record_ids": [],
+      "hold_seconds": 8
+    }
+  ],
+  "annotations": [],
+  "assets": []
+}

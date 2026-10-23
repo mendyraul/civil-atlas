@@ -485,6 +485,7 @@ class Era(BaseModel):
 
 
 class HistoricalEvent(BaseModel):
+    geographic_scope: GeoJSONGeometry | None = None
     id: str
     slug: str
     label: str

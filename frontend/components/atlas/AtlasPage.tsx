@@ -1,10 +1,13 @@
-import { StatusBadge } from '../badges/StatusBadge';
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { ActiveCivilizationsPanel } from './ActiveCivilizationsPanel';
 import { AtlasFilters, type LayerTypeOption } from './AtlasFilters';
 import { LayerControls } from './LayerControls';
 import { DetailPanel } from './DetailPanel';
 import { TimelineControl } from '../timeline/TimelineControl';
-import { featureBadgeTone, formatYear } from '../../lib/atlas';
+import { formatYear } from '../../lib/atlas';
+import { boundaryGroup } from '../../lib/research';
 import type { AtlasFeature, Confidence, Era, HistoricalEvent, LearningChapter, ReviewStatus, WorldPayload } from '../../types/atlas';
 
 type LayerVisibility = {
@@ -15,6 +18,16 @@ type LayerVisibility = {
 };
 
 type AtlasPageProps = {
+  panel: 'layers' | 'details' | 'notes' | 'research' | 'episodes' | 'status' | null;
+  onPanelChange: (panel: 'layers' | 'details' | 'notes' | 'research' | 'episodes' | 'status' | null) => void;
+  onRetry: () => void;
+  catalogFailed: boolean;
+  selectedLayerIds: string[];
+  onBoundaryChange: (id: string, checked: boolean) => void;
+  notesContent?: React.ReactNode;
+  researchContent?: React.ReactNode;
+  episodesContent?: React.ReactNode;
+  statusContent?: React.ReactNode;
   year: number;
   zoom: number;
   backendStatus: 'live' | 'demo' | 'loading' | 'stale' | 'unavailable';
@@ -58,203 +71,72 @@ type AtlasPageProps = {
   onExport: () => void;
 };
 
-export function AtlasPage({
-  year,
-  zoom,
-  backendStatus,
-  confidenceCounts,
-  detailWorld,
-  eras,
-  events,
-  filterCount,
-  isPlaying,
-  isSelectedFeatureFilteredOut,
-  layerTypeOptions,
-  reviewCounts,
-  selectedId,
-  selectedConfidence,
-  selectedFeature,
-  selectedLayerTypes,
-  selectedReviewStatus,
-  world,
-  layers,
-  map,
-  onConfidenceToggle,
-  onYearChange,
-  onCivilizationSelect,
-  onLayerTypeToggle,
-  onResetFilters,
-  onReviewStatusToggle,
-  onToggleLayer,
-  onTogglePlay,
-  playbackSpeed, pauseOnEvent, reducedMotion, onPlaybackSpeedChange, onPauseOnEventChange, onStep,
-  chapters, chapterId, stepId, mode, onModeChange, onLessonStep,
-  onExport,
-}: AtlasPageProps) {
-  const sourceCount = world.civilizations.reduce((total, civilization) => total + civilization.evidence.length, 0);
-  const badges = ['Approximate', 'Source-reported', 'Needs review'] as const;
+export function AtlasPage(props: AtlasPageProps) {
+  const { year, panel, onPanelChange, world, selectedId, selectedFeature, detailWorld, layers, backendStatus } = props;
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const layersButton = useRef<HTMLButtonElement>(null);
+  const detailsButton = useRef<HTMLButtonElement>(null);
+  const additionalButtons = useRef<Record<string, HTMLButtonElement | null>>({});
+  const previousPanel = useRef(panel);
+  useEffect(() => {
+    if (panel) drawerRef.current?.focus();
+    else if (previousPanel.current) (previousPanel.current === 'layers' ? layersButton.current : previousPanel.current === 'details' ? detailsButton.current : additionalButtons.current[previousPanel.current])?.focus();
+    previousPanel.current = panel;
+    if (!panel) return;
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); onPanelChange(null); } };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [panel, onPanelChange]);
+  const sourceCount = world.civilizations.reduce((sum, item) => sum + item.evidence.length, 0);
+  const boundaryLayers = detailWorld.layers.filter((layer) => layer.interpretationKind === 'boundary_variant');
+  const groups = Array.from(new Set(boundaryLayers.map(boundaryGroup)));
+  const chapter = props.chapters.find((item) => item.id === props.chapterId);
+  const step = chapter?.steps.find((item) => item.id === props.stepId);
 
-  return (
-    <main className="atlas-page flex min-h-[calc(100vh-3rem)] flex-col gap-5">
-      <section className="atlas-hero atlas-hero--compact rounded-[32px] px-5 py-5 md:px-6">
-        <div className="atlas-hero-mode mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-black/16 p-3">
-          <div><p className="atlas-kicker">Experience</p><p className="atlas-hero-mode-copy mt-1 text-sm text-slate-300">Choose a curated path or keep every research control available.</p></div>
-          <div className="flex rounded-full border border-white/10 p-1" role="group" aria-label="Atlas mode">
-            {(['explore', 'guided'] as const).map((option) => <button aria-pressed={mode === option} className={`rounded-full px-4 py-2 text-sm capitalize ${mode === option ? 'bg-cyan-400/18 text-cyan-50' : 'text-slate-400'}`} key={option} onClick={() => onModeChange(option)} type="button">{option === 'guided' ? 'Guided lesson' : 'Explore'}</button>)}
-          </div>
+  return <main className="atlas-page immersive-atlas" aria-label="Historical atlas">
+    <div className="atlas-stage">
+      <div className="atlas-stage-map">{props.map}</div>
+      <div className="atlas-view-heading">
+        <p className="atlas-kicker">THE HISTORICAL WORLD</p>
+        <h1>World at <span>{formatYear(year)}</span></h1>
+        <p className="atlas-view-subtitle">Civilizations, connections, and the evidence between them.</p>
+        <div className="atlas-view-status" role="status">
+          <span className={`status-dot status-dot--${backendStatus}`} aria-hidden />
+          <span>{{ live: 'Published atlas', demo: 'Demo snapshot · existing data', loading: 'Loading selected year…', stale: 'Data unavailable', unavailable: 'Database unavailable' }[backendStatus]}</span>
+          <span> / {world.civilizations.length} polities</span>
         </div>
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
-            <p className="atlas-kicker">Civil Atlas</p>
-            <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h1 className="font-serif text-3xl tracking-[-0.05em] text-white md:text-5xl">
-                  Explore civilizations through time
-                </h1>
-                <p className="atlas-hero-description mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                  A map-first historical dashboard for time-aware polities, routes, places, and evidence.
-                  The visual language favors provenance and uncertainty over fake certainty.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3 xl:w-[390px] xl:grid-cols-3">
-            <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Selected year</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{formatYear(year)}</p>
-            </div>
-            <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Visible polities</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{world.civilizations.length}</p>
-            </div>
-            <div className="atlas-metric-card rounded-[24px] border border-white/10 bg-black/16 px-4 py-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Data channel</p>
-              <p className="mt-3 text-xl font-semibold text-white">
-                {{ live: 'Database live', demo: 'Demo snapshot', loading: 'Loading database', stale: 'Database stale', unavailable: 'Database unavailable' }[backendStatus]}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          {badges.map((badge) => (
-            <StatusBadge key={badge} label={badge} tone={featureBadgeTone(badge)} />
-          ))}
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
-            Zoom {zoom.toFixed(1)}x
-          </span>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
-            {sourceCount} civilization evidence records
-          </span>
-          <button
-            className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100 transition hover:border-cyan-200/70 hover:bg-cyan-300/20"
-            onClick={onExport}
-            type="button"
-          >
-            Export current view
-          </button>
-        </div>
-      </section>
-
-      {mode === 'guided' && chapters.map((chapter) => chapter.id === chapterId && (
-        <section className="atlas-panel rounded-[30px] p-5" key={chapter.id}>
-          <p className="atlas-kicker">Guided lesson · resumable link</p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">{chapter.title}</h2>
-          <p className="mt-2 text-sm text-slate-300">{chapter.summary}</p>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-400">{chapter.objectives.map((objective) => <li key={objective}>{objective}</li>)}</ul>
-          <div className="mt-5 grid gap-3 md:grid-cols-3">{chapter.steps.map((step, index) => (
-            <button className={`rounded-[20px] border p-4 text-left ${step.id === stepId ? 'border-cyan-300/50 bg-cyan-400/10' : 'border-white/10 bg-white/4'}`} key={step.id} onClick={() => onLessonStep(chapter.id, step.id)} type="button">
-              <span className="text-xs uppercase tracking-[0.16em] text-slate-500">Step {index + 1}</span><strong className="mt-2 block text-white">{step.title}</strong><span className="mt-2 block text-sm leading-6 text-slate-300">{step.narrative}</span>
-            </button>
-          ))}</div>
-          {chapter.steps.map((step) => step.id === stepId && <div className="mt-4 grid gap-3 lg:grid-cols-2" key={step.id}><div className="rounded-2xl border border-amber-300/15 bg-amber-300/5 p-4"><p className="text-sm font-semibold text-amber-100">Annotations</p>{step.annotations.map((note) => <p className="mt-2 text-sm text-slate-300" key={note}>• {note}</p>)}</div><div className="rounded-2xl border border-white/10 p-4"><p className="text-sm text-white">{step.question}</p><p className="mt-3 text-xs leading-5 text-cyan-100"><strong>Source prompt:</strong> {step.sourcePrompt}</p></div></div>)}
-        </section>
-      ))}
-
-      <div className="atlas-workspace grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[250px_minmax(0,1fr)_320px]">
-        <section className="flex min-h-0 flex-col gap-5">
-          <ActiveCivilizationsPanel
-            civilizations={world.civilizations}
-            selectedId={selectedId}
-            selectedYear={year}
-            onSelect={onCivilizationSelect}
-          />
-          <LayerControls
-            counts={{
-              extents: world.civilizations.length,
-              nodes: world.nodes.length,
-              routes: world.routes.length,
-              sources: sourceCount,
-            }}
-            onToggle={onToggleLayer}
-            values={layers}
-          />
-          <AtlasFilters
-            confidenceCounts={confidenceCounts}
-            layerTypeOptions={layerTypeOptions}
-            onConfidenceToggle={onConfidenceToggle}
-            onLayerTypeToggle={onLayerTypeToggle}
-            onReset={onResetFilters}
-            onReviewStatusToggle={onReviewStatusToggle}
-            reviewCounts={reviewCounts}
-            selectedConfidence={selectedConfidence}
-            selectedLayerTypes={selectedLayerTypes}
-            selectedReviewStatus={selectedReviewStatus}
-          />
-        </section>
-
-        <section className="atlas-map-shell overflow-hidden rounded-[30px]">
-          <div className="atlas-map-header border-b border-white/10 bg-white/[0.018] px-5 py-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="atlas-kicker">Atlas viewport</p>
-                <h2 className="mt-2 text-xl font-semibold text-white">
-                  World at {formatYear(year)}
-                </h2>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-                <span className="atlas-map-chip rounded-full border border-white/10 px-3 py-1">
-                  Map-first dashboard
-                </span>
-                <span className="atlas-map-chip rounded-full border border-white/10 px-3 py-1">
-                  Routes: {world.routes.length}
-                </span>
-                <span className="atlas-map-chip rounded-full border border-white/10 px-3 py-1">
-                  Nodes: {world.nodes.length}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="atlas-map-stage relative">{map}</div>
-          <details className="border-t border-white/10 p-5" open>
-            <summary className="cursor-pointer font-semibold text-cyan-200">Map information as a table</summary>
-            <p className="mt-2 text-sm text-slate-300" aria-live="polite">Active layers: {layers.extents ? 'polity extents, ' : ''}{layers.nodes ? 'places, ' : ''}{layers.routes ? 'routes, ' : ''}{layers.sources ? 'evidence' : ''}. Symbols use outlines, dashed routes, and point shapes in addition to color.</p>
-            <div className="atlas-data-table mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Visible polity extent descriptions</caption><thead><tr><th className="p-2">Polity</th><th className="p-2">Dates</th><th className="p-2">Narrative extent</th><th className="p-2">Evidence</th></tr></thead><tbody>{world.civilizations.map((item) => <tr className="border-t border-white/10" key={item.id}><th scope="row" className="p-2">{item.label}</th><td className="p-2">{formatYear(item.startYear)}–{formatYear(item.endYear)}</td><td className="p-2">{item.extentNote}</td><td className="p-2">{item.confidence.replace('_', ' ')}, {item.reviewStatus.replace('_', ' ')}</td></tr>)}</tbody></table></div>
-          </details>
-        </section>
-
-        <DetailPanel
-          feature={selectedFeature}
-          isFilteredOut={filterCount > 0 && isSelectedFeatureFilteredOut}
-          world={detailWorld}
-        />
       </div>
-
-      <TimelineControl
-        eras={eras}
-        events={events}
-        isPlaying={isPlaying}
-        year={year}
-        onTogglePlay={onTogglePlay}
-        playbackSpeed={playbackSpeed}
-        pauseOnEvent={pauseOnEvent}
-        reducedMotion={reducedMotion}
-        onPlaybackSpeedChange={onPlaybackSpeedChange}
-        onPauseOnEventChange={onPauseOnEventChange}
-        onStep={onStep}
-        onYearChange={onYearChange}
-      />
-    </main>
-  );
+      <div className="atlas-panel-switches" role="group" aria-label="Research panels">
+        <button className="atlas-tool" ref={layersButton} aria-controls="atlas-research-panel" aria-expanded={panel === 'layers'} onClick={() => onPanelChange(panel === 'layers' ? null : 'layers')} type="button">☷ <span>Layers & research</span>{props.filterCount > 0 && <span className="atlas-count">{props.filterCount}</span>}</button>
+        <button className="atlas-tool" ref={detailsButton} aria-controls="atlas-research-panel" aria-expanded={panel === 'details'} onClick={() => onPanelChange(panel === 'details' ? null : 'details')} type="button">⌖ <span>Selection & evidence</span></button>
+        {(['notes', 'research', 'episodes', 'status'] as const).map((name) => <button className="atlas-tool" key={name} ref={(el) => { additionalButtons.current[name] = el; }} type="button" aria-controls="atlas-research-panel" aria-expanded={panel === name} onClick={() => onPanelChange(panel === name ? null : name)}>{name === 'notes' ? 'Map notes' : name === 'research' ? 'Area query' : name === 'episodes' ? 'Episodes' : 'Layer status'}</button>)}
+        <button className="atlas-tool atlas-export" onClick={props.onExport} type="button">Export current view ↗</button>
+      </div>
+      {(backendStatus === 'unavailable' || props.catalogFailed) && <div className="atlas-data-notice" role="alert"><p>{backendStatus === 'unavailable' ? 'Historical data is unavailable for this year.' : 'The event and source catalog could not be loaded.'}</p><button className="atlas-tool" onClick={props.onRetry} type="button">Retry data</button></div>}
+      {backendStatus !== 'loading' && backendStatus !== 'unavailable' && !world.civilizations.length && <div className="atlas-data-notice" role="status">No polities match this date and these filters. Try 117 CE or clear the research filters.</div>}
+      <div hidden={!panel} id="atlas-research-panel" ref={drawerRef} tabIndex={-1} className={`atlas-research-drawer atlas-research-drawer--${panel}`} role="region" aria-label={panel === 'layers' ? 'Layers and research' : panel === 'details' ? 'Selection and evidence' : `${panel} workspace`}>
+        <div className="atlas-drawer-heading"><h2>{panel === 'layers' ? 'Layers & research' : panel === 'details' ? 'Selection & evidence' : panel === 'notes' ? 'Map notes' : panel === 'research' ? 'Area query' : panel === 'episodes' ? 'Episodes' : 'Layer status'}</h2><button className="atlas-tool" onClick={() => onPanelChange(null)} aria-label="Close research panel" type="button">×</button></div>
+        {panel === 'layers' ? <div className="atlas-drawer-content">
+          <ActiveCivilizationsPanel civilizations={world.civilizations} selectedId={selectedId} selectedYear={year} onSelect={props.onCivilizationSelect} />
+          <LayerControls counts={{ extents: world.civilizations.length, nodes: world.nodes.length, routes: world.routes.length, sources: sourceCount }} onToggle={props.onToggleLayer} values={layers} />
+          <AtlasFilters confidenceCounts={props.confidenceCounts} layerTypeOptions={props.layerTypeOptions} onConfidenceToggle={props.onConfidenceToggle} onLayerTypeToggle={props.onLayerTypeToggle} onReset={props.onResetFilters} onReviewStatusToggle={props.onReviewStatusToggle} reviewCounts={props.reviewCounts} selectedConfidence={props.selectedConfidence} selectedLayerTypes={props.selectedLayerTypes} selectedReviewStatus={props.selectedReviewStatus} />
+          <section className="atlas-panel rounded-2xl p-4" aria-label="Boundary interpretations"><p className="atlas-kicker">Boundary interpretations</p><p className="mt-2 text-sm text-slate-300">Compare source interpretations. Approximate extents remain approximate.</p>
+            {groups.length === 0 && <p className="mt-3 text-sm text-slate-400">No boundary alternatives are available for this date.</p>}
+            {groups.map((group) => <fieldset className="mt-4 border-t border-white/10 pt-3" key={group}><legend className="px-1 text-sm font-semibold">{world.civilizations.find((item) => item.id === boundaryLayers.find((layer) => boundaryGroup(layer) === group)?.civilizationId)?.label ?? group}</legend>{boundaryLayers.filter((layer) => boundaryGroup(layer) === group).map((layer) => <label key={layer.id} className="mt-3 block text-sm"><span className="flex items-start gap-2"><input type="checkbox" checked={props.selectedLayerIds.includes(layer.id)} onChange={(event) => props.onBoundaryChange(layer.id, event.target.checked)} /><strong>{layer.interpretationLabel || layer.name}</strong></span><span className="ml-5 mt-1 block text-xs text-slate-400">{layer.confidence.replace('_', ' ')} confidence · {layer.reviewStatus.replace('_', ' ')}</span><span className="ml-5 mt-1 block text-xs leading-5 text-slate-300">{layer.sourceNote}</span>{layer.sourceRecordIds.map((id) => <a className="ml-5 block text-xs text-cyan-200 underline" href={`/sources/${encodeURIComponent(id)}`} key={id}>Source record ↗</a>)}</label>)}</fieldset>)}
+          </section>
+          <details className="atlas-panel rounded-2xl p-4"><summary>Map information as a table</summary><div className="mt-3 overflow-x-auto"><table className="text-left text-sm"><caption className="sr-only">Visible polity extent descriptions</caption><thead><tr><th>Polity</th><th>Dates</th><th>Evidence</th></tr></thead><tbody>{world.civilizations.map((item) => <tr key={item.id}><th scope="row">{item.label}</th><td>{formatYear(item.startYear)}–{formatYear(item.endYear)}</td><td>{item.extentNote}<br />{item.confidence.replace('_', ' ')} · {item.reviewStatus.replace('_', ' ')}</td></tr>)}</tbody></table></div></details>
+        </div> : panel === 'details' ? <DetailPanel feature={selectedFeature} isFilteredOut={props.isSelectedFeatureFilteredOut} world={detailWorld} /> : null}
+        <div hidden={panel !== 'notes'}>{props.notesContent}</div>
+        <div hidden={panel !== 'research'}>{props.researchContent}</div>
+        <div hidden={panel !== 'episodes'}>{props.episodesContent}</div>
+        <div hidden={panel !== 'status'}>{props.statusContent}</div>
+      </div>
+      <div className="atlas-stage-caption"><span>EXPLORE THE PAST</span><span>Modern basemap · approximate historical layers</span></div>
+    </div>
+    <div className="atlas-time-dock">
+      <div className="atlas-experience-bar"><span className="atlas-kicker">TIME EXPLORER</span><div role="group" aria-label="Atlas mode">{(['explore', 'guided'] as const).map((mode) => <button type="button" key={mode} aria-pressed={props.mode === mode} onClick={() => props.onModeChange(mode)}>{mode === 'explore' ? 'Free exploration' : 'Guided lesson'}</button>)}</div></div>
+      {props.mode === 'guided' && chapter && step && <section className="atlas-guided-compact" aria-label="Guided lesson"><div><p className="atlas-kicker">{chapter.title}</p><h2 className="mt-2 text-lg">{step.title}</h2><p className="mt-2 text-sm text-slate-300">{step.narrative}</p></div><div className="flex flex-wrap gap-2">{chapter.steps.map((item, index) => <button className="atlas-tool" type="button" aria-pressed={item.id === step.id} key={item.id} onClick={() => props.onLessonStep(chapter.id, item.id)}>{index + 1}. {item.title}</button>)}</div><details><summary>Annotations & source prompt</summary>{step.annotations.map((note) => <p className="mt-2 text-sm" key={note}>{note}</p>)}<p className="mt-2 text-sm">{step.question}</p><p className="mt-2 text-sm text-cyan-100">{step.sourcePrompt}</p></details></section>}
+      <TimelineControl eras={props.eras} events={props.events} isPlaying={props.isPlaying} year={year} onTogglePlay={props.onTogglePlay} playbackSpeed={props.playbackSpeed} pauseOnEvent={props.pauseOnEvent} reducedMotion={props.reducedMotion} onPlaybackSpeedChange={props.onPlaybackSpeedChange} onPauseOnEventChange={props.onPauseOnEventChange} onStep={props.onStep} onYearChange={props.onYearChange} />
+    </div>
+  </main>;
 }

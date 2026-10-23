@@ -1,19 +1,28 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import maplibregl, { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
-import type { AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
+import type { MapAnnotation, GeoJSONPosition as DrawingPosition, AtlasCamera, AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
 import { MapLegend } from './MapLegend';
 
-const OFFLINE_MAP_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {},
-  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#07131f' } }],
-};
-const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || OFFLINE_MAP_STYLE;
+// Next.js emits a same-origin, content-hashed worker asset for both bundlers.
+maplibregl.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta.url).toString());
+
+const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || '/map-styles/minimal.json';
 
 type AtlasMapProps = {
+  annotations?: MapAnnotation[];
+  imageOverlays?: Array<{ id: string; url: string; bounds: [number, number, number, number] }>;
+  drawMode?: 'Point' | 'LineString' | 'Polygon' | 'Rectangle' | null;
+  onDrawPoint?: (point: DrawingPosition) => void;
+  onFinishDraw?: () => void;
+  onBoundsChange?: (bounds: [number, number, number, number]) => void;
+  cameraCommand?: AtlasCamera;
+  onCameraChange?: (camera: AtlasCamera) => void;
+  reducedMotion?: boolean;
+  cliopatriaVisible?: boolean;
   initialCenter: [number, number];
   initialZoom: number;
   civilizations: Civilization[];
@@ -250,7 +259,15 @@ function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
   });
 }
 
+const EMPTY_ANNOTATIONS: MapAnnotation[] = [];
+const EMPTY_IMAGES: NonNullable<AtlasMapProps['imageOverlays']> = [];
+
 export function AtlasMap({
+  annotations = EMPTY_ANNOTATIONS, imageOverlays = EMPTY_IMAGES, drawMode = null, onDrawPoint, onFinishDraw, onBoundsChange,
+  cameraCommand,
+  onCameraChange,
+  reducedMotion = false,
+  cliopatriaVisible = false,
   initialCenter,
   initialZoom,
   civilizations,
@@ -269,6 +286,15 @@ export function AtlasMap({
   onZoomChange,
   onCenterChange,
 }: AtlasMapProps) {
+  const drawRef = useRef({ drawMode, onDrawPoint, onBoundsChange });
+  drawRef.current = { drawMode, onDrawPoint, onBoundsChange };
+  const layersReady = useRef(false);
+  const overlayIds = useRef<string[]>([]);
+  const commandRef = useRef(cameraCommand);
+  commandRef.current = cameraCommand;
+  const cameraChangeRef = useRef(onCameraChange);
+  cameraChangeRef.current = onCameraChange;
+  const [legendOpen, setLegendOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const hoverRef = useRef<HoverRef>(null);
@@ -299,7 +325,6 @@ export function AtlasMap({
     () => layerFeatureCollection(civilizationLayers, civilizations),
     [civilizationLayers, civilizations],
   );
-  const previousPolygonDataRef = useRef(polygonData);
   const pointData = useMemo(() => nodeFeatureCollection(nodes), [nodes]);
   const routeData = useMemo(() => routeFeatureCollection(routes), [routes]);
   const currentMapStateRef = useRef<MapState>({
@@ -341,7 +366,7 @@ export function AtlasMap({
         style: MAP_STYLE,
         center: initialViewRef.current.center,
         zoom: initialViewRef.current.zoom,
-        attributionControl: { compact: true },
+        attributionControl: false,
       });
     } catch (error) {
       setMapStatus('failed');
@@ -350,6 +375,8 @@ export function AtlasMap({
     }
 
     mapRef.current = map;
+    const resize = new ResizeObserver(() => map.resize());
+    resize.observe(containerRef.current);
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
 
     const popup = new maplibregl.Popup({
@@ -365,10 +392,7 @@ export function AtlasMap({
       setMapError(event?.error?.message || 'The basemap could not be loaded.');
     };
     const handleStyleData = () => {
-      if (map.isStyleLoaded()) setMapStatus((status) => status === 'failed' ? status : 'ready');
-      if (requiredLayerIds.every((id) => Boolean(map.getLayer(id)))) {
-        applyCurrentMapState(map, currentMapStateRef.current);
-      }
+      if (layersReady.current && map.isStyleLoaded()) setMapStatus((status) => status === 'failed' ? status : 'ready');
     };
     map.on('error', handleMapError);
     map.on('styledata', handleStyleData);
@@ -383,7 +407,6 @@ export function AtlasMap({
     };
 
     const handleLoad = () => {
-      setMapStatus('ready');
       setMapError('');
       // A1: globe projection + atmosphere.
       map.setProjection({ type: 'globe' });
@@ -633,17 +656,21 @@ export function AtlasMap({
       const asId = (event: MapMouseEvent, layerId: string) =>
         map.queryRenderedFeatures(event.point, { layers: [layerId] })[0]?.properties?.id;
 
+      map.on('click', (event) => { if (drawRef.current.drawMode) drawRef.current.onDrawPoint?.([event.lngLat.lng, event.lngLat.lat]); });
       map.on('click', 'civilizations-fill', (event) => {
+        if (drawRef.current.drawMode) return;
         const id = map.queryRenderedFeatures(event.point, { layers: ['civilizations-fill'] })[0]?.properties?.civilizationId;
         if (typeof id === 'string') handlersRef.current.onCivilizationSelect(id);
       });
 
       map.on('click', 'nodes-circle', (event) => {
+        if (drawRef.current.drawMode) return;
         const id = asId(event, 'nodes-circle');
         if (typeof id === 'string') handlersRef.current.onNodeSelect(id);
       });
 
       map.on('click', 'routes-line', (event) => {
+        if (drawRef.current.drawMode) return;
         const id = asId(event, 'routes-line');
         if (typeof id === 'string') handlersRef.current.onRouteSelect(id);
       });
@@ -678,7 +705,7 @@ export function AtlasMap({
           if (typeof label === 'string') {
             popup
               .setLngLat(event.lngLat)
-              .setHTML(`<span class="atlas-hover-popup__label">${label}</span>`)
+              .setText(label)
               .addTo(map);
           }
         });
@@ -687,15 +714,25 @@ export function AtlasMap({
       });
 
       map.on('zoom', () => handlersRef.current.onZoomChange(map.getZoom()));
-      map.on('moveend', () => { const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); });
+      map.on('moveend', () => { const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]); const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); cameraChangeRef.current?.({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); });
       handlersRef.current.onZoomChange(map.getZoom());
+      map.addSource('research-annotations', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      map.addLayer({ id: 'research-annotation-fill', type: 'fill', source: 'research-annotations', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#f2d39a', 'fill-opacity': 0.12 } });
+      map.addLayer({ id: 'research-annotation-line', type: 'line', source: 'research-annotations', filter: ['!=', ['geometry-type'], 'Point'], paint: { 'line-color': '#f2d39a', 'line-width': 3, 'line-dasharray': [2, 2] } });
+      map.addLayer({ id: 'research-annotation-point', type: 'circle', source: 'research-annotations', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 6, 'circle-color': '#f2d39a', 'circle-stroke-color': '#091827', 'circle-stroke-width': 2 } });
+      map.on('click', 'research-annotation-point', (event) => { const feature = event.features?.[0]; if (drawRef.current.drawMode || !feature) return; popup.setLngLat(event.lngLat).setText(String(feature.properties?.title || 'Annotation')).addTo(map); });
+      layersReady.current = true;
       applyCurrentMapState(map, currentMapStateRef.current);
+      setMapStatus('ready');
+      if (commandRef.current) map.jumpTo({ ...commandRef.current });
+      const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]);
     };
 
     map.on('load', handleLoad);
-    map.on('styledata', handleStyleData);
 
     return () => {
+      layersReady.current = false;
+      resize.disconnect();
       popup.remove();
       popupRef.current = null;
       map.off('load', handleLoad);
@@ -708,7 +745,7 @@ export function AtlasMap({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map || !layersReady.current) return;
     applyCurrentMapState(map, currentMapStateRef.current);
   }, [
     polygonData,
@@ -721,25 +758,47 @@ export function AtlasMap({
     showExtents,
     showNodes,
     showRoutes,
+    mapStatus,
   ]);
 
-  // A4: GeoJSON replacement is a hard data swap in MapLibre. Briefly fading
-  // the fill out makes a year/filter change feel intentional while keeping
-  // the outline and labels available during the transition.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded() || previousPolygonDataRef.current === polygonData) return;
-    previousPolygonDataRef.current = polygonData;
+    if (!map || mapStatus !== 'ready' || !cameraCommand) return;
+    const current = map.getCenter();
+    if (Math.abs(current.lng - cameraCommand.center[0]) < 0.0001 && Math.abs(current.lat - cameraCommand.center[1]) < 0.0001 && Math.abs(map.getZoom() - cameraCommand.zoom) < 0.001 && Math.abs(map.getBearing() - (cameraCommand.bearing ?? 0)) < 0.01 && Math.abs(map.getPitch() - (cameraCommand.pitch ?? 0)) < 0.01) return;
+    map.stop();
+    map.flyTo({ ...cameraCommand, duration: reducedMotion ? 0 : 1100 });
+  }, [cameraCommand, mapStatus, reducedMotion]);
 
-    map.setPaintProperty('civilizations-fill', 'fill-opacity', 0);
-    const frame = window.requestAnimationFrame(() => {
-      if (mapRef.current === map && map.isStyleLoaded()) {
-        applyCurrentMapState(map, currentMapStateRef.current);
-      }
-    });
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || mapStatus !== 'ready') return;
+    const control = new maplibregl.AttributionControl({ compact: true, customAttribution: cliopatriaVisible ? 'Borders: Cliopatria (Seshat), <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>' : undefined });
+    map.addControl(control, 'bottom-right');
+    return () => { if (mapRef.current === map) map.removeControl(control); };
+  }, [cliopatriaVisible, mapStatus]);
 
-    return () => window.cancelAnimationFrame(frame);
-  }, [polygonData]);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || mapStatus !== 'ready') return;
+    const source = map.getSource('research-annotations') as GeoJSONSource | undefined;
+    source?.setData({ type: 'FeatureCollection', features: annotations.flatMap((annotation) => {
+      const geometry = annotation.geometry ?? civilizationLayers.find((l) => l.id === annotation.boundaryLayerId)?.geometryJson;
+      return geometry ? [{ type: 'Feature' as const, id: annotation.id, properties: { title: annotation.title }, geometry }] : [];
+    }) });
+  }, [annotations, civilizationLayers, mapStatus]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || mapStatus !== 'ready') return;
+    for (const id of overlayIds.current) { if (map.getLayer(id)) map.removeLayer(id); if (map.getSource(id)) map.removeSource(id); }
+    overlayIds.current = [];
+    for (const image of imageOverlays) {
+      const id = `episode-image-${image.id}`, [w, south, east, n] = image.bounds;
+      map.addSource(id, { type: 'image', url: image.url, coordinates: [[w, n], [east, n], [east, south], [w, south]] });
+      map.addLayer({ id, type: 'raster', source: id, paint: { 'raster-opacity': 0.65 } }, 'civilizations-fill'); overlayIds.current.push(id);
+    }
+  }, [imageOverlays, mapStatus]);
 
   // A2: fly the camera to frame the newly selected feature.
   useEffect(() => {
@@ -748,7 +807,7 @@ export function AtlasMap({
       lastFlownRef.current = undefined;
       return;
     }
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map || !layersReady.current || cameraCommand) return;
     if (lastFlownRef.current === selectedId) return;
 
     const civilization = civilizations.find((item) => item.id === selectedId);
@@ -761,26 +820,26 @@ export function AtlasMap({
           .filter((layer) => layer.civilizationId === civilization.id)
           .map((layer) => layer.geometryJson),
       );
-      if (bounds) map.fitBounds(bounds, { padding: 96, maxZoom: 5, duration: 900 });
+      if (bounds) map.fitBounds(bounds, { padding: 96, maxZoom: 5, duration: reducedMotion ? 0 : 900 });
     } else if (route && route.path.length > 0) {
       const bounds = route.path.reduce(
         (acc, coordinate) => acc.extend(coordinate),
         new LngLatBounds(route.path[0], route.path[0]),
       );
-      map.fitBounds(bounds, { padding: 120, maxZoom: 5.5, duration: 900 });
+      map.fitBounds(bounds, { padding: 120, maxZoom: 5.5, duration: reducedMotion ? 0 : 900 });
     } else if (node) {
       map.flyTo({
         center: node.coordinates,
         zoom: Math.max(map.getZoom(), NODE_VISIBILITY_ZOOM + 1.2),
-        duration: 900,
+        duration: reducedMotion ? 0 : 900,
       });
     }
 
     lastFlownRef.current = selectedId;
-  }, [selectedId, civilizations, civilizationLayers, nodes, routes]);
+  }, [selectedId, civilizations, civilizationLayers, nodes, routes, cameraCommand, reducedMotion, mapStatus]);
 
   return (
-    <div className="relative h-[68vh] min-h-[560px] w-full" role="group" aria-label="Interactive historical atlas map. Use Tab to reach map controls and arrow keys to pan.">
+    <div className="atlas-globe relative h-full min-h-[420px] w-full" role="group" aria-label="Interactive historical atlas map. Use Tab to reach map controls and arrow keys to pan.">
       <div
         aria-label="Interactive historical atlas map. Use Tab to reach map controls and arrow keys to pan."
         className="h-full w-full"
@@ -814,14 +873,21 @@ export function AtlasMap({
           </div>
         </div>
       )}
-      <div className="sr-only" aria-label="Map features">
+      <div className="sr-only" role="group" aria-label="Map features">
         {[...civilizations, ...nodes, ...routes].map((feature) => (
           <button key={feature.id} onClick={() => feature.kind === 'civilization' ? onCivilizationSelect(feature.id) : feature.kind === 'node' ? onNodeSelect(feature.id) : onRouteSelect(feature.id)} type="button">
             Open {feature.label}
           </button>
         ))}
       </div>
-      <MapLegend
+      {drawMode && <div className="atlas-drawing-notice" role="status">{drawMode === 'Rectangle' ? 'Click two search corners.' : 'Click the globe to add note coordinates.'} <button className="atlas-tool" type="button" onClick={onFinishDraw}>Finish drawing</button></div>}
+      <div className="atlas-camera-tools" role="group" aria-label="Globe camera controls">
+        <button className="atlas-tool" type="button" onClick={() => { lastFlownRef.current = selectedId; mapRef.current?.flyTo({ center: [30, 25], zoom: mapRef.current && mapRef.current.getContainer().clientWidth < 768 ? 1.0 : 1.8, bearing: 0, pitch: 0, duration: reducedMotion ? 0 : 1100 }); }}>Reset globe</button>
+        <button className="atlas-tool" type="button" onClick={() => mapRef.current?.easeTo({ bearing: 0, duration: reducedMotion ? 0 : 500 })}>North up</button>
+        <button className="atlas-tool" type="button" onClick={() => { const map = mapRef.current; map?.easeTo({ pitch: map.getPitch() > 10 ? 0 : 35, duration: reducedMotion ? 0 : 700 }); }}>Tilt</button>
+        <button className="atlas-tool" type="button" aria-expanded={legendOpen} aria-controls="atlas-map-legend" onClick={() => setLegendOpen(!legendOpen)}>Legend</button>
+      </div>
+      <div id="atlas-map-legend" hidden={!legendOpen}><MapLegend
         civilizations={civilizations.map((civilization) => ({
           id: civilization.id,
           label: civilization.label,
@@ -830,7 +896,7 @@ export function AtlasMap({
         showExtents={showExtents}
         showNodes={showNodes}
         showRoutes={showRoutes}
-      />
+      /></div>
     </div>
   );
 }

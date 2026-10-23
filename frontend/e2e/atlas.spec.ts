@@ -1,6 +1,74 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-test('map displays sources and layers', async ({page})=>{await page.goto('/atlas'); await expect(page.getByRole('application',{name:/historical atlas map/i})).toBeVisible(); await expect(page.getByText(/Sources/i).first()).toBeVisible(); await expect(page.getByText(/Layers/i).first()).toBeVisible();});
-test('selection survives refresh and entity links open requested feature',async({page})=>{await page.goto('/atlas?y=117&sel=roman-empire'); await expect(page).toHaveURL(/sel=roman-empire/); await page.reload(); await expect(page.getByText(/Roman Empire/).first()).toBeVisible(); await page.getByRole('button',{name:/Han Dynasty dynasty/i}).click(); await expect(page).toHaveURL(/sel=han-dynasty/);});
-test('keyboard interaction changes timeline',async({page})=>{await page.goto('/atlas'); const slider=page.getByRole('slider'); await slider.focus(); await slider.press('ArrowRight'); await expect(page).toHaveURL(/y=118/);});
-test('@a11y atlas has no automatically detectable violations',async({page})=>{await page.goto('/atlas'); const results=await new AxeBuilder({page}).analyze(); expect(results.violations).toEqual([]);});
+
+test('globe has expandable research controls and keeps attribution visible', async ({ page }) => {
+  await page.goto('/atlas');
+  await expect(page.getByRole('application', { name: /historical atlas map/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'World at 117 CE' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Layers and research' })).toHaveCount(0);
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  await expect(page.getByRole('region', { name: 'Layers and research' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'OpenStreetMap' }).first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: /Layers & research/ })).toBeFocused();
+  await expect(page.getByRole('link', { name: /Source code/ })).toBeVisible();
+});
+
+test('selection survives refresh and selection opens the evidence drawer', async ({ page }) => {
+  await page.goto('/atlas?y=117&sel=roman-empire');
+  await page.reload();
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  await page.getByRole('button', { name: /Han Dynasty dynasty/i }).click();
+  await expect(page).toHaveURL(/sel=han-dynasty/);
+  await expect(page.getByRole('region', { name: 'Selection and evidence' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Han Dynasty', exact: true })).toBeVisible();
+});
+
+test('keyboard interaction changes timeline', async ({ page }) => {
+  await page.goto('/atlas');
+  await page.getByRole('slider', { name: 'Year' }).press('ArrowRight');
+  await expect(page).toHaveURL(/y=118/);
+});
+
+test('explicit camera orientation survives initialization and refresh', async ({ page }) => {
+  await page.goto('/atlas?y=117&sel=roman-empire&lng=100&lat=35&z=3&bearing=25&pitch=30');
+  await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+  await expect(page.getByText('Loading basemap, labels, and atlas layers…')).toHaveCount(0);
+  await page.waitForTimeout(1300);
+  for (const [key, expected] of [['lng', 100], ['lat', 35], ['z', 3], ['bearing', 25], ['pitch', 30]] as const) {
+    expect(Number(new URL(page.url()).searchParams.get(key))).toBeCloseTo(expected, 1);
+  }
+  await page.reload();
+  await expect(page.getByText('Loading basemap, labels, and atlas layers…')).toHaveCount(0);
+  await expect(page).toHaveURL(/pitch=30/);
+});
+
+test('mobile drawer is usable without horizontal page overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/atlas');
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  await expect(page.getByRole('region', { name: 'Layers and research' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.getByRole('button', { name: /Close research panel/ }).click();
+  await expect(page.getByRole('region', { name: 'Layers and research' })).toHaveCount(0);
+});
+
+test('source page explains license split and upstream credits', async ({ page }) => {
+  await page.goto('/sources');
+  await expect(page.getByRole('heading', { name: 'Data sources & licenses' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Borders · Cliopatria' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Full attribution register' })).toBeVisible();
+});
+
+test('@a11y atlas and open research panel have no automatically detectable violations', async ({ page }) => {
+  await page.goto('/atlas');
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test('reduced motion disables autoplay', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/atlas');
+  await expect(page.getByRole('button', { name: /Play/ })).toBeDisabled();
+});

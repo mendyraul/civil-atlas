@@ -67,6 +67,7 @@ export function TimelineControl({
                 ? 'border-amber-300/50 bg-amber-400/16 text-amber-100'
                 : 'border-cyan-300/50 bg-cyan-400/16 text-cyan-100 hover:bg-cyan-400/24'
             }`}
+            disabled={reducedMotion}
             onClick={onTogglePlay}
             type="button"
           >
@@ -81,7 +82,7 @@ export function TimelineControl({
           </button>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Playback settings">
+      <details className="atlas-playback-options"><summary>Playback settings & event navigation</summary><div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Playback settings">
         <span className="text-xs uppercase tracking-[0.16em] text-slate-500">Speed</span>
         {[0.5, 1, 2, 4].map((speed) => (
           <button className={`rounded-full border px-3 py-1.5 text-xs ${playbackSpeed === speed ? 'border-cyan-300/60 bg-cyan-400/14 text-white' : 'border-white/10 text-slate-300'}`} key={speed} onClick={() => onPlaybackSpeedChange(speed)} type="button">{speed}×</button>
@@ -97,7 +98,8 @@ export function TimelineControl({
         <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'event')} type="button">Event →</button>
         <button className="rounded-full border border-white/10 px-3 py-2 text-sm text-slate-300" onClick={() => onStep(1, 'era')} type="button">Era →</button>
       </div>
-      <div className="atlas-timeline-track relative mt-5 h-8" aria-label="Historical timeline markers">
+      </details>
+      <div className="atlas-timeline-track relative mt-5 h-8" role="group" aria-label="Historical timeline markers">
         {eras.map((era) => (
           <div
             className="atlas-timeline-era absolute top-1 h-2 rounded-full bg-cyan-400/15"
@@ -163,7 +165,7 @@ export function TimelineControl({
           </button>
         ))}
       </div>
-      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <details className="atlas-timeline-context"><summary>Eras & historical context</summary><div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="rounded-[24px] border border-white/8 bg-black/14 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -175,7 +177,7 @@ export function TimelineControl({
             </span>
           </div>
           <div className="mt-4 flex flex-col gap-3">
-            {eras.map((era) => (
+            {eras.filter((era) => era.startYear <= year && era.endYear >= year).map((era) => (
               <article className="rounded-[20px] border border-white/8 bg-white/4 p-4" key={era.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -204,7 +206,7 @@ export function TimelineControl({
             </span>
           </div>
           <div className="mt-4 flex flex-col gap-3">
-            {events.map((event) => (
+            {events.filter((event) => event.startYear <= year + 40 && event.endYear >= year - 40).map((event) => (
               <article className="rounded-[20px] border border-white/8 bg-white/4 p-4" key={event.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -225,7 +227,7 @@ export function TimelineControl({
             ))}
           </div>
         </div>
-      </div>
+      </div></details>
     </section>
   );
 }

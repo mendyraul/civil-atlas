@@ -275,9 +275,12 @@ export type WorldPayload = {
 export type AtlasFeature = Civilization | AtlasNode | AtlasRoute;
 
 export type SourceRecord = {
+  sourceNamespace?: string;
+  validFromYear?: number;
+  validToYear?: number;
   id: string;
   featureId: string;
-  featureKind: AtlasFeature['kind'] | 'era' | 'event';
+  featureKind: AtlasFeature['kind'] | 'civilization_layer' | 'era' | 'event';
   featureLabel: string;
   title: string;
   citation: string;
@@ -286,3 +289,37 @@ export type SourceRecord = {
   reviewStatus: ReviewStatus;
   notes: string;
 };
+
+export type LayerStatus = {
+  delivery: 'loading' | 'ready' | 'unavailable' | 'demo';
+  year: number;
+  recordCount: number;
+  layers: CivilizationLayer[];
+};
+export type MapAnnotation = {
+  id: string;
+  title: string;
+  note: string;
+  validFromYear: number;
+  validToYear: number;
+  geometry?: { type: 'Point'; coordinates: GeoJSONPosition } | { type: 'LineString'; coordinates: GeoJSONPosition[] } | TerritorialGeometry;
+  boundaryLayerId?: string;
+  sourceRecordIds: string[];
+  kind: 'explanation' | 'territory';
+  reviewStatus: 'needs_review' | 'reviewed' | 'rejected';
+  confidence: Confidence;
+};
+export type EpisodeAsset = {
+  id: string; kind: 'image' | 'audio' | 'video'; path: string; attribution: string; license: string;
+  sha256: string; byteLength: number; bounds?: [number, number, number, number]; coordinates?: GeoJSONPosition;
+};
+export type EpisodePack = {
+  schemaVersion: 1; id: string; title: string; summary: string; datasetVersion: string;
+  attribution: string; license: 'ODbL-1.0'; reviewStatus: 'needs_review' | 'reviewed' | 'rejected';
+  steps: Array<{ id: string; title: string; narrative: string; year: number; camera: AtlasCamera; entityIds: string[]; layerIds: string[]; annotationIds: string[]; assetIds: string[]; sourceRecordIds: string[]; holdSeconds: number }>;
+  annotations: MapAnnotation[]; assets: EpisodeAsset[];
+};
+export type ComparisonState = { leftYear: number; rightYear: number; leftLayer: string; rightLayer: string; linked: boolean; camera: AtlasCamera };
+export type ResearchArea = { bbox: [number, number, number, number] } | { center: GeoJSONPosition; radiusKm: number } | { layerId: string };
+export type ResearchQuery = { operation: 'entities_in_area' | 'events_in_area' | 'compare_boundaries' | 'sources_for_feature' | 'episodes' | 'atlas_link'; year: number; area?: ResearchArea; kinds?: string[]; page?: number; pageSize?: number; featureId?: string; leftLayerId?: string; rightLayerId?: string; rightYear?: number };
+export type ResearchResult = { summary: string; items: Array<{ kind?: string; record?: Record<string, unknown>; sources?: SourceRecord[]; url?: string; title?: string; citation?: string; id?: string }>; total: number; page: number; pageSize: number; dataVersion: string; limitations: string[]; unlocatedCount: number };

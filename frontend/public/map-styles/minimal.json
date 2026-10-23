@@ -40,18 +40,6 @@
       "paint": { "fill-color": "#071522" }
     },
     {
-      "id": "boundary",
-      "type": "line",
-      "source": "openmaptiles",
-      "source-layer": "boundary",
-      "filter": ["<=", ["get", "admin_level"], 4],
-      "paint": {
-        "line-color": "#708296",
-        "line-opacity": 0.38,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 1, 0.35, 7, 1]
-      }
-    },
-    {
       "id": "label",
       "type": "symbol",
       "source": "openmaptiles",

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "rome-frontier-114-118",
+  "title": "Rome\u2019s eastern frontier, 114\u2013118 CE",
+  "summary": "Draft: additional reviewed boundary snapshots and campaign evidence are required before publication.",
+  "dataset_version": "rome-frontier-114-118-draft-v1",
+  "attribution": "Civil Atlas contributors. Borders: Cliopatria, Seshat Global History Databank (Bennett et al., Scientific Data 12, 247, 2025), CC BY 4.0.",
+  "license": "ODbL-1.0",
+  "review_status": "needs_review",
+  "steps": [
+    {
+      "id": "roman-reading",
+      "title": "Rome and the Mediterranean",
+      "narrative": "Draft: additional reviewed boundary snapshots and campaign evidence are required before publication.",
+      "year": 117,
+      "camera": {
+        "center": [
+          25,
+          38
+        ],
+        "zoom": 2.7,
+        "bearing": 0,
+        "pitch": 0
+      },
+      "entity_ids": [
+        "roman-empire"
+      ],
+      "layer_ids": [],
+      "annotation_ids": [],
+      "asset_ids": [],
+      "source_record_ids": [],
+      "hold_seconds": 8
+    }
+  ],
+  "annotations": [],
+  "assets": []
+}

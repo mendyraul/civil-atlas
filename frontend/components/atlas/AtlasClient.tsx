@@ -1,19 +1,21 @@
 'use client';
 
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { world117 as demoWorld117 } from '../../data/demoWorld117';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { useAtlasData } from './hooks/useAtlasData';
+import { availableLayers, visibleBoundaryLayers, isCliopatria } from '../../lib/research';
+import { AnnotationNotebook, usePersonalNotes, type DrawMode } from '../research/AnnotationNotebook';
+import { ResearchWorkbench } from '../research/ResearchWorkbench';
+import { LayerStatusPanel } from '../research/LayerStatusPanel';
+import { EpisodePlayer } from '../episodes/EpisodePlayer';
+import type { LoadedAsset } from '../../lib/episodes';
 import { learningChapters } from '../../data/learningChapters';
 import {
-  API_BASE_URL,
   DEFAULT_YEAR,
-  DEMO_MODE,
-  HAS_REMOTE_API,
   YEAR_MAX,
   YEAR_MIN,
-  filterWorldByYear,
   getFeatureById,
 } from '../../lib/atlas';
-import type { AtlasFeature, Confidence, ReviewStatus, WorldPayload } from '../../types/atlas';
+import type { EpisodePack, MapAnnotation, GeoJSONPosition, AtlasCamera, AtlasFeature, Confidence, ReviewStatus } from '../../types/atlas';
 import { AtlasPage } from './AtlasPage';
 import { SiteShell } from './SiteShell';
 
@@ -29,10 +31,6 @@ type LayerVisibility = {
   sources: boolean;
 };
 
-type DataState = 'live' | 'demo' | 'loading' | 'stale' | 'unavailable';
-
-const emptyWorld: WorldPayload = { year: DEFAULT_YEAR, civilizations: [], nodes: [], routes: [], layers: [], relationships: [], eras: [], events: [] };
-
 type FilterState = {
   confidence: Confidence[];
   layerTypes: string[];
@@ -45,8 +43,8 @@ const emptyFilterState: FilterState = {
   reviewStatus: [],
 };
 
-// Workstream D: autoplay advances the year ~55 years/second (5 years every 90ms).
-const PLAYBACK_TICK_MS = 90;
+// Advance in readable steps and wait for each year to finish loading.
+const PLAYBACK_TICK_MS = 700;
 const PLAYBACK_STEP_YEARS = 5;
 
 function toggleValue<T extends string>(values: T[], value: T) {
@@ -72,12 +70,54 @@ function layerTypeLabel(value: string) {
 }
 
 export function AtlasClient() {
-  const [baseWorld, setBaseWorld] = useState<WorldPayload>(DEMO_MODE ? demoWorld117 : emptyWorld);
   const [year, setYear] = useState(DEFAULT_YEAR);
-  const [selectedId, setSelectedId] = useState<string>('roman-empire');
-  const [zoom, setZoom] = useState(2.1);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [zoom, setZoom] = useState(1.8);
   const [center, setCenter] = useState<[number, number]>([30, 25]);
-  const [backendStatus, setBackendStatus] = useState<DataState>(DEMO_MODE ? 'demo' : 'loading');
+  const [ready, setReady] = useState(false);
+  const { world: baseWorld, status: backendStatus, eras, events, sources, catalogFailed, reload } = useAtlasData(year, ready);
+  const [camera, setCamera] = useState<AtlasCamera>({ center: [30, 25], zoom: 1.8, bearing: 0, pitch: 0 });
+  const [cameraCommand, setCameraCommand] = useState<AtlasCamera | undefined>({ center: [30, 25], zoom: 1.8, bearing: 0, pitch: 0 });
+  const [boundaryChoices, setBoundaryChoices] = useState<Record<string, boolean>>({});
+  const [panel, setPanel] = useState<'layers' | 'details' | 'notes' | 'research' | 'episodes' | 'status' | null>(null);
+  const notebook = usePersonalNotes();
+  const [drawMode, setDrawMode] = useState<DrawMode | 'Rectangle' | null>(null);
+  const [drawPoints, setDrawPoints] = useState<GeoJSONPosition[]>([]);
+  const [bounds, setBounds] = useState<[number, number, number, number]>([-180, -85, 180, 85]);
+  const [rectangle, setRectangle] = useState<[number, number, number, number] | null>(null);
+  const [episodeStopToken, setEpisodeStopToken] = useState(0);
+  const [episodeEntityIds, setEpisodeEntityIds] = useState<string[] | null>(null);
+  const [episodeLayerIds, setEpisodeLayerIds] = useState<string[] | null>(null);
+  const [episodeNotes, setEpisodeNotes] = useState<MapAnnotation[]>([]);
+  const [episodeAssets, setEpisodeAssets] = useState<LoadedAsset[]>([]);
+  function cancelDrawing() { setDrawMode(null); setDrawPoints([]); }
+  function addDrawPoint(point: GeoJSONPosition) {
+    const next = drawMode === 'Point' ? [point] : [...drawPoints, point];
+    if (drawMode === 'Rectangle' && next.length >= 2) {
+      const [a, b] = next; const west = Math.min(a[0], b[0]), east = Math.max(a[0], b[0]);
+      setRectangle([east - west > 180 ? east : west, Math.min(a[1], b[1]), east - west > 180 ? west : east, Math.max(a[1], b[1])]);
+      setDrawMode(null); setPanel('research'); setDrawPoints([]); return;
+    }
+    setDrawPoints(next.slice(0, 1000));
+  }
+  const mapNotes = useMemo(() => {
+    const visible = [...notebook.notes, ...episodeNotes].filter((note) => note.validFromYear <= year && note.validToYear >= year);
+    for (const { asset } of episodeAssets) if (asset.coordinates) visible.push({ id: `media-${asset.id}`, title: `Media: ${asset.attribution}`, note: asset.license, validFromYear: year, validToYear: year, sourceRecordIds: [], kind: 'explanation', reviewStatus: 'needs_review', confidence: 'low', geometry: { type: 'Point', coordinates: asset.coordinates } });
+    if (drawPoints.length) visible.push({ id: 'personal-drawing-preview', title: 'Unsaved personal sketch', note: '', validFromYear: year, validToYear: year, sourceRecordIds: [], kind: 'explanation', reviewStatus: 'needs_review', confidence: 'low', geometry: drawPoints.length === 1 ? { type: 'Point', coordinates: drawPoints[0] } : { type: 'LineString', coordinates: drawPoints } });
+    return visible;
+  }, [notebook.notes, episodeNotes, episodeAssets, year, drawPoints]);
+  const imageOverlays = useMemo(() => episodeAssets.flatMap(({ asset, url }) => asset.kind === 'image' && asset.bounds ? [{ id: asset.id, url, bounds: asset.bounds }] : []), [episodeAssets]);
+  function applyEpisodeStep(pack: EpisodePack, index: number) {
+    const step = pack.steps[index];
+    if (episodeLayerIds === null) setPanel('episodes');
+    setIsPlaying(false); setMode('explore'); setYear(step.year); setCameraCommand({ ...step.camera }); setCamera(step.camera); setCenter(step.camera.center); setZoom(step.camera.zoom);
+    setLayers({ extents: true, nodes: true, routes: true, sources: true }); setEpisodeEntityIds(step.entityIds);
+    setSelectedId(step.entityIds[0] ?? ''); setEpisodeLayerIds(step.layerIds); setEpisodeNotes(pack.annotations.filter((note) => step.annotationIds.includes(note.id)));
+    const params = new URLSearchParams(location.search); params.set('episode', pack.id); params.set('episodeStep', step.id); history.replaceState(null, '', `?${params}`);
+  }
+  function exitEpisode() { setEpisodeEntityIds(null); setEpisodeLayerIds(null); setEpisodeNotes([]); setEpisodeAssets([]); const params = new URLSearchParams(location.search); params.delete('episode'); params.delete('episodeStep'); history.replaceState(null, '', `?${params}`); }
+  function selectFeature(id: string) { setEpisodeStopToken((n) => n + 1); setSelectedId(id); setCameraCommand(undefined); setPanel('details'); }
+
   const [layers, setLayers] = useState<LayerVisibility>({
     extents: true,
     nodes: true,
@@ -92,7 +132,6 @@ export function AtlasClient() {
   const [mode, setMode] = useState<'explore' | 'guided'>('explore');
   const [chapterId, setChapterId] = useState(learningChapters[0].id);
   const [stepId, setStepId] = useState(learningChapters[0].steps[0].id);
-  const skipFirstUrlSyncRef = useRef(true);
 
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return;
@@ -103,92 +142,76 @@ export function AtlasClient() {
     return () => query.removeEventListener('change', update);
   }, []);
 
-  useEffect(() => {
-    if (DEMO_MODE) return;
-    if (!HAS_REMOTE_API) { setBackendStatus('unavailable'); return; }
-
-    let cancelled = false;
-
-    async function loadWorld() {
-      setBackendStatus((current) => current === 'live' ? 'live' : 'loading');
-      try {
-        const [worldResponse, healthResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/v1/world/${DEFAULT_YEAR}`, { cache: 'no-store' }),
-          fetch(`${API_BASE_URL}/api/health`, { cache: 'no-store' }),
-        ]);
-        if (!worldResponse.ok || !healthResponse.ok) throw new Error('API unavailable');
-        const payload = (await worldResponse.json()) as WorldPayload;
-        const health = (await healthResponse.json()) as { data?: { updated_at?: string } };
-        const updatedAt = health.data?.updated_at ? Date.parse(health.data.updated_at) : NaN;
-        const stale = Number.isFinite(updatedAt) && Date.now() - updatedAt > 24 * 60 * 60 * 1000;
-        if (!cancelled) { setBaseWorld(payload); setBackendStatus(stale ? 'stale' : 'live'); }
-      } catch {
-        if (!cancelled) setBackendStatus((current) => current === 'live' || current === 'stale' ? 'stale' : 'unavailable');
-      }
-    }
-
-    void loadWorld();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Research mode: hydrate view state from the URL on load (shareable views).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const yearParam = params.get('y');
     const urlYear = yearParam === null ? NaN : Number(yearParam);
-    if (Number.isFinite(urlYear) && urlYear >= YEAR_MIN && urlYear <= YEAR_MAX) {
+    if (Number.isInteger(urlYear) && urlYear >= YEAR_MIN && urlYear <= YEAR_MAX) {
       setYear(urlYear);
     }
     const urlSelected = params.get('sel');
     if (urlSelected) {
       setSelectedId(urlSelected);
+      if (!params.has('lng') || !params.has('lat')) setCameraCommand(undefined);
     }
     const zoomParam = params.get('z'); const longitudeParam = params.get('lng'); const latitudeParam = params.get('lat');
     const urlZoom = zoomParam === null ? NaN : Number(zoomParam); const longitude = longitudeParam === null ? NaN : Number(longitudeParam); const latitude = latitudeParam === null ? NaN : Number(latitudeParam);
-    if (Number.isFinite(urlZoom)) setZoom(urlZoom);
-    if (Number.isFinite(longitude) && Number.isFinite(latitude)) setCenter([longitude, latitude]);
+    if (Number.isFinite(urlZoom) && urlZoom >= 0 && urlZoom <= 20) setZoom(urlZoom);
+    if (Number.isFinite(longitude) && Math.abs(longitude) <= 180 && Number.isFinite(latitude) && Math.abs(latitude) <= 85) {
+      const numberParam = (key: string, fallback: number, min: number, max: number) => { const raw = params.get(key); const value = raw === null ? NaN : Number(raw); return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback; };
+      const view = { center: [longitude, latitude] as [number, number], zoom: numberParam('z', 1.8, 0, 20), bearing: numberParam('bearing', 0, -180, 180), pitch: numberParam('pitch', 0, 0, 60) };
+      setCenter(view.center); setCamera(view); setCameraCommand(view);
+    }
+    const choices: Record<string, boolean> = {};
+    params.get('boundaries')?.split(',').filter(Boolean).forEach((id) => { choices[id] = true; });
+    params.get('hiddenBoundaries')?.split(',').filter(Boolean).forEach((id) => { choices[id] = false; });
+    setBoundaryChoices(choices);
     const encodedLayers = params.get('layers');
-    if (encodedLayers) setLayers((current) => ({ ...current, ...Object.fromEntries(encodedLayers.split(',').map((key) => [key, true])), ...Object.fromEntries(Object.keys(current).filter((key) => !encodedLayers.split(',').includes(key)).map((key) => [key, false])) }));
+    if (encodedLayers !== null) setLayers((current) => ({ ...current, ...Object.fromEntries(encodedLayers.split(',').map((key) => [key, true])), ...Object.fromEntries(Object.keys(current).filter((key) => !encodedLayers.split(',').includes(key)).map((key) => [key, false])) }));
     setFilters({ confidence: (params.get('confidence')?.split(',').filter(Boolean) ?? []) as Confidence[], reviewStatus: (params.get('review')?.split(',').filter(Boolean) ?? []) as ReviewStatus[], layerTypes: params.get('types')?.split(',').filter(Boolean) ?? [] });
     const urlChapter = learningChapters.find((chapter) => chapter.id === params.get('chapter'));
     const urlStep = urlChapter?.steps.find((step) => step.id === params.get('step'));
     if (urlChapter && urlStep) {
       setMode('guided'); setChapterId(urlChapter.id); setStepId(urlStep.id);
+      if (!params.has('y')) setYear(urlStep.year);
+      if (!params.has('sel') && urlStep.selectedEntityId) setSelectedId(urlStep.selectedEntityId);
+      if (!params.has('lng') || !params.has('lat')) { setCameraCommand(urlStep.camera); setCamera(urlStep.camera); setCenter(urlStep.camera.center); setZoom(urlStep.camera.zoom); }
+      if (!params.has('layers')) setLayers({ extents: false, nodes: false, routes: false, sources: false, ...Object.fromEntries(urlStep.visibleLayers.map((key) => [key, true])) });
     }
+    if (!params.has('z') && !urlStep && window.innerWidth < 768) { const mobileCamera: AtlasCamera = { center: [30, 25], zoom: 1.0, bearing: 0, pitch: 0 }; setCamera(mobileCamera); setCameraCommand(mobileCamera); setZoom(1.0); }
+    setReady(true);
   }, []);
 
   // Research mode: keep the URL in sync with year + selection so any view is shareable.
   useEffect(() => {
-    if (skipFirstUrlSyncRef.current) {
-      skipFirstUrlSyncRef.current = false;
-      return;
-    }
+    if (!ready) return;
     const params = new URLSearchParams(window.location.search);
     params.set('y', String(year));
     if (selectedId) {
       params.set('sel', selectedId);
     }
     params.set('z', zoom.toFixed(2)); params.set('lng', center[0].toFixed(3)); params.set('lat', center[1].toFixed(3));
+    params.set('bearing', (camera.bearing ?? 0).toFixed(1)); params.set('pitch', (camera.pitch ?? 0).toFixed(1));
+    for (const [key, enabled] of [['boundaries', true], ['hiddenBoundaries', false]] as const) { const ids = Object.keys(boundaryChoices).filter((id) => boundaryChoices[id] === enabled); if (ids.length) params.set(key, ids.join(',')); else params.delete(key); }
     params.set('layers', Object.entries(layers).filter(([, active]) => active).map(([key]) => key).join(','));
     if (filters.confidence.length) params.set('confidence', filters.confidence.join(',')); else params.delete('confidence');
     if (filters.reviewStatus.length) params.set('review', filters.reviewStatus.join(',')); else params.delete('review');
     if (filters.layerTypes.length) params.set('types', filters.layerTypes.join(',')); else params.delete('types');
-    if (mode === 'guided') { params.set('chapter', chapterId); params.set('step', stepId); }
+    if (mode === 'guided') { params.set('chapter', chapterId); params.set('step', stepId); } else { params.delete('chapter'); params.delete('step'); }
     const query = params.toString();
     window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
-  }, [year, selectedId, zoom, center, layers, filters, mode, chapterId, stepId]);
+  }, [ready, year, selectedId, zoom, center, camera, boundaryChoices, layers, filters, mode, chapterId, stepId]);
 
   // Workstream D: timeline autoplay.
   useEffect(() => {
-    if (!isPlaying || reducedMotion) {
+    if (!isPlaying || reducedMotion || backendStatus === 'loading' || backendStatus === 'unavailable') {
       return;
     }
     const intervalId = window.setInterval(() => {
       setYear((current) => {
         const proposed = current + PLAYBACK_STEP_YEARS;
-        const crossedEvent = baseWorld.events.filter((event) => event.startYear > current && event.startYear <= proposed).sort((a, b) => a.startYear - b.startYear)[0];
+        const crossedEvent = events.filter((event) => event.startYear > current && event.startYear <= proposed).sort((a, b) => a.startYear - b.startYear)[0];
         const next = pauseOnEvent && crossedEvent ? crossedEvent.startYear : proposed;
         if (crossedEvent && pauseOnEvent) setIsPlaying(false);
         if (next >= YEAR_MAX) {
@@ -199,18 +222,19 @@ export function AtlasClient() {
       });
     }, PLAYBACK_TICK_MS / playbackSpeed);
     return () => window.clearInterval(intervalId);
-  }, [isPlaying, playbackSpeed, pauseOnEvent, reducedMotion, baseWorld.events]);
+  }, [isPlaying, playbackSpeed, pauseOnEvent, reducedMotion, events, backendStatus]);
 
   function stepTimeline(direction: -1 | 1, target: 'event' | 'era') {
+    setEpisodeStopToken((n) => n + 1);
     setIsPlaying(false);
-    const points = (target === 'event' ? baseWorld.events.flatMap((event) => [event.startYear, event.endYear]) : baseWorld.eras.flatMap((era) => [era.startYear, era.endYear])).filter((value, index, values) => values.indexOf(value) === index).sort((a, b) => a - b);
+    const points = (target === 'event' ? events.flatMap((event) => [event.startYear, event.endYear]) : eras.flatMap((era) => [era.startYear, era.endYear])).filter((value, index, values) => values.indexOf(value) === index).sort((a, b) => a - b);
     const destination = direction > 0 ? points.find((point) => point > year) : [...points].reverse().find((point) => point < year);
     if (destination !== undefined) setYear(destination);
   }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLElement && (event.target.closest('button, a, [role=application], [contenteditable=true]'))) return;
       if (event.code === 'Space') { event.preventDefault(); togglePlay(); }
       if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); stepTimeline(event.key === 'ArrowLeft' ? -1 : 1, event.shiftKey ? 'era' : 'event'); }
     };
@@ -219,6 +243,7 @@ export function AtlasClient() {
   });
 
   function togglePlay() {
+    if (episodeLayerIds !== null) setEpisodeStopToken((n) => n + 1);
     if (reducedMotion) return;
     setIsPlaying((current) => {
       // Restart from the beginning if we're paused at the end of the timeline.
@@ -229,7 +254,8 @@ export function AtlasClient() {
     });
   }
 
-  const activeWorld = useMemo(() => filterWorldByYear(baseWorld, year), [baseWorld, year]);
+  const activeWorld = useMemo(() => ({ ...baseWorld, layers: availableLayers(baseWorld.layers, sources) }), [baseWorld, sources]);
+  const selectedLayers = useMemo(() => (episodeLayerIds === null ? visibleBoundaryLayers(activeWorld.layers, boundaryChoices) : activeWorld.layers.filter((layer) => episodeLayerIds.includes(layer.id))), [activeWorld.layers, boundaryChoices, episodeLayerIds]);
   const featuresByLayerType = useMemo(() => {
     const allFeatures: AtlasFeature[] = [
       ...activeWorld.civilizations,
@@ -314,11 +340,12 @@ export function AtlasClient() {
   const visibleWorld = useMemo(
     () => ({
       ...filteredWorld,
+      layers: selectedLayers.filter((layer) => layers.extents && filteredWorld.civilizations.some((item) => item.id === layer.civilizationId)),
       civilizations: layers.extents ? filteredWorld.civilizations : [],
-      nodes: layers.nodes ? filteredWorld.nodes : [],
-      routes: layers.routes ? filteredWorld.routes : [],
+      nodes: layers.nodes ? filteredWorld.nodes.filter((node) => episodeEntityIds === null || episodeEntityIds.includes(node.id)) : [],
+      routes: layers.routes ? filteredWorld.routes.filter((route) => episodeEntityIds === null || episodeEntityIds.includes(route.id)) : [],
     }),
-    [filteredWorld, layers.extents, layers.nodes, layers.routes],
+    [filteredWorld, selectedLayers, layers.extents, layers.nodes, layers.routes, episodeEntityIds],
   );
   const selectedFeature = useMemo(
     () => getFeatureById(activeWorld, selectedId) ?? getFeatureById(baseWorld, selectedId),
@@ -362,9 +389,9 @@ export function AtlasClient() {
 
   function exportCurrentView() {
     const payload = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: new Date().toISOString(),
-      query: { year, selectedId, zoom, center, layers, filters },
+      query: { year, selectedId, zoom, center, bearing: camera.bearing ?? 0, pitch: camera.pitch ?? 0, layers, filters, boundaryChoices },
       world: visibleWorld,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -378,31 +405,45 @@ export function AtlasClient() {
     URL.revokeObjectURL(url);
   }
 
+  function applyLessonStep(nextChapterId: string, nextStepId: string) {
+          setEpisodeStopToken((n) => n + 1);
+          const chapter = learningChapters.find((item) => item.id === nextChapterId);
+          const step = chapter?.steps.find((item) => item.id === nextStepId);
+          if (!step) return;
+          setIsPlaying(false); setCameraCommand({ ...step.camera }); setCamera(step.camera); setCenter(step.camera.center); setZoom(step.camera.zoom); setPanel(null);
+          setChapterId(nextChapterId); setStepId(nextStepId); setYear(step.year);
+          if (step.selectedEntityId) setSelectedId(step.selectedEntityId);
+          setLayers({ extents: false, nodes: false, routes: false, sources: false, ...Object.fromEntries(step.visibleLayers.map((layer) => [layer, true])) });
+  }
+
   return (
     <SiteShell
       title="Civil Atlas"
       subtitle="Main atlas interface"
     >
       <AtlasPage
+        notesContent={<AnnotationNotebook year={year} notes={notebook.notes} onChange={notebook.setNotes} ready={notebook.ready} warning={notebook.warning} drawMode={drawMode === 'Rectangle' ? null : drawMode} points={drawPoints} onDraw={(mode) => { setDrawMode(mode); setDrawPoints([]); setPanel(null); }} onAddPoint={addDrawPoint} onCancel={cancelDrawing} />}
+        researchContent={<ResearchWorkbench year={year} bounds={bounds} rectangle={rectangle} layers={activeWorld.layers} onDrawRectangle={() => { setRectangle(null); setDrawMode('Rectangle'); setDrawPoints([]); setPanel(null); }} />}
+        episodesContent={<EpisodePlayer stopToken={episodeStopToken} coverageReady={backendStatus !== 'loading' && backendStatus !== 'unavailable' && (episodeLayerIds ?? []).every((id) => activeWorld.layers.some((layer) => layer.id === id))} missingLayers={(episodeLayerIds ?? []).filter((id) => !activeWorld.layers.some((layer) => layer.id === id))} onStep={applyEpisodeStep} onAssets={setEpisodeAssets} onExit={exitEpisode} reducedMotion={reducedMotion} />}
+        statusContent={<LayerStatusPanel status={{ delivery: backendStatus === 'live' ? 'ready' : backendStatus, year, recordCount: activeWorld.civilizations.length + activeWorld.nodes.length + activeWorld.routes.length, layers: selectedLayers }} />}
+        panel={panel}
+        onPanelChange={setPanel}
+        onRetry={reload}
+        catalogFailed={catalogFailed}
+        selectedLayerIds={selectedLayers.map((layer) => layer.id)}
+        onBoundaryChange={(id, checked) => setBoundaryChoices((current) => ({ ...current, [id]: checked }))}
         chapters={learningChapters}
         chapterId={chapterId}
         mode={mode}
         stepId={stepId}
-        onModeChange={setMode}
-        onLessonStep={(nextChapterId, nextStepId) => {
-          const chapter = learningChapters.find((item) => item.id === nextChapterId);
-          const step = chapter?.steps.find((item) => item.id === nextStepId);
-          if (!step) return;
-          setChapterId(nextChapterId); setStepId(nextStepId); setYear(step.year);
-          if (step.selectedEntityId) setSelectedId(step.selectedEntityId);
-          setLayers({ extents: false, nodes: false, routes: false, sources: false, ...Object.fromEntries(step.visibleLayers.map((layer) => [layer, true])) });
-        }}
+        onModeChange={(nextMode) => { setMode(nextMode); if (nextMode === 'guided') applyLessonStep(chapterId, stepId); }}
+        onLessonStep={applyLessonStep}
         onExport={exportCurrentView}
         backendStatus={backendStatus}
         confidenceCounts={confidenceCounts}
         detailWorld={activeWorld}
-        eras={baseWorld.eras}
-        events={baseWorld.events}
+        eras={eras}
+        events={events}
         filterCount={filterCount}
         isPlaying={isPlaying}
         isSelectedFeatureFilteredOut={isSelectedFeatureFilteredOut}
@@ -417,6 +458,16 @@ export function AtlasClient() {
             }
           >
             <LazyAtlasMap
+              annotations={mapNotes}
+              imageOverlays={imageOverlays}
+              drawMode={drawMode}
+              onDrawPoint={addDrawPoint}
+              onFinishDraw={() => { if (drawMode === 'Rectangle') { cancelDrawing(); setPanel('research'); } else setPanel('notes'); }}
+              onBoundsChange={(value) => { const [w, south, e, n] = value; const wrap = (x: number) => ((x + 180) % 360 + 360) % 360 - 180; setBounds(e - w >= 360 ? [-180, Math.max(-90, south), 180, Math.min(90, n)] : [wrap(w), Math.max(-90, south), wrap(e), Math.min(90, n)]); }}
+              cameraCommand={cameraCommand}
+              onCameraChange={(view) => { setCamera(view); setCenter(view.center); setZoom(view.zoom); }}
+              reducedMotion={reducedMotion}
+              cliopatriaVisible={visibleWorld.layers.some((layer) => isCliopatria(layer, sources))}
               initialCenter={center}
               initialZoom={zoom}
               civilizations={visibleWorld.civilizations}
@@ -431,15 +482,15 @@ export function AtlasClient() {
               showExtents={layers.extents}
               showNodes={layers.nodes}
               showRoutes={layers.routes}
-              onCivilizationSelect={setSelectedId}
-              onNodeSelect={setSelectedId}
-              onRouteSelect={setSelectedId}
+              onCivilizationSelect={selectFeature}
+              onNodeSelect={selectFeature}
+              onRouteSelect={selectFeature}
               onZoomChange={setZoom}
               onCenterChange={setCenter}
             />
           </Suspense>
         }
-        onCivilizationSelect={setSelectedId}
+        onCivilizationSelect={selectFeature}
         onConfidenceToggle={toggleConfidence}
         onLayerTypeToggle={toggleLayerType}
         onResetFilters={() => setFilters(emptyFilterState)}
@@ -452,7 +503,7 @@ export function AtlasClient() {
         onPlaybackSpeedChange={setPlaybackSpeed}
         onPauseOnEventChange={setPauseOnEvent}
         onStep={stepTimeline}
-        onYearChange={setYear}
+        onYearChange={(value) => { setEpisodeStopToken((n) => n + 1); setIsPlaying(false); setYear(value); }}
         reviewCounts={reviewCounts}
         selectedConfidence={filters.confidence}
         selectedFeature={selectedFeature}
