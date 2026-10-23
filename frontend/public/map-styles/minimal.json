@@ -69,6 +69,79 @@
       }
     },
     {
+      "id": "modern-country-boundaries",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "boundary",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "admin_level"
+          ],
+          2
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "maritime"
+          ],
+          1
+        ]
+      ],
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round"
+      },
+      "paint": {
+        "line-color": "#26383c",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          1,
+          0.45,
+          4,
+          0.7,
+          8,
+          1.0
+        ],
+        "line-opacity": 0.28,
+        "line-dasharray": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "disputed"
+            ],
+            1
+          ],
+          [
+            "literal",
+            [
+              2,
+              2
+            ]
+          ],
+          [
+            "literal",
+            [
+              1,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
       "id": "modern-locality-label",
       "type": "symbol",
       "source": "openmaptiles",

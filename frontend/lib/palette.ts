@@ -10,5 +10,9 @@ export const civilizationColors = {
 } as const;
 
 export function civilizationColor(id: keyof typeof civilizationColors | string) {
-  return civilizationColors[id as keyof typeof civilizationColors] ?? '#51627a';
+  const known = civilizationColors[id as keyof typeof civilizationColors];
+  if (known) return known;
+  // Stable colors keep new polities distinguishable while scrubbing or comparing dates.
+  const hash = [...id].reduce((value, char) => ((value * 31) + char.charCodeAt(0)) >>> 0, 0);
+  return `hsl(${hash % 360}, 38%, 48%)`;
 }

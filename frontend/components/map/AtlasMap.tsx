@@ -24,6 +24,7 @@ type AtlasMapProps = {
   onCameraChange?: (camera: AtlasCamera) => void;
   reducedMotion?: boolean;
   cliopatriaVisible?: boolean;
+  showModernBorders?: boolean;
   initialCenter: [number, number];
   initialZoom: number;
   civilizations: Civilization[];
@@ -263,6 +264,7 @@ export function AtlasMap({
   onCameraChange,
   reducedMotion = false,
   cliopatriaVisible = false,
+  showModernBorders = true,
   initialCenter,
   initialZoom,
   civilizations,
@@ -695,6 +697,9 @@ export function AtlasMap({
       map.addLayer({ id: 'research-annotation-line', type: 'line', source: 'research-annotations', filter: ['!=', ['geometry-type'], 'Point'], paint: { 'line-color': '#f2d39a', 'line-width': 3, 'line-dasharray': [2, 2] } });
       map.addLayer({ id: 'research-annotation-point', type: 'circle', source: 'research-annotations', filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 6, 'circle-color': '#f2d39a', 'circle-stroke-color': '#091827', 'circle-stroke-width': 2 } });
       map.on('click', 'research-annotation-point', (event) => { const feature = event.features?.[0]; if (drawRef.current.drawMode || !feature) return; popup.setLngLat(event.lngLat).setText(String(feature.properties?.title || 'Annotation')).addTo(map); });
+      // Place modern context above the territory fills so it remains faintly
+      // visible within empires as well as outside them.
+      if (map.getLayer('modern-country-boundaries')) map.moveLayer('modern-country-boundaries', 'civilizations-label');
       layersReady.current = true;
       applyCurrentMapState(map, currentMapStateRef.current);
       setMapStatus('ready');
@@ -735,6 +740,13 @@ export function AtlasMap({
     showRoutes,
     mapStatus,
   ]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map && mapStatus === 'ready' && map.getLayer('modern-country-boundaries')) {
+      map.setLayoutProperty('modern-country-boundaries', 'visibility', showModernBorders ? 'visible' : 'none');
+    }
+  }, [showModernBorders, mapStatus]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -863,6 +875,7 @@ export function AtlasMap({
         <button className="atlas-tool" type="button" aria-expanded={legendOpen} aria-controls="atlas-map-legend" onClick={() => setLegendOpen(!legendOpen)}>Legend</button>
       </div>
       <div id="atlas-map-legend" hidden={!legendOpen}><MapLegend
+        showModernBorders={showModernBorders}
         civilizations={civilizations.map((civilization) => ({
           id: civilization.id,
           label: civilization.label,

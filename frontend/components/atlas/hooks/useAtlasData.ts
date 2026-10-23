@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { API_BASE_URL, DEMO_MODE, HAS_REMOTE_API, filterWorldByYear, normalizeApiPayload } from '../../../lib/atlas';
-import { sourceCatalog, world117 } from '../../../data/demoWorld117';
+import { API_BASE_URL, DEMO_MODE, HAS_REMOTE_API, normalizeApiPayload } from '../../../lib/atlas';
+import { world117 } from '../../../data/demoWorld117';
+import { loadDemoWorld, previewSources } from '../../../lib/demoHistory';
 import type { Era, HistoricalEvent, SourceRecord, WorldPayload } from '../../../types/atlas';
 
 export function emptyWorld(year: number): WorldPayload {
@@ -11,7 +12,7 @@ export function emptyWorld(year: number): WorldPayload {
 
 export function useAtlasData(year: number, ready: boolean) {
   const cache = useRef(new Map<number, WorldPayload>());
-  const [loaded, setLoaded] = useState<WorldPayload | null>(null);
+  const [loaded, setLoaded] = useState<WorldPayload | null>(DEMO_MODE ? world117 : null);
   const [failedYear, setFailedYear] = useState<number | null>(null);
   const [retry, setRetry] = useState(0);
   const [catalog, setCatalog] = useState<{ eras: Era[]; events: HistoricalEvent[]; sources: SourceRecord[] }>({ eras: [], events: [], sources: [] });
@@ -36,14 +37,16 @@ export function useAtlasData(year: number, ready: boolean) {
   }, [ready, retry]);
 
   useEffect(() => {
-    if (DEMO_MODE || !HAS_REMOTE_API || !ready) return;
+    if ((!DEMO_MODE && !HAS_REMOTE_API) || !ready) return;
     if (cache.current.has(year)) { setLoaded(cache.current.get(year)!); return; }
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/world/${year}`, { signal: controller.signal, cache: 'no-store' });
-        if (!response.ok) throw new Error('World unavailable');
-        const world = normalizeApiPayload<WorldPayload>(await response.json());
+        const world = DEMO_MODE ? await loadDemoWorld(year) : await (async () => {
+          const response = await fetch(`${API_BASE_URL}/api/v1/world/${year}`, { signal: controller.signal, cache: 'no-store' });
+          if (!response.ok) throw new Error('World unavailable');
+          return normalizeApiPayload<WorldPayload>(await response.json());
+        })();
         if (world.year !== year) throw new Error('Unexpected world year');
         if (!controller.signal.aborted) {
           cache.current.set(year, world);
@@ -55,13 +58,13 @@ export function useAtlasData(year: number, ready: boolean) {
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [year, ready, retry]);
 
-  const world = DEMO_MODE ? filterWorldByYear(world117, year) : catalogReady && loaded?.year === year ? loaded : emptyWorld(year);
-  const status: 'demo' | 'unavailable' | 'live' | 'loading' = DEMO_MODE ? 'demo' : !HAS_REMOTE_API || failedYear === year || catalogFailed ? 'unavailable' : catalogReady && loaded?.year === year ? 'live' : 'loading';
+  const world = (DEMO_MODE || catalogReady) && loaded?.year === year ? loaded : emptyWorld(year);
+  const status: 'demo' | 'unavailable' | 'live' | 'loading' = DEMO_MODE ? failedYear === year ? 'unavailable' : loaded?.year === year ? 'demo' : 'loading' : !HAS_REMOTE_API || failedYear === year || catalogFailed ? 'unavailable' : catalogReady && loaded?.year === year ? 'live' : 'loading';
   return {
     world, status, catalogFailed,
     eras: DEMO_MODE ? world117.eras : catalog.eras,
     events: DEMO_MODE ? world117.events : catalog.events,
-    sources: DEMO_MODE ? sourceCatalog : catalog.sources,
+    sources: DEMO_MODE ? previewSources : catalog.sources,
     reload: () => { cache.current.delete(year); setFailedYear(null); setLoaded(null); setRetry((value) => value + 1); },
   };
 }

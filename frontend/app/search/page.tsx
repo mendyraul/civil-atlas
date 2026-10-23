@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { SiteShell } from '../../components/atlas/SiteShell';
-import { API_BASE_URL, fetchWorld } from '../../lib/atlas';
+import { API_BASE_URL, DEMO_MODE, fetchCivilizations, fetchWorld } from '../../lib/atlas';
 
 type Params = Record<string, string | string[] | undefined>;
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Params> }) {
   const input = await searchParams; const q = String(input.q ?? ''); const page = Math.max(1, Number(input.page ?? 1)); const sort = String(input.sort ?? 'relevance');
   const query = new URLSearchParams(); for (const key of ['q', 'start_year', 'end_year', 'region', 'polity_type', 'topic', 'confidence', 'review_status', 'sort']) { if (input[key]) query.set(key, String(input[key])); } query.set('page', String(page)); query.set('page_size', '12');
   let result: { items: Array<{ id: string; kind: string; slug: string; title: string; summary: string; aliases: string[] }>; total: number };
-  if (API_BASE_URL) result = await fetch(`${API_BASE_URL}/api/v1/search?${query}`, { cache: 'no-store' }).then((response) => response.json());
-  else { const world = await fetchWorld(); const items = [...world.civilizations, ...world.nodes, ...world.routes].filter((item) => `${item.label} ${item.summary}`.toLowerCase().includes(q.toLowerCase())).map((item) => ({ id: item.id, kind: item.kind, slug: item.slug, title: item.label, summary: item.summary, aliases: [] })); result = { items: items.slice((page - 1) * 12, page * 12), total: items.length }; }
+  if (API_BASE_URL && !DEMO_MODE) result = await fetch(`${API_BASE_URL}/api/v1/search?${query}`, { cache: 'no-store' }).then((response) => response.json());
+  else { const world = await fetchWorld(); const items = [...await fetchCivilizations(), ...world.nodes, ...world.routes].filter((item) => `${item.label} ${item.summary}`.toLowerCase().includes(q.toLowerCase())).map((item) => ({ id: item.id, kind: item.kind, slug: item.slug, title: item.label, summary: item.summary, aliases: [] })); result = { items: items.slice((page - 1) * 12, page * 12), total: items.length }; }
   const hrefFor = (item: typeof result.items[number]) => item.kind === 'civilization' ? `/civilizations/${item.slug}` : item.kind === 'node' ? `/places/${item.slug}` : `/atlas?y=117&sel=${item.id}`;
   return <SiteShell title="Search" subtitle="Server-backed catalog search">
     <form className="atlas-panel grid gap-3 rounded-[24px] p-5 md:grid-cols-4">

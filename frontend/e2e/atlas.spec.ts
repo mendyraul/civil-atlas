@@ -30,6 +30,21 @@ test('keyboard interaction changes timeline', async ({ page }) => {
   await expect(page).toHaveURL(/y=118/);
 });
 
+test('later dates load sourced polities and modern context persists independently', async ({ page }) => {
+  await page.goto('/atlas');
+  await page.getByRole('button', { name: '1500 CE', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'World at 1500 CE' })).toBeVisible();
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  await expect(page.getByRole('button', { name: /Ming Dynasty dynasty/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Ottoman Empire empire/ })).toBeVisible();
+  await page.getByRole('button', { name: /^Present-day borders/ }).click();
+  await expect(page).toHaveURL(/modernBorders=false/);
+  await page.reload();
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  await expect(page.getByRole('button', { name: /^Present-day borders/ })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByRole('button', { name: /Ming Dynasty dynasty/ })).toBeVisible();
+});
+
 test('explicit camera orientation survives initialization and refresh', async ({ page }) => {
   await page.goto('/atlas?y=117&sel=roman-empire&lng=100&lat=35&z=3&bearing=25&pitch=30');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
@@ -58,6 +73,16 @@ test('source page explains license split and upstream credits', async ({ page })
   await expect(page.getByRole('heading', { name: 'Data sources & licenses' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Borders · Cliopatria' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Full attribution register' })).toBeVisible();
+});
+
+test('later polities have working dossiers and searchable source citations', async ({ page }) => {
+  await page.goto('/civilizations/ottoman-empire');
+  await expect(page.getByRole('heading', { name: 'Ottoman Empire', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'View this entity on the atlas' })).toHaveAttribute('href', /y=1305/);
+  await page.goto('/sources?q=Ottoman');
+  await expect(page.getByRole('link', { name: 'Cliopatria: Ottoman Empire' }).first()).toBeVisible();
+  await page.getByRole('link', { name: 'Cliopatria: Ottoman Empire' }).first().click();
+  await expect(page.getByRole('link', { name: /Open Ottoman Empire on atlas/ })).toHaveAttribute('href', /sel=ottoman-empire/);
 });
 
 test('@a11y atlas and open research panel have no automatically detectable violations', async ({ page }) => {

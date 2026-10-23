@@ -11,6 +11,7 @@ type MapLegendProps = {
   showExtents: boolean;
   showNodes: boolean;
   showRoutes: boolean;
+  showModernBorders?: boolean;
 };
 
 export function MapLegend({
@@ -18,6 +19,7 @@ export function MapLegend({
   showExtents,
   showNodes,
   showRoutes,
+  showModernBorders = true,
 }: MapLegendProps) {
   const hasContent = civilizations.length > 0 || showNodes || showRoutes;
   if (!hasContent) return null;
@@ -41,6 +43,7 @@ export function MapLegend({
             <span>Schematic placeholder, when present</span>
           </div>
           <p className="text-[10px] text-slate-300">Review and confidence are listed in Layer status.</p>
+          {showModernBorders && <div className="flex items-center gap-2"><span aria-hidden className="h-3 w-5 rounded-sm bg-[#d8d8ce] p-1"><span className="block border-t border-[#26383c]/50" /></span><span>Present-day borders · reference</span></div>}
         </div>
 
         {showExtents && civilizations.length > 0 && (

@@ -5,8 +5,9 @@ database, and object storage must be deployed separately and the frontend must
 be given the public HTTPS URL of that API.
 
 When `NEXT_PUBLIC_DEMO_MODE=true`, the static preview uses the original
-Cliopatria v0.2.1 borders bundled in `frontend/data/cliopatria117.json`, with
-their source citations, low confidence and inclusive validity intervals.
+Cliopatria v0.2.1 borders bundled in `frontend/data/history/`, with 38 selected
+polities across 600 BCE–1800 CE, source citations, low confidence and inclusive
+validity intervals. Geometry loads by century; see [timeline preview](history-preview.md).
 It does not fall back to schematic borders outside those intervals. Other
 demo records and guided narratives remain illustrative; spatial research
 still requires a deployed API. See [attribution](../ATTRIBUTION.md).

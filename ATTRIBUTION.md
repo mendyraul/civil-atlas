@@ -21,6 +21,13 @@ These are approximate source interpretations, with low confidence, rather than
 independently verified historical frontiers. The bundled preview no longer
 substitutes schematic polygons where source coverage is missing.
 
+The expanded timeline in `frontend/data/history/` contains 1,002 original dated
+boundary records for 38 selected polities across 600 BCE–1800 CE. It preserves
+the same upstream license and attribution. The catalog records the release
+hash and source-check scope; see [timeline preview](docs/history-preview.md).
+Present-day reference borders use the existing OpenFreeMap/OpenMapTiles basemap
+(Natural Earth at low zoom and OpenStreetMap at closer zoom).
+
 ## Displayed but not stored
 
 | Source | License | Credit line |

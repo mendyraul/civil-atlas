@@ -6,7 +6,7 @@ import type {
   SourceRecord,
   WorldPayload,
 } from '../types/atlas';
-import { sourceCatalog, world117 as demoWorld117 } from '../data/demoWorld117';
+import { world117 as demoWorld117 } from '../data/demoWorld117';
 
 export const DEFAULT_YEAR = 117;
 export const YEAR_MIN = -600;
@@ -171,12 +171,12 @@ async function fetchApi<T>(path: string): Promise<T> {
 }
 
 export async function fetchWorld(year = DEFAULT_YEAR): Promise<WorldPayload> {
-  if (DEMO_MODE) return filterWorldByYear(demoWorld117, year);
+  if (DEMO_MODE) return (await import('./demoHistory')).loadDemoWorld(year);
   return fetchApi<WorldPayload>(`/api/v1/world/${year}`);
 }
 
 export async function fetchCivilizations() {
-  if (DEMO_MODE) return demoWorld117.civilizations;
+  if (DEMO_MODE) return (await import('./demoHistory')).previewCivilizations;
   if (!HAS_REMOTE_API) return [];
   try { return await fetchApi<WorldPayload['civilizations']>('/api/v1/civilizations'); }
   catch { return []; }
@@ -190,7 +190,7 @@ export async function fetchPlaces() {
 }
 
 export async function fetchSources(): Promise<SourceRecord[]> {
-  if (DEMO_MODE) return sourceCatalog;
+  if (DEMO_MODE) return (await import('./demoHistory')).previewSources;
   if (!HAS_REMOTE_API) return [];
   try { return await fetchApi<SourceRecord[]>('/api/v1/sources'); }
   catch { return []; }

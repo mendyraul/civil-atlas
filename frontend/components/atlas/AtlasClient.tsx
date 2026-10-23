@@ -78,6 +78,7 @@ export function AtlasClient() {
   const { world: baseWorld, status: backendStatus, eras, events, sources, catalogFailed, reload } = useAtlasData(year, ready);
   const [camera, setCamera] = useState<AtlasCamera>({ center: [30, 25], zoom: 1.8, bearing: 0, pitch: 0 });
   const [cameraCommand, setCameraCommand] = useState<AtlasCamera | undefined>({ center: [30, 25], zoom: 1.8, bearing: 0, pitch: 0 });
+  const [showModernBorders, setShowModernBorders] = useState(true);
   const [boundaryChoices, setBoundaryChoices] = useState<Record<string, boolean>>({});
   const [panel, setPanel] = useState<'layers' | 'details' | 'notes' | 'research' | 'episodes' | 'status' | null>(null);
   const notebook = usePersonalNotes();
@@ -167,6 +168,7 @@ export function AtlasClient() {
     params.get('boundaries')?.split(',').filter(Boolean).forEach((id) => { choices[id] = true; });
     params.get('hiddenBoundaries')?.split(',').filter(Boolean).forEach((id) => { choices[id] = false; });
     setBoundaryChoices(choices);
+    setShowModernBorders(params.get('modernBorders') !== 'false');
     const encodedLayers = params.get('layers');
     if (encodedLayers !== null) setLayers((current) => ({ ...current, ...Object.fromEntries(encodedLayers.split(',').map((key) => [key, true])), ...Object.fromEntries(Object.keys(current).filter((key) => !encodedLayers.split(',').includes(key)).map((key) => [key, false])) }));
     setFilters({ confidence: (params.get('confidence')?.split(',').filter(Boolean) ?? []) as Confidence[], reviewStatus: (params.get('review')?.split(',').filter(Boolean) ?? []) as ReviewStatus[], layerTypes: params.get('types')?.split(',').filter(Boolean) ?? [] });
@@ -188,6 +190,7 @@ export function AtlasClient() {
     if (!ready) return;
     const params = new URLSearchParams(window.location.search);
     params.set('y', String(year));
+    params.set('modernBorders', String(showModernBorders));
     if (selectedId) {
       params.set('sel', selectedId);
     }
@@ -201,7 +204,7 @@ export function AtlasClient() {
     if (mode === 'guided') { params.set('chapter', chapterId); params.set('step', stepId); } else { params.delete('chapter'); params.delete('step'); }
     const query = params.toString();
     window.history.replaceState(null, '', query ? `?${query}` : window.location.pathname);
-  }, [ready, year, selectedId, zoom, center, camera, boundaryChoices, layers, filters, mode, chapterId, stepId]);
+  }, [ready, year, selectedId, zoom, center, camera, boundaryChoices, showModernBorders, layers, filters, mode, chapterId, stepId]);
 
   // Workstream D: timeline autoplay.
   useEffect(() => {
@@ -481,6 +484,7 @@ export function AtlasClient() {
               showEvidence={layers.sources}
               showExtents={layers.extents}
               showNodes={layers.nodes}
+              showModernBorders={showModernBorders}
               showRoutes={layers.routes}
               onCivilizationSelect={selectFeature}
               onNodeSelect={selectFeature}
@@ -495,6 +499,8 @@ export function AtlasClient() {
         onLayerTypeToggle={toggleLayerType}
         onResetFilters={() => setFilters(emptyFilterState)}
         onReviewStatusToggle={toggleReviewStatus}
+        showModernBorders={showModernBorders}
+        onToggleModernBorders={() => setShowModernBorders((value) => !value)}
         onToggleLayer={toggleLayer}
         onTogglePlay={togglePlay}
         playbackSpeed={playbackSpeed}
