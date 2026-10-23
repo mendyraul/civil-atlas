@@ -21,15 +21,24 @@ RATIONALE = (
 class NormalizedSnapshot:
     datasets: dict[str, list[dict[str, Any]]]
     omissions: list[dict[str, str]]
+    # Set when the adapter resolves its own selection (e.g. "all rows active in a year").
+    selected_ids: list[str] | None = None
 
 
 class SourceAdapter(Protocol):
     namespace: str
     version: str
+    label: str  # Human-readable import job label.
+    license: str  # SPDX ID or canonical URL; checked by app.ingestion.licenses.
+    source_type: str
 
     def normalize(
-        self, raw: bytes, place_ids: list[str], dataset_version: str, retrieved_at: str
+        self, raw: bytes, ids: list[str], dataset_version: str, retrieved_at: str
     ) -> NormalizedSnapshot: ...
+
+    def entity_ids_for(self, external_id: str) -> list[tuple[str, str]]:
+        """Renderable (kind, id) records to retire if a reimport omits this source ID."""
+        ...
 
 
 def _dates(record: dict[str, Any]) -> tuple[int, int] | None:
@@ -77,6 +86,12 @@ def _point(record: dict[str, Any]) -> tuple[float, float] | None:
 class PleiadesAdapter:
     namespace = "pleiades"
     version = "1"
+    label = "Pleiades local pilot"
+    license = LICENSE
+    source_type = "gazetteer"
+
+    def entity_ids_for(self, external_id: str) -> list[tuple[str, str]]:
+        return [("places", f"pleiades-{external_id}"), ("evidence", f"pleiades-evidence-{external_id}")]
 
     def normalize(
         self, raw: bytes, place_ids: list[str], dataset_version: str, retrieved_at: str

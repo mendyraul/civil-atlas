@@ -158,3 +158,18 @@ fixture with `python -m app.seed.import_world117` after applying the SQL
 migrations in `db/init`. The frontend never falls back to bundled knowledge in
 production. Set `NEXT_PUBLIC_DEMO_MODE=true` explicitly to use the clearly
 labeled World 117 demo snapshot without an API.
+
+## License
+
+Civil Atlas is open source and non-commercial.
+
+- **Code** is licensed under [AGPL-3.0-or-later](LICENSE). If you run a modified
+  version as a public web service, you must offer its source code to that service's users.
+- **Historical data** (`backend/data/`, database exports, public API data) is
+  licensed under the [Open Database License 1.0](DATA_LICENSE.md).
+- **Documentation** is licensed under [CC BY 4.0](LICENSES/CC-BY-4.0.txt).
+
+[`REUSE.toml`](REUSE.toml) maps every path to its license. Upstream data credits
+are in [ATTRIBUTION.md](ATTRIBUTION.md). Which sources may be imported is tracked in
+[docs/licensing-register.md](docs/licensing-register.md). See
+[CONTRIBUTING.md](CONTRIBUTING.md) before adding a source.

@@ -6,23 +6,41 @@ from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.ingestion.episodes import EpisodeAdapter
+from app.ingestion.cliopatria import CliopatriaAdapter
 from app.ingestion.pipeline import import_bundle, prepare_import
 from app.ingestion.pleiades import PleiadesAdapter
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", choices=("pleiades", "cliopatria", "episodes"), default="pleiades")
     parser.add_argument("--snapshot", required=True, type=Path)
-    parser.add_argument("--place-id", required=True, action="append", dest="place_ids")
+    parser.add_argument(
+        "--id", "--place-id", action="append", dest="ids", default=[],
+        help="Pleiades place ID (required) or Cliopatria Wikidata ID (optional; default: all mapped polities)",
+    )
+    parser.add_argument("--year", type=int, help="Cliopatria: import rows active in this year (negative for BCE)")
     parser.add_argument("--dataset-version", required=True)
     parser.add_argument("--retrieved-at", required=True, help="ISO 8601 timestamp with timezone")
     parser.add_argument("--actor", required=True)
     parser.add_argument("--artifact-dir", required=True, type=Path)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
+    if args.source == "episodes":
+        if args.year is not None:
+            parser.error("--year applies only to Cliopatria")
+        adapter = EpisodeAdapter()
+    elif args.source == "cliopatria":
+        if args.year is None:
+            parser.error("--year is required for --source cliopatria")
+        adapter = CliopatriaAdapter(args.year)
+    else:
+        if args.year is not None:
+            parser.error("--year applies only to --source cliopatria")
+        adapter = PleiadesAdapter()
     try:
-        bundle = prepare_import(PleiadesAdapter(), args.snapshot, args.place_ids,
-                                args.dataset_version, args.retrieved_at)
+        bundle = prepare_import(adapter, args.snapshot, args.ids, args.dataset_version, args.retrieved_at)
         result = import_bundle(bundle, args.artifact_dir, args.actor, dry_run=args.dry_run)
     except (ValueError, OSError) as error:
         parser.exit(1, f"Import failed: {error}\n")

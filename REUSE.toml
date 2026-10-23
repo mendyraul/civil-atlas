@@ -1,0 +1,34 @@
+# Machine-readable license map for this repository (https://reuse.software).
+# When several annotations match a file, the last matching one wins.
+# Check with: reuse lint
+version = 1
+
+# Default: all code and configuration.
+[[annotations]]
+path = "**"
+SPDX-FileCopyrightText = "2026 Raul Mendy and Civil Atlas contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Documentation.
+[[annotations]]
+path = ["docs/**", "README.md", "CONTRIBUTING.md", "DATA_LICENSE.md", "ATTRIBUTION.md"]
+SPDX-FileCopyrightText = "2026 Raul Mendy and Civil Atlas contributors"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# The Civil Atlas historical database: import manifests, crosswalks, and the
+# frontend's demo snapshot of the same data.
+[[annotations]]
+path = ["backend/data/**", "frontend/data/demoWorld117.ts"]
+SPDX-FileCopyrightText = "2026 Raul Mendy and Civil Atlas contributors"
+SPDX-License-Identifier = "ODbL-1.0"
+
+# Upstream test fixtures keep their original licenses.
+[[annotations]]
+path = "backend/tests/fixtures/pleiades/**"
+SPDX-FileCopyrightText = "Pleiades contributors (https://pleiades.stoa.org)"
+SPDX-License-Identifier = "CC-BY-3.0"
+
+[[annotations]]
+path = "backend/tests/fixtures/cliopatria/**"
+SPDX-FileCopyrightText = "Seshat Global History Databank, Cliopatria contributors"
+SPDX-License-Identifier = "CC-BY-4.0"

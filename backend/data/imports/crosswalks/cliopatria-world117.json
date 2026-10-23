@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "description": "Maps Cliopatria polities (by Wikidata ID) to world117 civilizations and their existing boundary variant groups.",
+  "source": "https://github.com/Seshat-Global-History-Databank/cliopatria",
+  "polities": [
+    {"wikidata": "Q12544", "cliopatria_name": "Roman Empire", "civilization_id": "roman-empire", "variant_group": "roman-117-frontier-readings"},
+    {"wikidata": "Q1068371", "cliopatria_name": "Han Dynasty", "civilization_id": "han-dynasty", "variant_group": "han-117-frontier-readings"},
+    {"wikidata": "Q1986139", "cliopatria_name": "Parthian Empire", "civilization_id": "parthian-empire", "variant_group": "parthian-empire-default-reading"},
+    {"wikidata": "Q241790", "cliopatria_name": "Kingdom of Kush", "civilization_id": "kingdom-of-kush", "variant_group": "kingdom-of-kush-default-reading"},
+    {"wikidata": "Q139377", "cliopatria_name": "Kingdom of Axum", "civilization_id": "aksumite-kingdom", "variant_group": "aksumite-kingdom-default-reading"},
+    {"wikidata": "Q28567", "cliopatria_name": "Mayan City-States", "civilization_id": "maya-civilization", "variant_group": "maya-civilization-default-reading"},
+    {"wikidata": "Q5257", "cliopatria_name": "Satavahana Dynasty", "civilization_id": "satavahana-dynasty", "variant_group": "satavahana-dynasty-default-reading"}
+  ]
+}

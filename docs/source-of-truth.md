@@ -41,6 +41,10 @@ show where data is strong, provisional, or waiting on review.
 
 ## Future source importers
 
+Every source must clear the [licensing register](licensing-register.md) before
+import. The [historical data sources audit](historical-data-sources-audit.md)
+compares candidate sources for borders, places and routes.
+
 Likely future import candidates include:
 
 - Pleiades

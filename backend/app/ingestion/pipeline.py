@@ -12,6 +12,7 @@ from typing import Any
 from sqlalchemy import text
 
 from app.db.session import session_scope
+from app.ingestion.licenses import check_license
 from app.ingestion.pleiades import SourceAdapter
 from app.schemas import ImportJob, ReviewAssignment, RevisionRecord, SourceArtifact
 from app.services.repository import AtlasRepository
@@ -25,6 +26,7 @@ def _json(value: Any) -> bytes:
 class ImportBundle:
     raw: bytes
     manifest: dict[str, Any]
+    adapter: SourceAdapter
 
     @property
     def manifest_bytes(self) -> bytes:
@@ -41,9 +43,10 @@ class ImportBundle:
 
 
 def prepare_import(
-    adapter: SourceAdapter, snapshot: Path, place_ids: list[str],
+    adapter: SourceAdapter, snapshot: Path, ids: list[str],
     dataset_version: str, retrieved_at: str,
 ) -> ImportBundle:
+    check_license(adapter)
     if not dataset_version.strip():
         raise ValueError("dataset version must not be empty")
     try:
@@ -54,14 +57,15 @@ def prepare_import(
         raise ValueError("retrieved-at must be an ISO 8601 timestamp with timezone") from error
     retrieved_at = timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     raw = snapshot.read_bytes()
-    normalized = adapter.normalize(raw, place_ids, dataset_version, retrieved_at)
+    normalized = adapter.normalize(raw, ids, dataset_version, retrieved_at)
+    selected = normalized.selected_ids if normalized.selected_ids is not None else ids
     return ImportBundle(raw, {
         "schema_version": 1, "namespace": adapter.namespace, "adapter_version": adapter.version,
         "dataset_slug": f"{adapter.namespace}-pilot", "dataset_version": dataset_version,
-        "retrieved_at": retrieved_at, "selected_ids": sorted(place_ids),
+        "retrieved_at": retrieved_at, "selected_ids": sorted(selected),
         "raw_sha256": sha256(raw).hexdigest(), "raw_byte_size": len(raw),
         "datasets": normalized.datasets, "omissions": normalized.omissions,
-    })
+    }, adapter)
 
 
 class LocalArchive:
@@ -153,8 +157,7 @@ def import_bundle(bundle: ImportBundle, artifact_dir: Path, actor: str, *, dry_r
         # If a later source loses its dates/coordinates, retire earlier renderable data.
         # Keep its last value for audit, but block approval until an eligible reimport.
         for omission in manifest["omissions"]:
-            pid = omission["id"]
-            for kind, identifier in (("places", f"pleiades-{pid}"), ("evidence", f"pleiades-evidence-{pid}")):
+            for kind, identifier in bundle.adapter.entity_ids_for(omission["id"]):
                 previous = repository.get(kind, identifier, published_only=False)
                 if previous:
                     datasets[kind].append({**previous, "review_status": "needs_review",
@@ -166,6 +169,13 @@ def import_bundle(bundle: ImportBundle, artifact_dir: Path, actor: str, *, dry_r
                 payload = {**record, "import_job_id": bundle.job_id, "manifest_sha256": bundle.digest}
                 result = repository.upsert(kind, identifier, payload, audit_actor, published=False)
                 results[result] += 1
+                if kind == "layers":
+                    # The public layer query reads this PostGIS projection, gated by publication.
+                    civilization_id = record["civilization_id"]
+                    if not repository.get("civilizations", civilization_id, published_only=False):
+                        raise ValueError(f"layer {identifier} references unknown civilization "
+                                         f"{civilization_id}; import the world117 seed first")
+                    repository.upsert_spatial_projection(kind, record)
                 assignment = ReviewAssignment(
                     id=f"review-{kind}-{identifier}", entity_type=kind, entity_id=identifier,
                     current_review_status="needs_review", target_review_status="reviewed",
@@ -184,8 +194,8 @@ def import_bundle(bundle: ImportBundle, artifact_dir: Path, actor: str, *, dry_r
                 ).model_dump(mode="json")
                 repository.upsert("revisions", revision["id"], revision, audit_actor)
         job = ImportJob(
-            id=bundle.job_id, dataset_slug=manifest["dataset_slug"], dataset_label="Pleiades local pilot",
-            status="completed", source_type="gazetteer", bucket="normalized-sources",
+            id=bundle.job_id, dataset_slug=manifest["dataset_slug"], dataset_label=bundle.adapter.label,
+            status="completed", source_type=bundle.adapter.source_type, bucket="normalized-sources",
             object_prefix="sha256/", initiated_by=actor, manifest_artifact_id=manifest_id,
             started_at=now, completed_at=datetime.now(timezone.utc).isoformat(),
             records_discovered=len(manifest["selected_ids"]), records_imported=len(manifest["datasets"]["source_records"]),
