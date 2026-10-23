@@ -5,5 +5,11 @@
   "env": {
     "NEXT_PUBLIC_MAP_STYLE_URL": "/map-styles/minimal.json",
     "NEXT_PUBLIC_DEMO_MODE": "true"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_MAP_STYLE_URL": "/map-styles/minimal.json",
+      "NEXT_PUBLIC_DEMO_MODE": "true"
+    }
   }
 }
