@@ -34,6 +34,14 @@ describe('AtlasClient', () => {
     expect(props.cameraCommand).toEqual({ center: [100, 35], zoom: 3, bearing: 25, pitch: 30 });
     expect(window.location.search).toContain('hiddenBoundaries=roman-campaign');
   });
+  it('toggles the modern reference independently and preserves it in the URL', async () => {
+    render(<AtlasClient />);
+    await userEvent.click(screen.getByRole('button', { name: /Layers & research/ }));
+    expect(mapProps.mock.lastCall![0].showModernBorders).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: /^Present-day borders/ }));
+    expect(mapProps.mock.lastCall![0].showModernBorders).toBe(false);
+    expect(window.location.search).toContain('modernBorders=false');
+  });
   it('applies chapter camera commands and removes chapter URL state when leaving guided mode', async () => {
     render(<AtlasClient />); const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Guided lesson' }));

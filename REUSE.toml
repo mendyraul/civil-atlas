@@ -18,7 +18,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # The Civil Atlas historical database: import manifests, crosswalks, and the
 # frontend's demo snapshot of the same data.
 [[annotations]]
-path = ["backend/data/**", "frontend/data/demoWorld117.ts", "frontend/data/episodes.ts"]
+path = ["backend/data/**", "frontend/data/demoWorld117.ts", "frontend/data/cliopatria117.json", "frontend/data/history/*.json", "frontend/data/episodes.ts"]
 SPDX-FileCopyrightText = "2026 Raul Mendy and Civil Atlas contributors"
 SPDX-License-Identifier = "ODbL-1.0"
 

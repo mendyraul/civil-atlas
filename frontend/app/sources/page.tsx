@@ -2,8 +2,17 @@ import Link from 'next/link';
 import { SiteShell } from '../../components/atlas/SiteShell';
 import { evidenceTone, fetchSources, reviewTone } from '../../lib/atlas';
 
-export default async function SourcesPage() {
+export default async function SourcesPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string }> }) {
   const sources = await fetchSources();
+  const params = await searchParams;
+  const query = (params.q || '').trim();
+  const matches = sources.filter((source) => `${source.title} ${source.featureLabel}`.toLowerCase().includes(query.toLowerCase()));
+  const pageSize = 24;
+  const lastPage = Math.max(1, Math.ceil(matches.length / pageSize));
+  const requested = Number(params.page || 1);
+  const page = Number.isInteger(requested) ? Math.max(1, Math.min(requested, lastPage)) : 1;
+  const visible = matches.slice((page - 1) * pageSize, page * pageSize);
+  const pageHref = (number: number) => `/sources?${new URLSearchParams({ page: String(number), q: query })}`;
 
   return (
     <SiteShell
@@ -24,9 +33,11 @@ export default async function SourcesPage() {
         <p className="mt-5 text-sm text-slate-300">Retain upstream credits when reusing the database or creating maps and other produced works. Consult the attribution register for release details and modification notices.</p>
       </section>
       <h2 className="mb-4 text-xl font-semibold">Published evidence records</h2>
+      <form className="mb-4 flex flex-wrap items-end gap-3" action="/sources"><label className="text-sm" htmlFor="source-query">Find a source<input id="source-query" className="research-input block" name="q" defaultValue={query} placeholder="Polity or source title" /></label><button className="atlas-tool" type="submit">Search sources</button></form>
+      <p className="mb-4 text-sm text-slate-300">{matches.length} records · page {page} of {lastPage}</p>
       {sources.length === 0 && <p className="mb-4 text-slate-300">No evidence records are currently available from the configured data channel.</p>}
       <section className="grid gap-4 lg:grid-cols-2">
-        {sources.map((source) => (
+        {visible.map((source) => (
           <article className="atlas-panel scroll-mt-4 rounded-[24px] p-5" id={source.id} key={source.id}>
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -49,6 +60,7 @@ export default async function SourcesPage() {
           </article>
         ))}
       </section>
+      <nav className="mt-5 flex gap-4 text-sm text-cyan-200 underline" aria-label="Source result pages">{page > 1 && <Link href={pageHref(page - 1)}>Previous sources</Link>}{page < lastPage && <Link href={pageHref(page + 1)}>Next sources</Link>}</nav>
     </SiteShell>
   );
 }

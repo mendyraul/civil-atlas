@@ -24,7 +24,7 @@ export function ActiveCivilizationsPanel({
           </h2>
         </div>
         <div className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-xs uppercase tracking-[0.2em] text-slate-300">
-          Seed model
+          Source coverage
         </div>
       </div>
 

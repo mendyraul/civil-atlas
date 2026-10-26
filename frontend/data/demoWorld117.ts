@@ -1,4 +1,5 @@
 // DEMO SNAPSHOT ONLY: loaded exclusively when NEXT_PUBLIC_DEMO_MODE=true.
+import cliopatriaSnapshot from './cliopatria117.json';
 import { civilizationColor } from '../lib/palette';
 import type {
   AtlasNode,
@@ -9,7 +10,6 @@ import type {
   Era,
   HistoricalEvent,
   HistoricalRelationship,
-  PolygonGeometry,
   ReviewStatus,
   SourceRecord,
   WorldPayload,
@@ -31,11 +31,6 @@ const source = (
   reviewStatus,
   notes,
   link,
-});
-
-const polygonToGeoJson = (polygon: [number, number][]): PolygonGeometry => ({
-  type: 'Polygon' as const,
-  coordinates: [polygon.map(([longitude, latitude]) => [longitude, latitude])],
 });
 
 const civilizations: Civilization[] = [
@@ -1049,196 +1044,21 @@ const routes: AtlasRoute[] = [
   },
 ];
 
-const layers: CivilizationLayer[] = [
-  {
-    id: 'layer-roman-empire-core',
-    civilizationId: 'roman-empire',
-    name: 'Roman direct provincial core',
-    layerType: 'direct_control',
-    variantGroup: 'roman-117-frontier-readings',
-    interpretationLabel: 'Conservative provincial core',
-    interpretationKind: 'boundary_variant',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -27,
-    validToYear: 395,
-    geometryJson: polygonToGeoJson([[-8, 36], [-5, 43], [3, 49], [13, 52], [24, 52], [31, 45], [36, 40], [37, 35], [31, 31], [24, 32], [18, 39], [7, 44], [-1, 43], [-8, 36]]),
-    geometryPlaceholder:
-      'Conservative reading emphasizing long-held Roman provinces without maximal campaign reach.',
-    confidence: 'medium_high',
-    reviewStatus: 'seeded',
-    sourceNote:
-      "Conservative reading emphasizing long-held provincial control without treating Trajan's Mesopotamian campaign as settled empire.",
-    sourceRecordIds: ['roman-cambridge'],
-    claimIds: ['claim-roman-boundary-core'],
-  },
-  {
-    id: 'layer-roman-empire-trajanic-east',
-    civilizationId: 'roman-empire',
-    name: 'Roman eastern campaign reach',
-    layerType: 'contested_zone',
-    variantGroup: 'roman-117-frontier-readings',
-    interpretationLabel: 'Maximal Trajanic campaign reading',
-    interpretationKind: 'boundary_variant',
-    isPrimary: false,
-    displayOrder: 1,
-    validFromYear: 114,
-    validToYear: 117,
-    geometryJson: polygonToGeoJson([[-8, 36], [-5, 43], [3, 50], [14, 54], [28, 56], [39, 49], [49, 36], [45, 31], [38, 30], [31, 30], [27, 32], [23, 38], [14, 46], [2, 44], [-8, 36]]),
-    geometryPlaceholder:
-      'Maximal campaign-era reading that treats Roman presence east of the Euphrates as temporary and contested.',
-    confidence: 'medium',
-    reviewStatus: 'needs_review',
-    sourceNote:
-      'Maximal 114-117 CE campaign reading that treats Roman reach into Mesopotamia as a temporary frontier interpretation, not a settled consensus boundary.',
-    sourceRecordIds: ['roman-cambridge', 'event-trajan-east'],
-    claimIds: ['claim-roman-boundary-maximal'],
-  },
-  {
-    id: 'layer-han-dynasty-core',
-    civilizationId: 'han-dynasty',
-    name: 'Later Han administrative core',
-    layerType: 'administrative_layer',
-    variantGroup: 'han-117-frontier-readings',
-    interpretationLabel: 'Administrative core provinces',
-    interpretationKind: 'administrative_layer',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -202,
-    validToYear: 220,
-    geometryJson: polygonToGeoJson([[98, 23], [100, 31], [106, 37], [114, 39], [120, 36], [119, 28], [112, 23], [104, 21], [98, 23]]),
-    geometryPlaceholder:
-      'Administrative-core reading for durable Han provincial control.',
-    confidence: 'medium_high',
-    reviewStatus: 'seeded',
-    sourceNote:
-      'Conservative administrative reading centered on the durable agrarian and metropolitan core of the Later Han state.',
-    sourceRecordIds: ['han-cambridge'],
-    claimIds: ['claim-han-boundary-core'],
-  },
-  {
-    id: 'layer-han-dynasty-western-regions',
-    civilizationId: 'han-dynasty',
-    name: 'Han western-regions influence corridor',
-    layerType: 'influence_zone',
-    variantGroup: 'han-117-frontier-readings',
-    interpretationLabel: 'Western Regions influence corridor',
-    interpretationKind: 'influence_zone',
-    isPrimary: false,
-    displayOrder: 1,
-    validFromYear: 91,
-    validToYear: 123,
-    geometryJson: polygonToGeoJson([[84, 36], [90, 42], [99, 43], [107, 39], [104, 34], [95, 31], [87, 31], [84, 36]]),
-    geometryPlaceholder:
-      'Corridor-influence reading rather than direct administrative rule.',
-    confidence: 'medium',
-    reviewStatus: 'needs_review',
-    sourceNote:
-      'Influence-zone reading for corridor oversight and military activity in the Western Regions, deliberately separated from direct administrative control.',
-    sourceRecordIds: ['han-cambridge', 'event-han-western-regions'],
-    claimIds: ['claim-han-western-regions-influence'],
-  },
-  {
-    id: 'layer-parthian-empire',
-    civilizationId: 'parthian-empire',
-    name: 'Arsacid imperial extent',
-    layerType: 'source_reported_extent',
-    variantGroup: 'parthian-empire-default-reading',
-    interpretationLabel: 'Seed operational reading',
-    interpretationKind: 'boundary_variant',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -247,
-    validToYear: 224,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'parthian-empire')!.polygon!),
-    geometryPlaceholder: 'Seed operational reading for Arsacid reach.',
-    confidence: 'medium',
-    reviewStatus: 'seeded',
-    sourceNote: 'Seeded from broad Arsacid geography references.',
-    sourceRecordIds: ['parthia-curtis'],
-    claimIds: ['claim-parthian-existence'],
-  },
-  {
-    id: 'layer-kingdom-of-kush',
-    civilizationId: 'kingdom-of-kush',
-    name: 'Meroitic Nile core',
-    layerType: 'direct_control',
-    variantGroup: 'kingdom-of-kush-default-reading',
-    interpretationLabel: 'Seed operational reading',
-    interpretationKind: 'boundary_variant',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -1070,
-    validToYear: 350,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'kingdom-of-kush')!.polygon!),
-    geometryPlaceholder: 'Seed operational reading for Kushite Nile control.',
-    confidence: 'medium',
-    reviewStatus: 'seeded',
-    sourceNote: 'Seeded from broad Nile civilization references and Meroitic geography summaries.',
-    sourceRecordIds: ['kush-source'],
-    claimIds: ['claim-kush-existence'],
-  },
-  {
-    id: 'layer-aksumite-kingdom',
-    civilizationId: 'aksumite-kingdom',
-    name: 'Aksumite inland-port sphere',
-    layerType: 'trade_network',
-    variantGroup: 'aksumite-kingdom-default-reading',
-    interpretationLabel: 'Seed operational reading',
-    interpretationKind: 'thematic_overlay',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -100,
-    validToYear: 940,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'aksumite-kingdom')!.polygon!),
-    geometryPlaceholder: 'Seed operational reading for Aksumite regional trade sphere.',
-    confidence: 'medium',
-    reviewStatus: 'seeded',
-    sourceNote: 'Seeded from broad Aksumite trade and kingdom references.',
-    sourceRecordIds: ['aksum-source'],
-    claimIds: ['claim-aksum-route'],
-  },
-  {
-    id: 'layer-maya-civilization',
-    civilizationId: 'maya-civilization',
-    name: 'Maya cultural zone',
-    layerType: 'cultural_extent',
-    variantGroup: 'maya-civilization-default-reading',
-    interpretationLabel: 'Seed operational reading',
-    interpretationKind: 'thematic_overlay',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -600,
-    validToYear: 1697,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'maya-civilization')!.polygon!),
-    geometryPlaceholder: 'Seed operational reading for Maya cultural extent.',
-    confidence: 'medium',
-    reviewStatus: 'needs_review',
-    sourceNote: 'Seeded as a civilization-region layer to test non-imperial atlas behavior.',
-    sourceRecordIds: ['maya-source', 'tikal-source'],
-    claimIds: ['claim-maya-extent'],
-  },
-  {
-    id: 'layer-satavahana-dynasty',
-    civilizationId: 'satavahana-dynasty',
-    name: 'Satavahana Deccan footprint',
-    layerType: 'source_reported_extent',
-    variantGroup: 'satavahana-dynasty-default-reading',
-    interpretationLabel: 'Seed operational reading',
-    interpretationKind: 'boundary_variant',
-    isPrimary: true,
-    displayOrder: 0,
-    validFromYear: -100,
-    validToYear: 250,
-    geometryJson: polygonToGeoJson(civilizations.find((item) => item.id === 'satavahana-dynasty')!.polygon!),
-    geometryPlaceholder: 'Seed operational reading for Satavahana footprint.',
-    confidence: 'medium',
-    reviewStatus: 'seeded',
-    sourceNote: 'Seeded from broad Deccan dynastic geography references.',
-    sourceRecordIds: ['satavahana-source'],
-    claimIds: ['claim-satavahana-date-range'],
-  },
-];
+// The deployed preview ships the same reviewed geometry as the local API.
+// No schematic territory is substituted outside these source intervals.
+const layers = cliopatriaSnapshot.layers as CivilizationLayer[];
+const boundarySources = cliopatriaSnapshot.sources as SourceRecord[];
+const previewCivilizations = civilizations.map((civilization): Civilization => {
+  const boundary = layers.find((layer) => layer.civilizationId === civilization.id);
+  if (!boundary) return civilization;
+  return {
+    ...civilization,
+    panelDescription: 'Territory is shown from Cliopatria (Seshat) v0.2.1 where source coverage is available. Inspect the boundary layer for its date interval and low-confidence interpretation.',
+    extentNote: 'Original source-reported geometry; approximate historical frontiers, not exact political borders.',
+    statusBadges: ['Approximate', 'Source-reported'],
+    evidence: [...boundarySources.filter((source) => boundary.sourceRecordIds.includes(source.id)), ...civilization.evidence],
+  };
+});
 
 const relationships: HistoricalRelationship[] = [
   {
@@ -1550,7 +1370,7 @@ const events: HistoricalEvent[] = [
 
 export const world117: WorldPayload = {
   year: 117,
-  civilizations,
+  civilizations: previewCivilizations,
   nodes,
   routes,
   layers,
@@ -1560,6 +1380,7 @@ export const world117: WorldPayload = {
 };
 
 export const sourceCatalog: SourceRecord[] = [
+  ...boundarySources,
   ...civilizations.flatMap((feature) =>
     feature.evidence.map((record) => ({
       ...record,

@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "name": "Civil Atlas minimal fallback",
+  "name": "Civil Atlas historical atlas",
   "glyphs": "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   "sources": {
     "land-background": {
@@ -10,51 +10,208 @@
         "properties": {},
         "geometry": {
           "type": "Polygon",
-          "coordinates": [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]]
+          "coordinates": [
+            [
+              [
+                -180,
+                -85
+              ],
+              [
+                180,
+                -85
+              ],
+              [
+                180,
+                85
+              ],
+              [
+                -180,
+                85
+              ],
+              [
+                -180,
+                -85
+              ]
+            ]
+          ]
         }
       }
     },
     "openmaptiles": {
       "type": "vector",
       "url": "https://tiles.openfreemap.org/planet",
-      "attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap contributors</a>"
+      "attribution": "\u00a9 <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap contributors</a>"
     }
   },
   "layers": [
     {
       "id": "background",
       "type": "background",
-      "paint": { "background-color": "#06101a" }
+      "paint": {
+        "background-color": "#06101a"
+      }
     },
     {
       "id": "land",
       "type": "fill",
       "source": "land-background",
-      "paint": { "fill-color": "#152535" }
+      "paint": {
+        "fill-color": "#d8d8ce"
+      }
     },
     {
       "id": "water",
       "type": "fill",
       "source": "openmaptiles",
       "source-layer": "water",
-      "paint": { "fill-color": "#071522" }
+      "paint": {
+        "fill-color": "#a9c3ce"
+      }
     },
     {
-      "id": "label",
+      "id": "modern-country-boundaries",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "boundary",
+      "filter": [
+        "all",
+        [
+          "==",
+          [
+            "get",
+            "admin_level"
+          ],
+          2
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "maritime"
+          ],
+          1
+        ]
+      ],
+      "layout": {
+        "line-join": "round",
+        "line-cap": "round"
+      },
+      "paint": {
+        "line-color": "#26383c",
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          1,
+          0.45,
+          4,
+          0.7,
+          8,
+          1.0
+        ],
+        "line-opacity": 0.28,
+        "line-dasharray": [
+          "case",
+          [
+            "==",
+            [
+              "get",
+              "disputed"
+            ],
+            1
+          ],
+          [
+            "literal",
+            [
+              2,
+              2
+            ]
+          ],
+          [
+            "literal",
+            [
+              1,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "modern-locality-label",
       "type": "symbol",
       "source": "openmaptiles",
       "source-layer": "place",
-      "minzoom": 2,
+      "minzoom": 6,
       "layout": {
-        "text-field": ["coalesce", ["get", "name:en"], ["get", "name"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 2, 10, 7, 14]
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name:en"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          10,
+          12,
+          13
+        ],
+        "text-padding": 12,
+        "text-max-width": 8
       },
       "paint": {
-        "text-color": "#c8d4df",
-        "text-halo-color": "#101e2b",
-        "text-halo-width": 1.2
-      }
+        "text-color": "#475b61",
+        "text-halo-color": "#f3f2e8",
+        "text-halo-width": 1.2,
+        "text-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          0,
+          7,
+          0.65,
+          10,
+          0.85
+        ]
+      },
+      "filter": [
+        "in",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "literal",
+          [
+            "city",
+            "town"
+          ]
+        ]
+      ]
     }
   ]
 }

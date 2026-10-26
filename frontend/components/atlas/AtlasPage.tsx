@@ -61,6 +61,8 @@ type AtlasPageProps = {
   onLayerTypeToggle: (value: string) => void;
   onResetFilters: () => void;
   onReviewStatusToggle: (status: ReviewStatus) => void;
+  showModernBorders: boolean;
+  onToggleModernBorders: () => void;
   onToggleLayer: (layer: keyof LayerVisibility) => void;
   onTogglePlay: () => void;
   onPlaybackSpeedChange: (speed: number) => void;
@@ -102,7 +104,7 @@ export function AtlasPage(props: AtlasPageProps) {
         <p className="atlas-view-subtitle">Civilizations, connections, and the evidence between them.</p>
         <div className="atlas-view-status" role="status">
           <span className={`status-dot status-dot--${backendStatus}`} aria-hidden />
-          <span>{{ live: 'Published atlas', demo: 'Demo snapshot · existing data', loading: 'Loading selected year…', stale: 'Data unavailable', unavailable: 'Database unavailable' }[backendStatus]}</span>
+          <span>{{ live: 'Published atlas', demo: 'Source snapshot · curated coverage', loading: 'Loading selected year…', stale: 'Data unavailable', unavailable: 'Database unavailable' }[backendStatus]}</span>
           <span> / {world.civilizations.length} polities</span>
         </div>
       </div>
@@ -118,6 +120,7 @@ export function AtlasPage(props: AtlasPageProps) {
         <div className="atlas-drawer-heading"><h2>{panel === 'layers' ? 'Layers & research' : panel === 'details' ? 'Selection & evidence' : panel === 'notes' ? 'Map notes' : panel === 'research' ? 'Area query' : panel === 'episodes' ? 'Episodes' : 'Layer status'}</h2><button className="atlas-tool" onClick={() => onPanelChange(null)} aria-label="Close research panel" type="button">×</button></div>
         {panel === 'layers' ? <div className="atlas-drawer-content">
           <ActiveCivilizationsPanel civilizations={world.civilizations} selectedId={selectedId} selectedYear={year} onSelect={props.onCivilizationSelect} />
+          <button className="atlas-tool text-left" type="button" aria-pressed={props.showModernBorders} onClick={props.onToggleModernBorders}>Present-day borders · {props.showModernBorders ? 'visible' : 'hidden'}<span className="mt-1 block text-xs text-slate-300">Faint modern reference lines; separate from the historical boundaries.</span></button>
           <LayerControls counts={{ extents: world.civilizations.length, nodes: world.nodes.length, routes: world.routes.length, sources: sourceCount }} onToggle={props.onToggleLayer} values={layers} />
           <AtlasFilters confidenceCounts={props.confidenceCounts} layerTypeOptions={props.layerTypeOptions} onConfidenceToggle={props.onConfidenceToggle} onLayerTypeToggle={props.onLayerTypeToggle} onReset={props.onResetFilters} onReviewStatusToggle={props.onReviewStatusToggle} reviewCounts={props.reviewCounts} selectedConfidence={props.selectedConfidence} selectedLayerTypes={props.selectedLayerTypes} selectedReviewStatus={props.selectedReviewStatus} />
           <section className="atlas-panel rounded-2xl p-4" aria-label="Boundary interpretations"><p className="atlas-kicker">Boundary interpretations</p><p className="mt-2 text-sm text-slate-300">Compare source interpretations. Approximate extents remain approximate.</p>
@@ -131,7 +134,7 @@ export function AtlasPage(props: AtlasPageProps) {
         <div hidden={panel !== 'episodes'}>{props.episodesContent}</div>
         <div hidden={panel !== 'status'}>{props.statusContent}</div>
       </div>
-      <div className="atlas-stage-caption"><span>EXPLORE THE PAST</span><span>Modern basemap · approximate historical layers</span></div>
+      <div className="atlas-stage-caption"><span>EXPLORE THE PAST</span><span>{props.showModernBorders ? 'Faint modern borders · approximate historical layers' : 'Modern basemap · approximate historical layers'}</span></div>
     </div>
     <div className="atlas-time-dock">
       <div className="atlas-experience-bar"><span className="atlas-kicker">TIME EXPLORER</span><div role="group" aria-label="Atlas mode">{(['explore', 'guided'] as const).map((mode) => <button type="button" key={mode} aria-pressed={props.mode === mode} onClick={() => props.onModeChange(mode)}>{mode === 'explore' ? 'Free exploration' : 'Guided lesson'}</button>)}</div></div>
