@@ -22,6 +22,12 @@ These fixtures test mechanics, never historical accuracy or a second real source
 Run browser suites sequentially with the frontend development server stopped;
 the non-demo acceptance suite owns port 3102 and serves only a test API contract.
 It never sends the editorial key to a browser or publishes production records.
+CI also runs the normal browser suite with one worker. A parallel run exhausted
+the unchanged 30-second scenario budget while notes and linked maps shared the
+runner; serial execution avoids that resource contention without adding retries.
+Linked maps also tag programmatic camera events, so an older follower animation
+cannot become a new user command. A deterministic unit regression and repeated
+browser checks cover interrupted camera movement.
 
 The normal source-page acceptance also checks the AGPL package declaration,
 source link, three license links, ODbL/upstream-credit notice and all current
@@ -78,7 +84,7 @@ public preview. The home-lab guide lists the exact operator inputs still needed.
 ## Isolated verification — October 27, 2026
 
 - Clean `npm ci` and `npm audit --audit-level=high`: zero findings. Typecheck,
-  lint, 37 frontend unit tests and the production build pass.
+  lint, 38 frontend unit tests and the production build pass.
 - The full backend suite passes 80 tests against a disposable PostgreSQL
   16/PostGIS 3.5 database, with optional MCP dependencies installed.
 - Browser acceptance passes 16 normal scenarios, the separate basemap failure

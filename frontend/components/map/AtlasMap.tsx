@@ -21,7 +21,7 @@ type AtlasMapProps = {
   onFinishDraw?: () => void;
   onBoundsChange?: (bounds: [number, number, number, number]) => void;
   cameraCommand?: AtlasCamera;
-  onCameraChange?: (camera: AtlasCamera) => void;
+  onCameraChange?: (camera: AtlasCamera, origin?: 'interaction' | 'command') => void;
   reducedMotion?: boolean;
   cliopatriaVisible?: boolean;
   showModernBorders?: boolean;
@@ -691,7 +691,16 @@ export function AtlasMap({
       });
 
       map.on('zoom', () => handlersRef.current.onZoomChange(map.getZoom()));
-      map.on('moveend', () => { const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]); const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); if (!applyingCameraCommand.current) cameraChangeRef.current?.({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); });
+      map.on('moveend', (event) => {
+        const bounds = map.getBounds();
+        drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]);
+        const center = map.getCenter();
+        handlersRef.current.onCenterChange([center.lng, center.lat]);
+        if (!applyingCameraCommand.current) {
+          const origin = 'civilAtlasCameraCommand' in event && event.civilAtlasCameraCommand === true ? 'command' : 'interaction';
+          cameraChangeRef.current?.({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }, origin);
+        }
+      });
       handlersRef.current.onZoomChange(map.getZoom());
       map.addSource('research-annotations', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({ id: 'research-annotation-fill', type: 'fill', source: 'research-annotations', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#f2d39a', 'fill-opacity': 0.12 } });
@@ -704,7 +713,7 @@ export function AtlasMap({
       layersReady.current = true;
       applyCurrentMapState(map, currentMapStateRef.current);
       setMapStatus('ready');
-      if (commandRef.current) map.jumpTo({ ...commandRef.current });
+      if (commandRef.current) map.jumpTo({ ...commandRef.current }, { civilAtlasCameraCommand: true });
       const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]);
     };
 
@@ -762,7 +771,9 @@ export function AtlasMap({
     } finally {
       applyingCameraCommand.current = false;
     }
-    map.flyTo({ ...cameraCommand, duration: reducedMotion ? 0 : 1100 });
+    // Tag the entire animation, not only its synchronous stop event: a late
+    // completion is an observation of a command, never a new interaction.
+    map.flyTo({ ...cameraCommand, duration: reducedMotion ? 0 : 1100 }, { civilAtlasCameraCommand: true });
   }, [cameraCommand, mapStatus, reducedMotion]);
 
   useEffect(() => {
