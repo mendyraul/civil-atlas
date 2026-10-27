@@ -14,6 +14,11 @@ The source changes are present. Final live acceptance still needs real reviewed
 variants published through the database-backed deployment; keep that operational
 check explicit when reconciling the issue.
 
+Comparison cameras also retain the source pane's latest view and suppress the
+old intermediate event emitted when stopping a follower animation. The browser
+regression issues a second zoom before the follower settles and checks that
+both panes reach the new target while their dates remain independent.
+
 ## Kushan (#57)
 
 World117 version 1.1.0 adds the civilization, a citation-backed existence claim,

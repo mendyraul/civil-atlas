@@ -33,7 +33,11 @@ test('linked maps synchronize actual cameras and preserve independent dates', as
   await expect(left.getByText('Loading basemap, labels, and atlas layers…')).toHaveCount(0);
   await expect(right.getByText('Loading basemap, labels, and atlas layers…')).toHaveCount(0);
   await left.getByRole('button', { name: 'Zoom in', exact: true }).click();
-  await expect.poll(async () => right.getByLabel('Right camera').textContent()).toEqual(await left.getByLabel('Left camera').textContent());
+  await expect(left.getByLabel('Left camera')).toContainText('zoom 2.80');
+  // Issue another command before the follower's longer animation settles.
+  await left.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await expect(left.getByLabel('Left camera')).toContainText('zoom 3.80');
+  await expect(right.getByLabel('Right camera')).toContainText('zoom 3.80');
   await right.getByLabel('Right year', { exact: true }).fill('130');
   await expect(page).toHaveURL(/rightYear=130/);
   await expect(left.getByLabel('Left year', { exact: true })).toHaveValue('117');

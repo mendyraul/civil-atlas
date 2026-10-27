@@ -291,6 +291,7 @@ export function AtlasMap({
   commandRef.current = cameraCommand;
   const cameraChangeRef = useRef(onCameraChange);
   cameraChangeRef.current = onCameraChange;
+  const applyingCameraCommand = useRef(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -690,7 +691,7 @@ export function AtlasMap({
       });
 
       map.on('zoom', () => handlersRef.current.onZoomChange(map.getZoom()));
-      map.on('moveend', () => { const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]); const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); cameraChangeRef.current?.({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); });
+      map.on('moveend', () => { const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]); const center = map.getCenter(); handlersRef.current.onCenterChange([center.lng, center.lat]); if (!applyingCameraCommand.current) cameraChangeRef.current?.({ center: [center.lng, center.lat], zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() }); });
       handlersRef.current.onZoomChange(map.getZoom());
       map.addSource('research-annotations', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       map.addLayer({ id: 'research-annotation-fill', type: 'fill', source: 'research-annotations', filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#f2d39a', 'fill-opacity': 0.12 } });
@@ -753,7 +754,14 @@ export function AtlasMap({
     if (!map || mapStatus !== 'ready' || !cameraCommand) return;
     const current = map.getCenter();
     if (Math.abs(current.lng - cameraCommand.center[0]) < 0.0001 && Math.abs(current.lat - cameraCommand.center[1]) < 0.0001 && Math.abs(map.getZoom() - cameraCommand.zoom) < 0.001 && Math.abs(map.getBearing() - (cameraCommand.bearing ?? 0)) < 0.01 && Math.abs(map.getPitch() - (cameraCommand.pitch ?? 0)) < 0.01) return;
-    map.stop();
+    // Stopping an interrupted follower animation emits moveend at its old,
+    // intermediate position. Do not send that position back to the linked map.
+    applyingCameraCommand.current = true;
+    try {
+      map.stop();
+    } finally {
+      applyingCameraCommand.current = false;
+    }
     map.flyTo({ ...cameraCommand, duration: reducedMotion ? 0 : 1100 });
   }, [cameraCommand, mapStatus, reducedMotion]);
 
