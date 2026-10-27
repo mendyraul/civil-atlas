@@ -97,3 +97,12 @@ public preview. The home-lab guide lists the exact operator inputs still needed.
 
 Exact candidate/main CI links belong in the delivery PR and issue acceptance
 record. Local rehearsal is not evidence that #55's host rollout is complete.
+
+## Separate dependency follow-up
+
+GitHub also reports the moderate pytest temporary-directory advisory
+GHSA-6w46-j5rx-g56g against the backend requirements and the MCP requirements
+include. Both alerts refer to the same test-runner dependency; the patched
+version is 9.0.3. Dependabot PR #72 already proposes that major-version update.
+Keep its compatibility review separate from the narrow frontend fix. A clean
+`npm audit` does not establish that Python dependencies have no advisories.
