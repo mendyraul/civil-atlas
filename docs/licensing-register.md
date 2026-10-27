@@ -53,6 +53,7 @@ The importer enforces this with `backend/app/ingestion/licenses.py`.
 | Itiner-e | Roman road network | CC BY 4.0 (reported, project About page) | attribution | Use the Zenodo static release for reproducible imports. |
 | AWMC geodata | Roman provinces, roads, aqueducts, ancient coastlines/rivers | ODbL 1.0 (verified, README) | share-alike | Credit AWMC. Older AWMC releases were CC BY-NC, so use only the GitHub GeoJSON. |
 | Wikidata | Entity metadata, coordinates, dates, IDs (glue) | CC0 1.0 | approved | No obligation; still record provenance internally. |
+| Met Museum Kushan essay | Editorial capital/context reference | No content reuse grant established | reference-only | Bibliographic metadata and an editorial reference only; no essay text or images imported. Draft dynasty dates and capital scope need review before publication. |
 | Natural Earth | Modern base geometry, self-hosted basemap | Public domain | approved | No obligation. |
 | GeoNames | Modern place names / coordinates (labels) | CC BY 4.0 | attribution | Cite GeoNames. |
 | World Historical Gazetteer | Places, time-scoped names, reconciliation | Per dataset (CC0 / CC BY / CC BY-SA / NC) | review | Ingest only datasets that are individually CC0 or CC BY; cite WHG + contributor. |

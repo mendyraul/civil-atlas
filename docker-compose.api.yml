@@ -1,0 +1,21 @@
+# Split-host API: PostgreSQL and object storage are provisioned separately.
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ${CIVIL_ATLAS_API_ENV_FILE:?Set the path to the private API environment file}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - import-artifacts:/var/lib/civil-atlas/import-artifacts
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  import-artifacts:
