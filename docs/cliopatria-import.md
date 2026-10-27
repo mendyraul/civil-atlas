@@ -24,6 +24,15 @@ never fetches or publishes data. Everything lands as `needs_review`.
   there are 29 of them, such as the Kushan Empire, Xianbei, Funan and Goguryeo.
   Adding them means adding civilizations first.
 
+World117 seed version 1.1.0 adds Kushan (Q25979), its source-reading group,
+cited existence claim and the preserved 117–126 CE Cliopatria border. These
+records remain `needs_review` and unpublished even with the seed's `--publish`
+flag. The 30–375 broad dynasty bounds and Purushapura capital label retain the
+demo convention pending chronology/capital-role review. The museum reference
+is citation-only; no copyrighted text or image is imported. See
+`tests/fixtures/cliopatria/kushan-117.geojson` for the geometry-preservation check.
+The older count of 29 unmapped polities predates this addition.
+
 ## Run
 
 Download a release (the `cliopatria.geojson.zip` file in the repository, or a

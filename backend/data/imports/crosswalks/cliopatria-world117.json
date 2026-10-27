@@ -9,6 +9,7 @@
     {"wikidata": "Q241790", "cliopatria_name": "Kingdom of Kush", "civilization_id": "kingdom-of-kush", "variant_group": "kingdom-of-kush-default-reading"},
     {"wikidata": "Q139377", "cliopatria_name": "Kingdom of Axum", "civilization_id": "aksumite-kingdom", "variant_group": "aksumite-kingdom-default-reading"},
     {"wikidata": "Q28567", "cliopatria_name": "Mayan City-States", "civilization_id": "maya-civilization", "variant_group": "maya-civilization-default-reading"},
-    {"wikidata": "Q5257", "cliopatria_name": "Satavahana Dynasty", "civilization_id": "satavahana-dynasty", "variant_group": "satavahana-dynasty-default-reading"}
+    {"wikidata": "Q5257", "cliopatria_name": "Satavahana Dynasty", "civilization_id": "satavahana-dynasty", "variant_group": "satavahana-dynasty-default-reading"},
+    {"wikidata": "Q25979", "cliopatria_name": "Kushan Empire", "civilization_id": "kushan-empire", "variant_group": "kushan-empire-source-readings"}
   ]
 }

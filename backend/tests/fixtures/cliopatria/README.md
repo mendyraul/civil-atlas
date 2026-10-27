@@ -14,3 +14,11 @@ edited. Geometry, years and properties are exactly as published:
 Source: Cliopatria, Seshat Global History Databank. Bennett, J. S. et al.,
 *Scientific Data* 12, 247 (2025), https://doi.org/10.1038/s41597-025-04516-9.
 Reused under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+`kushan-117.geojson` is a separate minimal adapter fixture reconstructed from
+the existing lossless `frontend/data/history/century-100.json` geometry and its
+catalog's Q25979 row for 117–126 CE. Coordinates are unchanged. Unlike the
+five-row sample, it does not preserve every original property or the original
+release bytes. Its provenance records the upstream archive hash and the local
+source path. It has the same Cliopatria CC BY 4.0 attribution. Importing it
+still produces unpublished `needs_review` records.

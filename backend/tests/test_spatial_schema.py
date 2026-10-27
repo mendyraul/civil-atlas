@@ -119,7 +119,7 @@ def test_versioned_import_populates_typed_spatial_projection():
                 )
             ).all()
             assert {row[0]: row[1] for row in counts} == {
-                "layers": 9,
+                "layers": 10,
                 "places": 21,
                 "edges": 7,
             }

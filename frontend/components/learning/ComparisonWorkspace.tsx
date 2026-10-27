@@ -44,6 +44,7 @@ export function ComparisonWorkspace() {
   function cameraChanged(side: 'left' | 'right', camera: AtlasCamera) {
     if (JSON.stringify(settled.current) === JSON.stringify(camera)) return;
     settled.current = camera; setView((current) => ({ ...current, camera }));
+    (side === 'left' ? setLeftCamera : setRightCamera)(camera);
     if (view.linked) (side === 'left' ? setRightCamera : setLeftCamera)(camera);
   }
   return <main><header className="atlas-panel rounded-2xl p-5"><p className="atlas-kicker">Compare historical readings</p><h1 className="mt-2 text-3xl">Two views. Their evidence.</h1><p className="mt-3 text-sm text-slate-300">Compare dates or source interpretations. Missing coverage stays visible; the basemap provides modern geographic context.</p><div className="mt-4 flex flex-wrap gap-3"><button className="atlas-tool" type="button" aria-pressed={tab === 'maps'} onClick={() => setTab('maps')}>Linked maps</button><button className="atlas-tool" type="button" aria-pressed={tab === 'table'} onClick={() => setTab('table')}>Polity table</button><label className="text-sm"><input className="mr-2" type="checkbox" checked={view.linked} onChange={(e) => { const linked = e.target.checked; setView((v) => ({ ...v, linked })); if (linked) { setLeftCamera(settled.current); setRightCamera(settled.current); } }} />Synchronize cameras</label><label className="text-sm"><input className="mr-2" type="checkbox" checked={showModernBorders} onChange={(event) => setShowModernBorders(event.target.checked)} />Present-day borders</label></div></header>
