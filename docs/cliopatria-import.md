@@ -8,6 +8,12 @@ never fetches or publishes data. Everything lands as `needs_review`.
 
 ## How rows map to Civil Atlas
 
+- Crosswalks with `cliopatria_name` require an exact source-name/QID pair.
+  A reused QID attached to an unrelated active polity is rejected before
+  normalization or import. Explicit legacy crosswalks containing only the
+  civilization ID and variant group still work. Adapter version 2 records this
+  stricter identity policy in import provenance.
+
 - Cliopatria stores one row per polity per year range (`FromYear`/`ToYear`,
   negative for BCE). `--year` selects the rows active in that year.
 - Rows are matched to civilizations by Wikidata ID through

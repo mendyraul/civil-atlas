@@ -62,12 +62,17 @@ def load_crosswalk(path: Path = DEFAULT_CROSSWALK) -> dict[str, dict[str, str]]:
         if not re.fullmatch(r"Q[0-9]+", qid) or qid in crosswalk:
             raise ValueError(f"crosswalk has an invalid or duplicate Wikidata ID: {qid}")
         crosswalk[qid] = {"civilization_id": entry["civilization_id"], "variant_group": entry["variant_group"]}
+        if "cliopatria_name" in entry:
+            name = entry["cliopatria_name"]
+            if not isinstance(name, str) or not name.strip():
+                raise ValueError(f"{qid}: cliopatria_name must be a nonempty source name")
+            crosswalk[qid]["cliopatria_name"] = name
     return crosswalk
 
 
 class CliopatriaAdapter:
     namespace = "cliopatria"
-    version = "1"
+    version = "2"
     label = "Cliopatria (Seshat) borders"
     license = LICENSE
     source_type = "historical_gis"
@@ -106,6 +111,12 @@ class CliopatriaAdapter:
                 continue
             qid = props.get("Wikidata")
             if qid in wanted:
+                expected_name = self.crosswalk[qid].get("cliopatria_name")
+                if expected_name and props.get("Name") != expected_name:
+                    raise ValueError(
+                        f"{qid}: source identity mismatch; expected {expected_name!r}, "
+                        f"found {props.get('Name')!r}"
+                    )
                 if qid in rows:
                     raise ValueError(f"{qid}: more than one Cliopatria row is active in {self.year}")
                 rows[qid] = feature

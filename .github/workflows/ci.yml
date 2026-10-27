@@ -89,3 +89,5 @@ jobs:
         env:
           NEXT_PUBLIC_DEMO_MODE: 'true'
           NEXT_PUBLIC_MAP_STYLE_URL: 'http://127.0.0.1:3000/unavailable-style.json'
+      - run: npm run test:licensing
+        working-directory: frontend

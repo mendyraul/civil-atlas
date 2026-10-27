@@ -5,6 +5,8 @@ backups/*.dump
 .next
 frontend/node_modules
 frontend/.next
+frontend/test-results/
+frontend/playwright-report/
 backend/.venv
 __pycache__
 *.pyc

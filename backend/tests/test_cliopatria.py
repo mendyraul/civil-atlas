@@ -115,6 +115,28 @@ def test_duplicate_active_rows_rejected():
         CliopatriaAdapter(117).normalize(json.dumps(data).encode(), [], "v1", RETRIEVED)
 
 
+def test_reused_qid_cannot_attach_an_unrelated_polity():
+    data = json.loads(FIXTURE.read_bytes())
+    feature = next(f for f in data["features"] if f["properties"]["Wikidata"] == "Q241790")
+    feature["properties"]["Name"] = "Unrelated synthetic polity"
+    with pytest.raises(ValueError, match="source identity mismatch"):
+        CliopatriaAdapter(117).normalize(json.dumps(data).encode(), ["Q241790"], "v1", RETRIEVED)
+
+
+def test_explicit_legacy_crosswalk_without_source_name_remains_supported():
+    crosswalk = {"Q241790": {"civilization_id": "kingdom-of-kush", "variant_group": "legacy-group"}}
+    result = CliopatriaAdapter(117, crosswalk).normalize(FIXTURE.read_bytes(), ["Q241790"], "v1", RETRIEVED)
+    assert result.datasets["layers"][0]["variant_group"] == "legacy-group"
+
+
+@pytest.mark.parametrize("name", ["", " ", None, 12])
+def test_invalid_expected_source_name_rejected(tmp_path, name):
+    path = tmp_path / "crosswalk.json"
+    path.write_text(json.dumps({"polities": [{"wikidata": "Q1", "civilization_id": "x", "variant_group": "x", "cliopatria_name": name}]}))
+    with pytest.raises(ValueError, match="nonempty source name"):
+        load_crosswalk(path)
+
+
 def test_license_gate_accepts_open_and_refuses_non_commercial(tmp_path):
     assert resolve_license("CC-BY-4.0") == resolve_license("http://creativecommons.org/licenses/by/4.0/legalcode")
     assert check_license(PleiadesAdapter()).spdx == "CC-BY-3.0"
