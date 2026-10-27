@@ -1,0 +1,228 @@
+{
+  "notice": "Synthetic integration data only. Backend tests publish these records in a rolled-back test transaction; browser tests consume the same public contract. Never deploy this fixture as historical data.",
+  "world": {
+    "year": 117,
+    "civilizations": [
+      {
+        "id": "roman-empire",
+        "slug": "roman-empire",
+        "kind": "civilization",
+        "label": "Roman Empire",
+        "display_name": "Roman Empire",
+        "start_year": 100,
+        "end_year": 150,
+        "civilization_type": "empire",
+        "color": "#c95a2f",
+        "color_token": "roman-empire",
+        "summary": "Synthetic test civilization used only for boundary-control acceptance.",
+        "short_description": "Imperial Mediterranean polity spanning western Europe to the Near East.",
+        "capital": "Roma",
+        "panel_description": "Synthetic test data; not historical evidence.",
+        "extent_note": "Placeholder/source-reported approximate extent. Not a reviewed historical boundary reconstruction.",
+        "confidence": "medium_high",
+        "review_status": "seeded",
+        "source_notes": "Seeded from broad historical atlas references focused on the Trajanic period.",
+        "status_badges": [
+          "Approximate",
+          "Source-reported",
+          "Placeholder geometry"
+        ],
+        "evidence": [],
+        "source_record_ids": [],
+        "claim_ids": []
+      }
+    ],
+    "nodes": [],
+    "routes": [],
+    "layers": [
+      {
+        "id": "acceptance-reading-primary",
+        "civilization_id": "roman-empire",
+        "name": "Synthetic primary reading",
+        "layer_type": "direct_control",
+        "variant_group": "acceptance-roman-readings",
+        "interpretation_label": "Synthetic primary reading",
+        "interpretation_kind": "boundary_variant",
+        "is_primary": true,
+        "display_order": 0,
+        "valid_from_year": 117,
+        "valid_to_year": 117,
+        "geometry_json": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                10,
+                40
+              ],
+              [
+                14,
+                40
+              ],
+              [
+                14,
+                44
+              ],
+              [
+                10,
+                44
+              ],
+              [
+                10,
+                40
+              ]
+            ]
+          ]
+        },
+        "geometry_placeholder": null,
+        "is_placeholder": false,
+        "confidence": "low",
+        "review_status": "reviewed",
+        "source_note": "Synthetic acceptance fixture; not historical evidence.",
+        "created_at": "2026-07-21T12:00:00Z",
+        "updated_at": "2026-07-21T12:00:00Z",
+        "source_record_ids": [
+          "acceptance-source-primary"
+        ],
+        "claim_ids": []
+      },
+      {
+        "id": "acceptance-reading-alternative",
+        "civilization_id": "roman-empire",
+        "name": "Synthetic alternative reading",
+        "layer_type": "direct_control",
+        "variant_group": "acceptance-roman-readings",
+        "interpretation_label": "Synthetic alternative reading",
+        "interpretation_kind": "boundary_variant",
+        "is_primary": false,
+        "display_order": 0,
+        "valid_from_year": 117,
+        "valid_to_year": 117,
+        "geometry_json": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                11,
+                40
+              ],
+              [
+                15,
+                40
+              ],
+              [
+                15,
+                44
+              ],
+              [
+                11,
+                44
+              ],
+              [
+                11,
+                40
+              ]
+            ]
+          ]
+        },
+        "geometry_placeholder": null,
+        "is_placeholder": false,
+        "confidence": "low",
+        "review_status": "reviewed",
+        "source_note": "Synthetic acceptance fixture; not historical evidence.",
+        "created_at": "2026-07-21T12:00:00Z",
+        "updated_at": "2026-07-21T12:00:00Z",
+        "source_record_ids": [
+          "acceptance-source-alternative"
+        ],
+        "claim_ids": []
+      }
+    ],
+    "relationships": [],
+    "eras": [],
+    "events": []
+  },
+  "sources": [
+    {
+      "id": "acceptance-source-primary",
+      "feature_id": "acceptance-reading-primary",
+      "feature_kind": "civilization_layer",
+      "feature_label": "Synthetic primary reading",
+      "title": "Synthetic primary source",
+      "citation": "Synthetic acceptance fixture; not a historical source.",
+      "link": "https://example.invalid/test-only",
+      "source_namespace": "manual_seed",
+      "confidence": "low",
+      "review_status": "reviewed",
+      "notes": "Only tests API publication and UI attribution mechanics. Never publish as historical evidence.",
+      "valid_from_year": 117,
+      "valid_to_year": 117
+    },
+    {
+      "id": "acceptance-source-alternative",
+      "feature_id": "acceptance-reading-alternative",
+      "feature_kind": "civilization_layer",
+      "feature_label": "Synthetic alternative reading",
+      "title": "Synthetic alternative source",
+      "citation": "Synthetic acceptance fixture; not a historical source.",
+      "link": "https://example.invalid/test-only",
+      "source_namespace": "cliopatria",
+      "confidence": "low",
+      "review_status": "reviewed",
+      "notes": "Only tests API publication and UI attribution mechanics. Never publish as historical evidence.",
+      "valid_from_year": 117,
+      "valid_to_year": 117
+    }
+  ],
+  "privateLayer": {
+    "id": "acceptance-reading-private",
+    "civilization_id": "roman-empire",
+    "name": "Synthetic private reading",
+    "layer_type": "direct_control",
+    "variant_group": "acceptance-roman-readings",
+    "interpretation_label": "Synthetic private reading",
+    "interpretation_kind": "boundary_variant",
+    "is_primary": false,
+    "display_order": 0,
+    "valid_from_year": 117,
+    "valid_to_year": 117,
+    "geometry_json": {
+      "type": "Polygon",
+      "coordinates": [
+        [
+          [
+            11,
+            40
+          ],
+          [
+            15,
+            40
+          ],
+          [
+            15,
+            44
+          ],
+          [
+            11,
+            44
+          ],
+          [
+            11,
+            40
+          ]
+        ]
+      ]
+    },
+    "geometry_placeholder": null,
+    "is_placeholder": false,
+    "confidence": "low",
+    "review_status": "needs_review",
+    "source_note": "Synthetic acceptance fixture; not historical evidence.",
+    "created_at": "2026-07-21T12:00:00Z",
+    "updated_at": "2026-07-21T12:00:00Z",
+    "source_record_ids": [
+      "acceptance-source-alternative"
+    ],
+    "claim_ids": []
+  }
+}

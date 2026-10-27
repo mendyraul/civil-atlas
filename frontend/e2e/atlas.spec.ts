@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import packageMetadata from '../package.json';
 
 test('globe has expandable research controls and keeps attribution visible', async ({ page }) => {
   await page.goto('/atlas');
@@ -69,10 +70,22 @@ test('mobile drawer is usable without horizontal page overflow', async ({ page }
 });
 
 test('source page explains license split and upstream credits', async ({ page }) => {
+  expect(packageMetadata.license).toBe('AGPL-3.0-or-later');
   await page.goto('/sources');
   await expect(page.getByRole('heading', { name: 'Data sources & licenses' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Borders · Cliopatria' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Full attribution register' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Source code/ })).toHaveAttribute('href', /^https:\/\/github.com\/mendyraul\/civil-atlas(?:\/tree\/[a-f0-9]+)?$/);
+  await expect(page.getByRole('link', { name: 'Code license', exact: true })).toHaveAttribute('href', /\/LICENSE$/);
+  await expect(page.getByRole('link', { name: 'Database license', exact: true })).toHaveAttribute('href', /\/DATA_LICENSE.md$/);
+  await expect(page.getByRole('link', { name: 'Documentation license', exact: true })).toHaveAttribute('href', /CC-BY-4.0.txt$/);
+  await expect(page.getByText(/Retain upstream credits when reusing/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Places · Pleiades' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Basemap · OpenStreetMap' })).toBeVisible();
+  await page.getByText('Planned sources · not included in the current dataset', { exact: true }).click();
+  for (const name of ['OpenHistoricalMap', 'Itiner-e, Digital Atlas of Ancient Roads', 'Ancient World Mapping Center geodata', 'Wikidata']) {
+    await expect(page.getByRole('link', { name, exact: true })).toBeVisible();
+  }
 });
 
 test('later polities have working dossiers and searchable source citations', async ({ page }) => {

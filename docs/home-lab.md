@@ -110,6 +110,13 @@ Publish only the intended HTTPS API hostname. Keep PostgreSQL, object storage,
 Docker and administration ports private; restrict editorial access separately.
 Verify HTTPS and CORS from the intended frontend origins before changing Vercel.
 
+Before cutover, compare the API with the existing 38-polity, 600 BCE–1800 CE
+preview, including its 1,002 dated boundaries. A working `/world/117` response
+alone is not coverage parity. Keep the current public preview until the reviewed
+API preserves that timeline and the sourced geography. Do not promote the static
+preview's source-check flags into database approval automatically. Migration of
+that wider collection is separate work from the bounded Kushan seed change.
+
 Follow [Vercel configuration](vercel.md): the project root is `frontend`.
 Set `NEXT_PUBLIC_API_BASE_URL` to the HTTPS API origin without a trailing slash.
 Set `NEXT_PUBLIC_DEMO_MODE=false` in both build and runtime configuration only
@@ -130,3 +137,27 @@ commit. Check atlas, search, sources and dossiers against the real API.
   hashes, review/publication decisions, backup location and rollback procedure.
 
 Only after those checks may #55's live-rollout criteria be marked complete.
+
+## Operator handoff before #55
+
+Record these inputs in the private deployment worksheet; the repository must
+contain configuration names and verification results, not credential values:
+
+| Input | Required evidence |
+| --- | --- |
+| PostgreSQL LXC and API VM | Confirmed host names, addresses, access, capacity and installed versions |
+| Storage provider | Maintained distribution/version, private S3 endpoint, scoped bucket permissions and a test-object readback |
+| API hostname and tunnel | Domain/account ownership, ingress destination, private editorial route policy and HTTPS checks |
+| Secrets | Host credential-store locations, a rotated editorial key, app database role and storage key scopes |
+| Frontend origins | Exact preview/production origins verified through CORS; no wildcard authorization for editorial access |
+| Recovery destination | Encrypted off-host backup location, retention, artifact-volume protection and a measured clean restore |
+| Dataset cutover | Approved import/review records and timeline/geometry comparison against the current public preview |
+
+Public ingress must not rely on the editorial key as its only network boundary.
+Restrict both `/api/v1/` and `/api/` editorial route aliases at the proxy/tunnel
+or private-access layer; the application key remains required behind it. Keep
+the storage console, PostgreSQL, Docker and SSH off the public ingress.
+
+The provider-neutral guide is complete without inventing these inputs. Host
+provisioning, storage selection, recovery evidence and the public cutover remain
+explicit #55 work, not consequences of a green Compose validation job.
