@@ -63,3 +63,7 @@ footer { border-top:1px solid var(--line); padding:24px 0; font-size:.75rem; col
 [hidden] { display:none!important; }
 :focus-visible { outline:3px solid #4f9483; outline-offset:4px; }
 @media(max-width:800px) { .two-columns { grid-template-columns:1fr; } header { align-items:start; flex-direction:column; } h1 { font-size:1.9rem; } main { padding:24px 16px; } .panel,.queue-row { padding:18px; } .filters label { min-width:120px; } .login-panel { padding:26px; } svg { height:270px; } }
+
+h1,h2,h3 { overflow-wrap:anywhere; }
+.heading>div { min-width:0; }
+.heading>button { flex-shrink:0; }

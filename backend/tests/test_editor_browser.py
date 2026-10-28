@@ -127,6 +127,33 @@ def test_private_editor_browser_review_maps_bulk_and_mobile(editorial):  # noqa:
             )
             page.reload()
             expect(page.locator("#history")).to_contain_text("browser:editor · approve")
+            # Large original source geometries must not hit JavaScript argument limits.
+            import math
+
+            def large_geometry(route):
+                data = route.fetch().json()
+                ring = [
+                    [
+                        12 + math.cos(i * math.tau / 130000),
+                        41 + math.sin(i * math.tau / 130000),
+                    ]
+                    for i in range(130000)
+                ]
+                ring.append(ring[0])
+                data["target"]["geometry_json"] = {
+                    "type": "Polygon",
+                    "coordinates": [ring],
+                }
+                route.fulfill(json=data)
+
+            page.route(
+                "**/editor/api/reviews/" + assignments["editor-proposed"],
+                large_geometry,
+            )
+            page.reload()
+            expect(page.locator("#proposed-map path.boundary")).to_have_count(
+                1, timeout=15000
+            )
             page.get_by_role("button", name="Sign out").click()
             expect(
                 page.get_by_role("heading", name="Review the evidence.")

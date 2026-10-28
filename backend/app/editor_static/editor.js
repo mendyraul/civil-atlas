@@ -115,16 +115,24 @@ if ($('#login-form')) {
     if (geometry?.type === 'MultiPolygon') return geometry.coordinates;
     return [];
   }
-  function points(geometry) { return polygons(geometry).flat(2).filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])); }
+  function* points(geometry) {
+    for (const polygon of polygons(geometry)) for (const ring of polygon) for (const p of ring) {
+      if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])) yield p;
+    }
+  }
   function currentPrimary() {
     const id = $('#primary-select').value;
     return detail.primary_layers.find(layer => layer.id === id) || null;
   }
   function fit() {
-    const coordinates = [...points(detail.target.geometry_json), ...points(currentPrimary()?.geometry_json)];
-    if (!coordinates.length) { extent = baseExtent = [-180,-90,180,90]; drawMaps(); return; }
-    const xs = coordinates.map(p => p[0]), ys = coordinates.map(p => p[1]);
-    const west = Math.min(...xs), east = Math.max(...xs), south = Math.min(...ys), north = Math.max(...ys);
+    let west=Infinity, east=-Infinity, south=Infinity, north=-Infinity;
+    for (const geometry of [detail.target.geometry_json, currentPrimary()?.geometry_json]) {
+      for (const point of points(geometry)) {
+        west=Math.min(west,point[0]); east=Math.max(east,point[0]);
+        south=Math.min(south,point[1]); north=Math.max(north,point[1]);
+      }
+    }
+    if (!Number.isFinite(west)) { extent = baseExtent = [-180,-90,180,90]; drawMaps(); return; }
     const padX = Math.max(1,(east-west)*.1), padY = Math.max(1,(north-south)*.1);
     extent = baseExtent = [west-padX,south-padY,east+padX,north+padY]; drawMaps();
   }
@@ -147,7 +155,7 @@ if ($('#login-form')) {
       const path = polygon.map(ring => ring.map((point,i) => `${i?'L':'M'}${project(point).join(',')}`).join(' ')+' Z').join(' ');
       svg.append(svgEl('path',{d:path,class:'boundary'}));
     }
-    if (!points(geometry).length) svg.append(svgEl('text',{x:40,y:160},'No boundary geometry available'));
+    if (points(geometry).next().done) svg.append(svgEl('text',{x:40,y:160},'No boundary geometry available'));
   }
   function drawMaps() {
     drawMap('#proposed-map', detail.target.geometry_json);
