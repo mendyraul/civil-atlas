@@ -49,14 +49,14 @@ class AtlasRepository:
         return [dict(row.payload) for row in rows]
 
     def get(
-        self, entity_type: str, external_id: str, *, published_only: bool = True
+        self, entity_type: str, external_id: str, *, published_only: bool = True, for_update: bool = False
     ) -> dict[str, Any] | None:
         row = self.session.execute(
             text("""
                 SELECT payload FROM atlas_entities
                 WHERE entity_type=:type AND external_id=:id
                   AND (:published_only = FALSE OR published = TRUE)
-            """),
+            """ + (" FOR UPDATE" if for_update else "")),
             {"type": entity_type, "id": external_id, "published_only": published_only},
         ).first()
         return dict(row.payload) if row else None

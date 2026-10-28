@@ -51,6 +51,7 @@ from app.services.learning import LESSONS, grade_attempt
 from app.db.session import session_scope
 from app.services.repository import AtlasRepository
 from app.seed.coverage import COVERAGE_PACKS
+from app.services.review_context import review_version
 
 router = APIRouter(tags=["world"])
 api_router = APIRouter(tags=["api"])
@@ -265,55 +266,61 @@ def _review_entity_type(entity_type: str) -> str:
     }.get(entity_type, entity_type)
 
 
-def _apply_review_action(payload: ReviewActionRequest) -> ReviewDecision:
+def _apply_review_action(payload: ReviewActionRequest, repository: AtlasRepository | None = None) -> ReviewDecision:
+    if repository is None:
+        with session_scope() as session:
+            return _apply_review_action(payload, AtlasRepository(session))
     target_status = {
         "approve": "reviewed",
         "request_changes": "needs_review",
+        "dispute": "disputed",
         "reject": "rejected",
         "publish": "reviewed",
     }[payload.decision_type]
     now = datetime.now(timezone.utc).isoformat()
-    with session_scope() as session:
-        repository = AtlasRepository(session)
-        assignment = repository.get("review_assignments", payload.assignment_id, published_only=False)
-        if not assignment:
-            raise HTTPException(status_code=404, detail="Review assignment not found.")
-        previous_status = str(assignment.get("current_review_status", ""))
-        entity_type = _review_entity_type(str(assignment.get("entity_type", "")))
-        entity_id = str(assignment.get("entity_id", ""))
-        try:
-            repository.update_review_status(entity_type, entity_id, target_status, payload.reviewer)
-        except KeyError as error:
-            raise HTTPException(status_code=404, detail="Review target not found.") from error
-        except ValueError as error:
-            raise HTTPException(status_code=409, detail=str(error)) from error
+    assignment = repository.get("review_assignments", payload.assignment_id, published_only=False, for_update=True)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Review assignment not found.")
+    previous_status = str(assignment.get("current_review_status", ""))
+    entity_type = _review_entity_type(str(assignment.get("entity_type", "")))
+    entity_id = str(assignment.get("entity_id", ""))
+    target = repository.get(entity_type, entity_id, published_only=False, for_update=True)
+    if not target:
+        raise HTTPException(status_code=404, detail="Review target not found.")
+    if payload.expected_version and payload.expected_version != review_version(assignment, target):
+        raise HTTPException(status_code=409, detail="This record changed. Reload before reviewing it.")
+    try:
+        repository.update_review_status(entity_type, entity_id, target_status, payload.reviewer)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Review target not found.") from error
+    except ValueError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
-        assignment["current_review_status"] = target_status
-        assignment["target_review_status"] = target_status
-        assignment["assigned_reviewer"] = payload.reviewer
-        assignment["notes"] = payload.rationale
-        repository.upsert(
-            "review_assignments", payload.assignment_id, assignment, payload.reviewer,
-            published=False,
-        )
-        decision = ReviewDecision(
-            id=f"review-decision:{uuid4()}",
-            assignment_id=payload.assignment_id,
-            entity_type=str(assignment.get("entity_type", entity_type)),
-            entity_id=entity_id,
-            decision_type=payload.decision_type,
-            previous_review_status=previous_status,
-            new_review_status=target_status,
-            reviewer=payload.reviewer,
-            rationale=payload.rationale,
-            created_at=now,
-        )
-        repository.upsert(
-            "review_decisions", decision.id, decision.model_dump(mode="json"), payload.reviewer,
-            published=False,
-        )
-        return decision
-
+    assignment["current_review_status"] = target_status
+    assignment["target_review_status"] = target_status
+    assignment["assigned_reviewer"] = payload.reviewer
+    assignment["notes"] = payload.rationale
+    repository.upsert(
+        "review_assignments", payload.assignment_id, assignment, payload.reviewer,
+        published=False,
+    )
+    decision = ReviewDecision(
+        id=f"review-decision:{uuid4()}",
+        assignment_id=payload.assignment_id,
+        entity_type=str(assignment.get("entity_type", entity_type)),
+        entity_id=entity_id,
+        decision_type=payload.decision_type,
+        previous_review_status=previous_status,
+        new_review_status=target_status,
+        reviewer=payload.reviewer,
+        rationale=payload.rationale,
+        created_at=now,
+    )
+    repository.upsert(
+        "review_decisions", decision.id, decision.model_dump(mode="json"), payload.reviewer,
+        published=False,
+    )
+    return decision
 
 @router.post("/review-actions", response_model=ReviewDecision, dependencies=[Depends(require_editorial_key)])
 def apply_review_action_v1(payload: ReviewActionRequest) -> ReviewDecision:

@@ -183,3 +183,9 @@ AI-provider dependency. See [the toolkit guide](docs/research-toolkit.md) for
 content authoring, source review, episode imports/assets, API contracts and MCP
 setup. Published episode territory references reviewed source polygons; freehand
 notes remain personal and unreviewed.
+
+## Private editorial review
+
+The backend includes an opt-in review queue at `/editor`. Editors can compare
+proposed boundaries with published readings, check citations and record decisions.
+See [editor setup and publication rules](docs/editor-review.md).

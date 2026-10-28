@@ -32,6 +32,7 @@ class Settings(BaseModel):
     cors_origins: list[str] = ["http://localhost:3000"]
     database_url: str = "postgresql+psycopg://civil_atlas:civil_atlas@localhost:5432/civil_atlas"
     editorial_api_key: str | None = None
+    editor_ui_enabled: bool = False
     storage: StorageContract = StorageContract()
 
 
@@ -83,6 +84,7 @@ settings = Settings(
         "DATABASE_URL", Settings.model_fields["database_url"].default
     ).replace("postgresql://", "postgresql+psycopg://", 1),
     editorial_api_key=os.getenv("EDITORIAL_API_KEY"),
+    editor_ui_enabled=_bool_from_env("EDITOR_UI_ENABLED", False),
     storage=StorageContract(
         access_key_id=os.getenv(
             "S3_ACCESS_KEY_ID", StorageContract.model_fields["access_key_id"].default
