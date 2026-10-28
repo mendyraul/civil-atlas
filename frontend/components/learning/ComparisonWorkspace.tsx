@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AtlasMap } from '../map/AtlasMap';
 import { useAtlasData } from '../atlas/hooks/useAtlasData';
 import { LayerStatusPanel } from '../research/LayerStatusPanel';
 import { PolityComparisonTable } from './PolityComparisonTable';
+import { formatYear } from '../../lib/atlas';
 import { availableLayers, isCliopatria, visibleBoundaryLayers } from '../../lib/research';
 import type { AtlasCamera, ComparisonState } from '../../types/atlas';
 
@@ -11,15 +12,16 @@ const initial: ComparisonState = { leftYear: 117, rightYear: 123, leftLayer: '',
 function Pane({ side, year, layer, onYear, onLayer, command, onCamera, showModernBorders }: { side: string; year: number; layer: string; onYear: (year: number) => void; onLayer: (layer: string) => void; command: AtlasCamera; onCamera: (view: AtlasCamera) => void; showModernBorders: boolean }) {
   const data = useAtlasData(year, true);
   const [actualCamera, setActualCamera] = useState(command);
-  const available = availableLayers(data.world.layers, data.sources);
-  const selected = layer ? available.filter((item) => item.id === layer) : visibleBoundaryLayers(available, {});
+  const available = useMemo(() => availableLayers(data.world.layers, data.sources), [data.world.layers, data.sources]);
+  const selected = useMemo(() => layer ? available.filter((item) => item.id === layer) : visibleBoundaryLayers(available, {}), [available, layer]);
   return <section className="comparison-pane" aria-label={`${side} comparison map`}>
     <div className="flex flex-wrap items-end gap-3 p-4"><label className="text-sm">{side} year<input className="research-input block" type="number" min={-600} max={1800} value={year} onChange={(e) => { const n = Number(e.target.value); if (Number.isInteger(n) && n >= -600 && n <= 1800) onYear(n); }} /></label>
       <label className="min-w-0 flex-1 text-sm">Boundary interpretation<select className="research-input block w-full" value={layer} onChange={(e) => onLayer(e.target.value)}><option value="">Primary interpretations</option>{available.map((item) => <option key={item.id} value={item.id}>{item.interpretationLabel || item.name}</option>)}{layer && !available.some((item) => item.id === layer) && <option value={layer}>Unavailable at this date</option>}</select></label>
     </div>
-    <div className="comparison-map relative"><AtlasMap showModernBorders={showModernBorders} initialCenter={command.center} initialZoom={command.zoom} cameraCommand={command} onCameraChange={(camera, origin) => { setActualCamera(camera); if (origin !== 'command') onCamera(camera); }} civilizations={data.world.civilizations} civilizationLayers={selected} nodes={data.world.nodes} routes={data.world.routes} evidenceIds={[]} showEvidence={false} showExtents showNodes showRoutes cliopatriaVisible={selected.some((item) => isCliopatria(item, data.sources))} onCivilizationSelect={() => {}} onNodeSelect={() => {}} onRouteSelect={() => {}} onCenterChange={() => {}} onZoomChange={() => {}} />{!selected.length && data.status !== 'loading' && <div className="comparison-missing" role="status">No boundary coverage for this date and interpretation.</div>}</div>
+    <div className="comparison-map relative"><AtlasMap year={data.world.year} showModernBorders={showModernBorders} initialCenter={command.center} initialZoom={command.zoom} cameraCommand={command} onCameraChange={(camera, origin) => { setActualCamera(camera); if (origin !== 'command') onCamera(camera); }} civilizations={data.world.civilizations} civilizationLayers={selected} nodes={data.world.nodes} routes={data.world.routes} evidenceIds={[]} showEvidence={false} showExtents showNodes showRoutes cliopatriaVisible={selected.some((item) => isCliopatria(item, data.sources))} onCivilizationSelect={() => {}} onNodeSelect={() => {}} onRouteSelect={() => {}} onCenterChange={() => {}} onZoomChange={() => {}} />{!selected.length && data.status !== 'loading' && <div className="comparison-missing" role="status">No boundary coverage for this date and interpretation.</div>}</div>
+    {data.status === 'loading' && <p role="status" className="mx-4 text-xs text-slate-300">Loading {formatYear(year)}…{data.world.civilizations.length > 0 && ` Showing ${formatYear(data.world.year)} until ready.`}</p>}
     <output className="mx-4 block text-xs text-slate-300" aria-label={`${side} camera`}>Longitude {actualCamera.center[0].toFixed(2)} · latitude {actualCamera.center[1].toFixed(2)} · zoom {actualCamera.zoom.toFixed(2)}</output>
-    <LayerStatusPanel status={{ delivery: data.status === 'live' ? 'ready' : data.status, year, recordCount: data.world.civilizations.length, layers: selected }} compact />
+    <LayerStatusPanel status={{ delivery: data.status === 'live' ? 'ready' : data.status, year: data.world.year, recordCount: data.world.civilizations.length, layers: selected }} compact />
     {data.status === 'unavailable' && <button className="atlas-tool m-3" onClick={data.reload} type="button">Retry {side.toLowerCase()} data</button>}
   </section>;
 }

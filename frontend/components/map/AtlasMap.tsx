@@ -6,6 +6,7 @@ import { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import { civilizationLabels } from '../../lib/cartography';
 import type { MapAnnotation, GeoJSONPosition as DrawingPosition, AtlasCamera, AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
+import { createBoundaryTransition } from '../../lib/boundaryTransition';
 import { MapLegend } from './MapLegend';
 
 // Next.js emits a same-origin, content-hashed worker asset for both bundlers.
@@ -14,6 +15,7 @@ maplibregl.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', impor
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || '/map-styles/minimal.json';
 
 type AtlasMapProps = {
+  year?: number;
   annotations?: MapAnnotation[];
   imageOverlays?: Array<{ id: string; url: string; bounds: [number, number, number, number] }>;
   drawMode?: 'Point' | 'LineString' | 'Polygon' | 'Rectangle' | null;
@@ -49,7 +51,7 @@ type HoverRef = { source: string; id: string } | null;
 // Solid atlas colors distinguish territories; evidence confidence stays explicit in the panels.
 const TERRITORY_OPACITY = 0.84;
 
-function layerFeatureCollection(items: CivilizationLayer[], civilizations: Civilization[]) {
+function layerFeatureCollection(items: CivilizationLayer[], civilizations: Civilization[], cliopatriaAttribution: boolean) {
   const civilizationById = new Map(civilizations.map((item) => [item.id, item]));
   return {
     type: 'FeatureCollection' as const,
@@ -63,6 +65,7 @@ function layerFeatureCollection(items: CivilizationLayer[], civilizations: Civil
       id: layer.id,
       properties: {
         id: layer.id,
+        cliopatriaAttribution,
         civilizationId: civilization.id,
         civilizationLabel: civilization.displayName,
         label: layer.interpretationLabel || layer.name,
@@ -202,24 +205,24 @@ const requiredLayerIds = [
   'selected-evidence-glow',
 ] as const;
 
+function applyBoundaryPaint(map: maplibregl.Map, selectedId: string | undefined, progress: number, generation: number) {
+  const weight: maplibregl.ExpressionSpecification = ['case',
+    ['all', ['==', ['get', 'timelineGeneration'], generation], ['==', ['get', 'timelineRole'], -1]], 1 - progress,
+    ['all', ['==', ['get', 'timelineGeneration'], generation], ['==', ['get', 'timelineRole'], 1]], progress,
+    ['==', ['get', 'timelineRole'], -1], 0, 1,
+  ];
+  map.setPaintProperty('civilizations-fill', 'fill-opacity', ['*', fillOpacityExpression(selectedId), weight]);
+  map.setPaintProperty('civilizations-line', 'line-opacity', ['*', lineOpacityExpression(selectedId), weight]);
+  if (map.getLayer('civilizations-placeholder-hatch')) map.setPaintProperty('civilizations-placeholder-hatch', 'fill-opacity', ['*', 0.3, weight]);
+}
+
 function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
-  (map.getSource('civilizations') as GeoJSONSource | undefined)?.setData(state.polygons);
   (map.getSource('civilization-labels') as GeoJSONSource | undefined)?.setData(state.labels);
   (map.getSource('nodes') as GeoJSONSource | undefined)?.setData(state.nodes);
   (map.getSource('routes') as GeoJSONSource | undefined)?.setData(state.routes);
 
   if (map.getLayer('civilizations-line')) {
     map.setPaintProperty('civilizations-line', 'line-width', lineWidthExpression(state.selectedId));
-    map.setPaintProperty(
-      'civilizations-line',
-      'line-opacity',
-      lineOpacityExpression(state.selectedId),
-    );
-    map.setPaintProperty(
-      'civilizations-fill',
-      'fill-opacity',
-      fillOpacityExpression(state.selectedId),
-    );
   }
 
   const evidenceIds = new Set(state.evidenceIds);
@@ -259,6 +262,7 @@ const EMPTY_ANNOTATIONS: MapAnnotation[] = [];
 const EMPTY_IMAGES: NonNullable<AtlasMapProps['imageOverlays']> = [];
 
 export function AtlasMap({
+  year,
   annotations = EMPTY_ANNOTATIONS, imageOverlays = EMPTY_IMAGES, drawMode = null, onDrawPoint, onFinishDraw, onBoundsChange,
   cameraCommand,
   onCameraChange,
@@ -286,12 +290,16 @@ export function AtlasMap({
   const drawRef = useRef({ drawMode, onDrawPoint, onBoundsChange });
   drawRef.current = { drawMode, onDrawPoint, onBoundsChange };
   const layersReady = useRef(false);
+  const boundaryTransition = useRef<ReturnType<typeof createBoundaryTransition> | null>(null);
+  const fadeProgress = useRef({ progress: 1, generation: 0 });
+  const previousBoundaryYear = useRef(year);
   const overlayIds = useRef<string[]>([]);
   const commandRef = useRef(cameraCommand);
   commandRef.current = cameraCommand;
   const cameraChangeRef = useRef(onCameraChange);
   cameraChangeRef.current = onCameraChange;
   const applyingCameraCommand = useRef(false);
+  const [renderedCliopatria, setRenderedCliopatria] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -320,8 +328,8 @@ export function AtlasMap({
   };
 
   const polygonData = useMemo(
-    () => layerFeatureCollection(civilizationLayers, civilizations),
-    [civilizationLayers, civilizations],
+    () => layerFeatureCollection(civilizationLayers, civilizations, cliopatriaVisible),
+    [civilizationLayers, civilizations, cliopatriaVisible],
   );
   const labelData = useMemo(() => civilizationLabels(civilizationLayers, civilizations), [civilizationLayers, civilizations]);
   const pointData = useMemo(() => nodeFeatureCollection(nodes), [nodes]);
@@ -466,8 +474,7 @@ export function AtlasMap({
         paint: {
           'fill-color': ['get', 'color'],
           'fill-opacity': fillOpacityExpression(currentMapStateRef.current.selectedId),
-          // A4: cross-fade extents when the active year (and thus features) changes.
-          'fill-opacity-transition': { duration: 450, delay: 0 },
+          'fill-opacity-transition': { duration: 0, delay: 0 },
         },
       });
 
@@ -512,7 +519,7 @@ export function AtlasMap({
             ['contested_zone'], ['literal', [1.2, 1.4]],
             ['literal', [1, 0]],
           ],
-          'line-opacity-transition': { duration: 450, delay: 0 },
+          'line-opacity-transition': { duration: 0, delay: 0 },
         },
       });
 
@@ -636,7 +643,7 @@ export function AtlasMap({
       map.on('click', (event) => { if (drawRef.current.drawMode) drawRef.current.onDrawPoint?.([event.lngLat.lng, event.lngLat.lat]); });
       map.on('click', 'civilizations-fill', (event) => {
         if (drawRef.current.drawMode) return;
-        const id = map.queryRenderedFeatures(event.point, { layers: ['civilizations-fill'] })[0]?.properties?.civilizationId;
+        const id = map.queryRenderedFeatures(event.point, { layers: ['civilizations-fill'] }).find((feature) => feature.properties?.timelineRole !== -1)?.properties?.civilizationId;
         if (typeof id === 'string') handlersRef.current.onCivilizationSelect(id);
       });
 
@@ -662,7 +669,7 @@ export function AtlasMap({
 
       hoverLayers.forEach((layerId) => {
         map.on('mousemove', layerId, (event) => {
-          const feature = event.features?.[0];
+          const feature = event.features?.find((item) => item.properties?.timelineRole !== -1);
           const id = layerId === 'civilizations-fill'
             ? feature?.properties?.civilizationId
             : feature?.properties?.id;
@@ -710,6 +717,15 @@ export function AtlasMap({
       // Place modern context above the territory fills so it remains faintly
       // visible within empires as well as outside them.
       if (map.getLayer('modern-country-boundaries')) map.moveLayer('modern-country-boundaries', 'civilizations-label');
+      boundaryTransition.current = createBoundaryTransition({
+        write: (data) => {
+          // Keep upstream credit while an outgoing source is still fading.
+          setRenderedCliopatria(data.features.some((feature) => feature.properties?.cliopatriaAttribution));
+          (map.getSource('civilizations') as GeoJSONSource).setData(data);
+        },
+        ready: () => map.isSourceLoaded('civilizations'),
+        paint: (progress, generation) => { fadeProgress.current = { progress, generation }; applyBoundaryPaint(map, currentMapStateRef.current.selectedId, progress, generation); },
+      });
       layersReady.current = true;
       applyCurrentMapState(map, currentMapStateRef.current);
       setMapStatus('ready');
@@ -717,10 +733,20 @@ export function AtlasMap({
       const bounds = map.getBounds(); drawRef.current.onBoundsChange?.([bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()]);
     };
 
+    const onSourceData = (event: maplibregl.MapSourceDataEvent) => {
+      if (event.sourceId === 'civilizations') boundaryTransition.current?.sourceReady();
+    };
+    const onRender = () => boundaryTransition.current?.sourceReady();
+    map.on('render', onRender);
+    map.on('sourcedata', onSourceData);
     map.on('load', handleLoad);
 
     return () => {
       layersReady.current = false;
+      boundaryTransition.current?.dispose();
+      boundaryTransition.current = null;
+      map.off('sourcedata', onSourceData);
+      map.off('render', onRender);
       resize.disconnect();
       popup.remove();
       popupRef.current = null;
@@ -736,6 +762,7 @@ export function AtlasMap({
     const map = mapRef.current;
     if (!map || !layersReady.current) return;
     applyCurrentMapState(map, currentMapStateRef.current);
+    applyBoundaryPaint(map, selectedId, fadeProgress.current.progress, fadeProgress.current.generation);
   }, [
     polygonData,
     labelData,
@@ -750,6 +777,14 @@ export function AtlasMap({
     showRoutes,
     mapStatus,
   ]);
+
+  useEffect(() => {
+    if (!layersReady.current) return;
+    const dateChanged = previousBoundaryYear.current !== year;
+    previousBoundaryYear.current = year;
+    if (dateChanged) { popupRef.current?.remove(); hoverRef.current = null; }
+    boundaryTransition.current?.update(polygonData, dateChanged && !reducedMotion && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && showExtents);
+  }, [polygonData, year, reducedMotion, showExtents, mapStatus]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -779,10 +814,10 @@ export function AtlasMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || mapStatus !== 'ready') return;
-    const control = new maplibregl.AttributionControl({ compact: true, customAttribution: cliopatriaVisible ? 'Borders: Cliopatria (Seshat), <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>' : undefined });
+    const control = new maplibregl.AttributionControl({ compact: true, customAttribution: renderedCliopatria && showExtents ? 'Borders: Cliopatria (Seshat), <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>' : undefined });
     map.addControl(control, 'bottom-right');
     return () => { if (mapRef.current === map) map.removeControl(control); };
-  }, [cliopatriaVisible, mapStatus]);
+  }, [renderedCliopatria, showExtents, mapStatus]);
 
   useEffect(() => {
     const map = mapRef.current;

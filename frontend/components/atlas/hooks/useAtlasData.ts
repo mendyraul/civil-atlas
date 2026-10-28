@@ -12,7 +12,7 @@ export function emptyWorld(year: number): WorldPayload {
 
 export function useAtlasData(year: number, ready: boolean) {
   const cache = useRef(new Map<number, WorldPayload>());
-  const [loaded, setLoaded] = useState<WorldPayload | null>(DEMO_MODE ? world117 : null);
+  const [loaded, setLoaded] = useState<WorldPayload | null>(null);
   const [failedYear, setFailedYear] = useState<number | null>(null);
   const [retry, setRetry] = useState(0);
   const [catalog, setCatalog] = useState<{ eras: Era[]; events: HistoricalEvent[]; sources: SourceRecord[] }>({ eras: [], events: [], sources: [] });
@@ -54,12 +54,14 @@ export function useAtlasData(year: number, ready: boolean) {
           setLoaded(world); setFailedYear(null);
         }
       } catch { if (!controller.signal.aborted) setFailedYear(year); }
-    }, 120);
+    }, DEMO_MODE ? 0 : 120);
     return () => { window.clearTimeout(timeout); controller.abort(); };
   }, [year, ready, retry]);
 
-  const world = (DEMO_MODE || catalogReady) && loaded?.year === year ? loaded : emptyWorld(year);
   const status: 'demo' | 'unavailable' | 'live' | 'loading' = DEMO_MODE ? failedYear === year ? 'unavailable' : loaded?.year === year ? 'demo' : 'loading' : !HAS_REMOTE_API || failedYear === year || catalogFailed ? 'unavailable' : catalogReady && loaded?.year === year ? 'live' : 'loading';
+  // Keep the last successful snapshot while scrubbing, with its original year.
+  // Failed requests and genuinely empty years must never borrow other geometry.
+  const world = (DEMO_MODE || catalogReady) && loaded && status !== 'unavailable' ? loaded : emptyWorld(year);
   return {
     world, status, catalogFailed,
     eras: DEMO_MODE ? world117.eras : catalog.eras,

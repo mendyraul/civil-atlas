@@ -110,3 +110,29 @@ test('reduced motion disables autoplay', async ({ page }) => {
   await page.goto('/atlas');
   await expect(page.getByRole('button', { name: /Play/ })).toBeDisabled();
 });
+
+test('rapid timeline scrubbing keeps polities visible across century boundaries', async ({ page }) => {
+  await page.goto('/atlas?y=117');
+  const status = page.locator('.atlas-view-status');
+  await expect(status).toContainText('Source snapshot');
+  await expect(status).not.toContainText('/ 0 polities');
+  await expect(page.getByText('Loading basemap, labels, and atlas layers…')).toHaveCount(0);
+  // Observe the actual rendered UI for the whole drag, including intermediate
+  // React commits, rather than checking only after the final request settles.
+  await status.evaluate((element) => {
+    const failures: string[] = [];
+    const observer = new MutationObserver(() => { if (element.textContent?.includes('/ 0 polities')) failures.push(element.textContent); });
+    observer.observe(element, { childList: true, subtree: true, characterData: true });
+    Object.assign(window, { timelineBlankFrames: failures });
+  });
+  const slider = page.getByRole('slider', { name: 'Year' });
+  for (const year of [118, 119, 199, 200, 201, 699, 700, 701, 999, 1000, 1499, 1500]) {
+    await slider.fill(String(year));
+    await page.waitForTimeout(25); // A continuous drag faster than the old 120 ms debounce.
+  }
+  await expect(page.getByRole('heading', { name: 'World at 1500 CE' })).toBeVisible();
+  await expect(status).toContainText('Source snapshot');
+  expect(await page.evaluate(() => Reflect.get(window, 'timelineBlankFrames'))).toEqual([]);
+  await page.getByRole('button', { name: /Layers & research/ }).click();
+  await expect(page.getByRole('button', { name: /Ming Dynasty dynasty/ })).toBeVisible();
+});
