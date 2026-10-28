@@ -89,6 +89,7 @@ export function AtlasPage(props: AtlasPageProps) {
     window.addEventListener('keydown', escape);
     return () => window.removeEventListener('keydown', escape);
   }, [panel, onPanelChange]);
+  const displayedYear = backendStatus === 'loading' ? world.year : year;
   const sourceCount = world.civilizations.reduce((sum, item) => sum + item.evidence.length, 0);
   const boundaryLayers = detailWorld.layers.filter((layer) => layer.interpretationKind === 'boundary_variant');
   const groups = Array.from(new Set(boundaryLayers.map(boundaryGroup)));
@@ -100,11 +101,11 @@ export function AtlasPage(props: AtlasPageProps) {
       <div className="atlas-stage-map">{props.map}</div>
       <div className="atlas-view-heading">
         <p className="atlas-kicker">THE HISTORICAL WORLD</p>
-        <h1>World at <span>{formatYear(year)}</span></h1>
+        <h1>World at <span>{formatYear(displayedYear)}</span></h1>
         <p className="atlas-view-subtitle">Civilizations, connections, and the evidence between them.</p>
         <div className="atlas-view-status" role="status">
           <span className={`status-dot status-dot--${backendStatus}`} aria-hidden />
-          <span>{{ live: 'Published atlas', demo: 'Source snapshot · curated coverage', loading: 'Loading selected year…', stale: 'Data unavailable', unavailable: 'Database unavailable' }[backendStatus]}</span>
+          <span>{{ live: 'Published atlas', demo: 'Source snapshot · curated coverage', loading: world.civilizations.length ? `Loading ${formatYear(year)}… Showing ${formatYear(world.year)} until ready.` : 'Loading selected year…', stale: 'Data unavailable', unavailable: 'Database unavailable' }[backendStatus]}</span>
           <span> / {world.civilizations.length} polities</span>
         </div>
       </div>
@@ -119,7 +120,7 @@ export function AtlasPage(props: AtlasPageProps) {
       <div hidden={!panel} id="atlas-research-panel" ref={drawerRef} tabIndex={-1} className={`atlas-research-drawer atlas-research-drawer--${panel}`} role="region" aria-label={panel === 'layers' ? 'Layers and research' : panel === 'details' ? 'Selection and evidence' : `${panel} workspace`}>
         <div className="atlas-drawer-heading"><h2>{panel === 'layers' ? 'Layers & research' : panel === 'details' ? 'Selection & evidence' : panel === 'notes' ? 'Map notes' : panel === 'research' ? 'Area query' : panel === 'episodes' ? 'Episodes' : 'Layer status'}</h2><button className="atlas-tool" onClick={() => onPanelChange(null)} aria-label="Close research panel" type="button">×</button></div>
         {panel === 'layers' ? <div className="atlas-drawer-content">
-          <ActiveCivilizationsPanel civilizations={world.civilizations} selectedId={selectedId} selectedYear={year} onSelect={props.onCivilizationSelect} />
+          <ActiveCivilizationsPanel civilizations={world.civilizations} selectedId={selectedId} selectedYear={displayedYear} onSelect={props.onCivilizationSelect} />
           <button className="atlas-tool text-left" type="button" aria-pressed={props.showModernBorders} onClick={props.onToggleModernBorders}>Present-day borders · {props.showModernBorders ? 'visible' : 'hidden'}<span className="mt-1 block text-xs text-slate-300">Faint modern reference lines; separate from the historical boundaries.</span></button>
           <LayerControls counts={{ extents: world.civilizations.length, nodes: world.nodes.length, routes: world.routes.length, sources: sourceCount }} onToggle={props.onToggleLayer} values={layers} />
           <AtlasFilters confidenceCounts={props.confidenceCounts} layerTypeOptions={props.layerTypeOptions} onConfidenceToggle={props.onConfidenceToggle} onLayerTypeToggle={props.onLayerTypeToggle} onReset={props.onResetFilters} onReviewStatusToggle={props.onReviewStatusToggle} reviewCounts={props.reviewCounts} selectedConfidence={props.selectedConfidence} selectedLayerTypes={props.selectedLayerTypes} selectedReviewStatus={props.selectedReviewStatus} />

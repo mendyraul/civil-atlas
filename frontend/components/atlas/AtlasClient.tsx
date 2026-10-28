@@ -394,7 +394,7 @@ export function AtlasClient() {
     const payload = {
       schemaVersion: 2,
       exportedAt: new Date().toISOString(),
-      query: { year, selectedId, zoom, center, bearing: camera.bearing ?? 0, pitch: camera.pitch ?? 0, layers, filters, boundaryChoices },
+      query: { year, displayedYear: visibleWorld.year, selectedId, zoom, center, bearing: camera.bearing ?? 0, pitch: camera.pitch ?? 0, layers, filters, boundaryChoices },
       world: visibleWorld,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -428,7 +428,7 @@ export function AtlasClient() {
         notesContent={<AnnotationNotebook year={year} notes={notebook.notes} onChange={notebook.setNotes} ready={notebook.ready} warning={notebook.warning} drawMode={drawMode === 'Rectangle' ? null : drawMode} points={drawPoints} onDraw={(mode) => { setDrawMode(mode); setDrawPoints([]); setPanel(null); }} onAddPoint={addDrawPoint} onCancel={cancelDrawing} />}
         researchContent={<ResearchWorkbench year={year} bounds={bounds} rectangle={rectangle} layers={activeWorld.layers} onDrawRectangle={() => { setRectangle(null); setDrawMode('Rectangle'); setDrawPoints([]); setPanel(null); }} />}
         episodesContent={<EpisodePlayer stopToken={episodeStopToken} coverageReady={backendStatus !== 'loading' && backendStatus !== 'unavailable' && (episodeLayerIds ?? []).every((id) => activeWorld.layers.some((layer) => layer.id === id))} missingLayers={(episodeLayerIds ?? []).filter((id) => !activeWorld.layers.some((layer) => layer.id === id))} onStep={applyEpisodeStep} onAssets={setEpisodeAssets} onExit={exitEpisode} reducedMotion={reducedMotion} />}
-        statusContent={<LayerStatusPanel status={{ delivery: backendStatus === 'live' ? 'ready' : backendStatus, year, recordCount: activeWorld.civilizations.length + activeWorld.nodes.length + activeWorld.routes.length, layers: selectedLayers }} />}
+        statusContent={<LayerStatusPanel status={{ delivery: backendStatus === 'live' ? 'ready' : backendStatus, year: activeWorld.year, recordCount: activeWorld.civilizations.length + activeWorld.nodes.length + activeWorld.routes.length, layers: selectedLayers }} />}
         panel={panel}
         onPanelChange={setPanel}
         onRetry={reload}
@@ -461,6 +461,7 @@ export function AtlasClient() {
             }
           >
             <LazyAtlasMap
+              year={visibleWorld.year}
               annotations={mapNotes}
               imageOverlays={imageOverlays}
               drawMode={drawMode}
@@ -474,9 +475,7 @@ export function AtlasClient() {
               initialCenter={center}
               initialZoom={zoom}
               civilizations={visibleWorld.civilizations}
-              civilizationLayers={visibleWorld.layers.filter((layer) =>
-                visibleWorld.civilizations.some((item) => item.id === layer.civilizationId),
-              )}
+              civilizationLayers={visibleWorld.layers}
               evidenceIds={highlightedIds}
               nodes={visibleWorld.nodes}
               routes={visibleWorld.routes}

@@ -147,3 +147,22 @@ restore drill before a public release. Check readiness, query errors, asset-load
 errors and missing coverage in the deployed preview. The implementation's local
 preview database is isolated from existing databases; no public deployment or
 new contributor-account system is part of this rollout.
+
+
+## Timeline transitions
+
+Dragging the timeline retains the last successfully loaded snapshot until the
+next date is ready. Its original year stays in the world payload and heading;
+the loading message names both the requested and displayed dates. Preview
+geometry starts loading immediately; API requests still debounce briefly.
+Failed requests and genuinely empty results clear the map instead of borrowing
+boundaries from another date. Exports record the requested and displayed years.
+
+Changed boundary snapshots cross-fade over 240 ms after the map worker has
+installed both sets of geometry. Unchanged features stay opaque, and rapid
+scrubs coalesce to the newest date. This animates opacity, not historical
+coordinates. Source credit remains present during outgoing geometry's fade.
+Layer/filter changes clear immediately; reduced-motion preferences skip fades.
+
+Regression checks cover rapid scrubbing across centuries, delayed/failed API
+requests, source readiness, interrupted transitions and reduced motion.
