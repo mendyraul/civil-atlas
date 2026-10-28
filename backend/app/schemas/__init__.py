@@ -1,7 +1,7 @@
 from math import isfinite
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 
 
 Position = tuple[float, float]
@@ -295,9 +295,17 @@ class ReviewDecision(BaseModel):
 
 class ReviewActionRequest(BaseModel):
     assignment_id: str
-    decision_type: Literal["approve", "request_changes", "reject", "publish"]
+    decision_type: Literal["approve", "request_changes", "reject", "publish", "dispute"]
     reviewer: str
-    rationale: str = Field(min_length=1)
+    rationale: str = Field(min_length=1, max_length=4000)
+    expected_version: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+
+    @field_validator("reviewer", "rationale")
+    @classmethod
+    def nonblank_review_text(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("A reviewer and rationale are required")
+        return value.strip()
 
 
 class RevisionRecord(BaseModel):
