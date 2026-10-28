@@ -26,7 +26,9 @@ proxy). Restrict `/editor` and `/editor/*` at ingress alongside both existing
 editorial API aliases (`/api/v1/review-*` and `/api/review-*`, plus operational
 import/storage endpoints). Configure the proxy to preserve the original scheme
 and host: browser writes require an exact same-origin match and a session CSRF
-token. The screen is not linked or bundled into the public frontend.
+token. Cross-origin editor reads are rejected too; the public frontend's CORS
+permissions do not grant access to review data. The screen is not linked or
+bundled into the public frontend.
 
 ## Review a record
 

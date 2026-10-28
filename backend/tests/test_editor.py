@@ -422,3 +422,18 @@ def test_bulk_failure_after_first_decision_rolls_back_publication(
     first = context(client, assignments["editor-citation-a"])
     assert first["target"]["review_status"] == "needs_review"
     assert first["history"] == []
+
+
+def test_public_frontend_cors_does_not_authorize_editor_reads(editorial):
+    client = TestClient(app)
+    login(client)
+    for path in (
+        "/editor/api/session",
+        "/editor/api/queue",
+        "/editor/api/reviews/assignment-editor-proposed",
+    ):
+        response = client.get(path, headers={"origin": "http://localhost:3000"})
+        assert response.status_code == 403
+        assert "Editor proposed boundary" not in response.text
+        assert SECRET not in response.text
+    assert client.get("/editor/api/queue", headers=ORIGIN).status_code == 200

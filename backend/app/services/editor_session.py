@@ -65,6 +65,9 @@ def same_origin(request):
 
 def require_editor(request: Request):
     data = read_session(request)
+    # Public frontend CORS permissions do not grant access to editorial data.
+    if request.headers.get("origin"):
+        same_origin(request)
     if request.method not in ("GET", "HEAD"):
         same_origin(request)
         if not hmac.compare_digest(
