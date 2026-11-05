@@ -197,3 +197,50 @@ def test_capitals_and_events_keep_place_dates_and_source_assertions(kind, collec
         and record["source_record_ids"]
     )
     assert record["review_status"] == "needs_review"
+
+
+def test_dated_capital_context_requires_civilization_and_place_lifetimes(
+    database, monkeypatch
+):
+    from app.services import enrichment
+    from app.services.repository import AtlasRepository
+    from tests.release_fixture import dataset
+
+    monkeypatch.setattr(enrichment, "session_scope", database)
+    records = dataset()
+    with database() as session:
+        repo = AtlasRepository(session)
+        for item in records:
+            repo.upsert(
+                item["entity_type"],
+                item["external_id"],
+                item["payload"],
+                "test:context",
+                published=True,
+            )
+    assert (
+        enrichment.civilization_context("roman-empire", 117)["capitals"][0]["label"]
+        == "Synthetic capital"
+    )
+    with database() as session:
+        repo = AtlasRepository(session)
+        place = repo.get("places", "release-a")
+        place["end_year"] = 116
+        repo.upsert("places", "release-a", place, "test:context", published=True)
+    assert enrichment.civilization_context("roman-empire", 117)["capitals"] == []
+    assert enrichment.civilization_context("roman-empire", 117)["leaders"]
+    with database() as session:
+        repo = AtlasRepository(session)
+        civilization = repo.get("civilizations", "roman-empire")
+        civilization["end_year"] = 116
+        repo.upsert(
+            "civilizations",
+            "roman-empire",
+            civilization,
+            "test:context",
+            published=True,
+        )
+    assert enrichment.civilization_context("roman-empire", 117) == {
+        "leaders": [],
+        "capitals": [],
+    }
