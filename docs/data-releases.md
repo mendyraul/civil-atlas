@@ -60,10 +60,33 @@ attribution and data-license notices, so release export works inside the image.
 The root Docker ignore file excludes environment/credential files and unrelated
 frontend/development output from the backend build context.
 
-Start the database with `docker compose up -d db`, apply numbered migrations
-(including 006), load the release using the backend environment configured for
-that database, then start backend and frontend with `docker compose up -d`.
-Use a reviewed dataset with the intended coverage before disabling demo mode.
+For a fresh Compose installation, save a reviewed release in the repository root
+as `civil-atlas-data.zip`, copy `.env.example` to `.env` and run:
+
+```sh
+docker compose up -d db
+# Wait until PostgreSQL initialization completes; a fresh volume runs db/init/.
+docker compose run --build --rm --no-deps \
+  -v "$PWD/civil-atlas-data.zip:/release.zip:ro" backend \
+  python -m app.data_release validate /release.zip --sha256 '<published-sha256>'
+docker compose run --rm --no-deps \
+  -v "$PWD/civil-atlas-data.zip:/release.zip:ro" backend \
+  python -m app.data_release load /release.zip
+docker compose up --build -d
+```
+
+Replace `<published-sha256>` with the release's SHA-256. `--no-deps` lets the
+one-off backend command use the running database without starting unrelated
+services. Run from the repository root so the bind mount uses the downloaded
+file. An existing database volume does not rerun initialization scripts: apply
+any missing numbered SQL migrations with `psql` before using these commands.
+Do not run the seed importer before loading, and do not reset an existing
+database to make a release fit; use a separate empty database. Use a reviewed
+dataset with the intended coverage before disabling demo mode.
+
+No historical dataset release is published yet. The commands above require a
+real reviewed release; the test fixture is not a substitute. Publishing the
+first release and proving public-site data parity remain outstanding.
 
 The fresh-database acceptance test exports a dependency-closed synthetic atlas
 into a ZIP, loads it into a separate newly migrated database, compares public

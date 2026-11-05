@@ -109,8 +109,11 @@ point `NEXT_PUBLIC_MAP_STYLE_URL` at that style.
 ## Seed data
 
 The current versioned import manifest spans roughly `600 BCE` to `1800 CE`,
-with `117 CE` as the main focal year. It includes seven civilizations, a small
-place set, a small edge set, and manual source/evidence records. Import it with:
+with `117 CE` as the main focal year. Version 1.2.0 includes 29 civilization
+records, including 21 new private source-reported candidates. Seven additional
+117 CE source identities remain unresolved. See the
+[inventory status](docs/data-issues-progress.md) before using this as coverage
+evidence. Import it with:
 
 ```bash
 cd backend
@@ -143,13 +146,13 @@ sources, claims, confidence levels, review status, and valid time ranges.
 ## Known limitations
 
 - Boundaries are schematic placeholder or source-reported approximations
-- A local Pleiades JSON adapter supports selected-record imports with archived
-  source bytes, provenance, and review assignments; live fetching remains future work.
-  See [the Pleiades pilot runbook](docs/pleiades-pilot.md).
+- Local snapshot adapters support Pleiades, Cliopatria, OHM, Itiner-e, AWMC and
+  Wikidata, with archived source bytes, provenance and private review assignments.
+  Live fetching remains future work.
 - PostGIS geometry storage is in place, but production geometry population and
   vector-tile generation remain future scale work
-- Source ingestion and editorial review are currently operator/API foundations;
-  the end-to-end editor UI is not yet available
+- Source ingestion remains an operator workflow. The opt-in private editor UI
+  supports citation checks, boundary comparison and recorded review decisions.
 - The frontend is still optimized for the MVP atlas flow, not a full research UI
 # Data modes
 
@@ -192,8 +195,25 @@ See [editor setup and publication rules](docs/editor-review.md).
 
 ## Reviewed dataset releases
 
-Self-hosters can load a versioned reviewed dataset after database migrations,
-without rerunning source imports. See [data releases](docs/data-releases.md).
+Self-hosters can load a versioned reviewed dataset without rerunning source
+imports. No historical dataset release has been published yet. Once a reviewed
+archive is available from [GitHub Releases](https://github.com/mendyraul/civil-atlas/releases),
+save it as `civil-atlas-data.zip` in the repository root. For a new installation:
+
+```bash
+cp .env.example .env
+docker compose up -d db
+# Wait until PostgreSQL reports that initialization is complete.
+docker compose run --build --rm --no-deps \
+  -v "$PWD/civil-atlas-data.zip:/release.zip:ro" backend \
+  python -m app.data_release load /release.zip
+docker compose up --build -d
+```
+
+A fresh database volume applies the numbered migrations automatically. Loading
+requires an empty canonical database; do not run the seed importer first. See
+[data releases](docs/data-releases.md) for checksum validation, existing-database
+migrations and the publication workflow.
 Local ingestion guides cover [OHM boundaries](docs/ohm-import.md),
 [roads and physical geography](docs/geography-import.md), and
 [Wikidata enrichment](docs/wikidata-import.md).

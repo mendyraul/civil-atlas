@@ -98,6 +98,11 @@ upstream inputs rather than synthetic fixtures alone:
   workflow runs on GitHub-hosted infrastructure. The Docker backend includes
   attribution/license notices and passes both real OHM dry-run and release
   validation checks on Python 3.13.
+- A separate fresh Compose database applies the checked-in migrations, validates
+  and loads the synthetic 19-record archive through the one-off backend command,
+  then serves readiness, world, sources and dated leader/capital responses from
+  the running Docker API. The self-hosting instructions include the verified
+  bind-mount commands and distinguish this drill from an actual historical release.
 
 Upstream fixture READMEs record exact hashes, URLs and license evidence. These
 mechanical tests do not constitute historical/editorial approval. The seven #57
