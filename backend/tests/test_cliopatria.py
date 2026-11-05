@@ -25,14 +25,21 @@ MAPPED = ["Q139377", "Q241790", "Q5257"]
 
 
 def prepare(ids=None, year=117, version="cliopatria-test-v1", snapshot=FIXTURE):
-    return prepare_import(CliopatriaAdapter(year), snapshot, ids or [], version, RETRIEVED)
+    return prepare_import(
+        CliopatriaAdapter(year), snapshot, ids or [], version, RETRIEVED
+    )
 
 
 def test_selects_rows_active_in_year_as_review_only_boundary_variants():
     manifest = prepare().manifest
     datasets = manifest["datasets"]
     layers = {layer["civilization_id"]: layer for layer in datasets["layers"]}
-    assert set(layers) == {"aksumite-kingdom", "kingdom-of-kush", "satavahana-dynasty", "funan"}
+    assert set(layers) == {
+        "aksumite-kingdom",
+        "kingdom-of-kush",
+        "satavahana-dynasty",
+        "funan",
+    }
     satavahana = layers["satavahana-dynasty"]
     assert (satavahana["valid_from_year"], satavahana["valid_to_year"]) == (106, 126)
     assert satavahana["id"] == "cliopatria-satavahana-dynasty-106ce-126ce"
@@ -49,16 +56,25 @@ def test_selects_rows_active_in_year_as_review_only_boundary_variants():
 def test_records_link_layer_claim_evidence_and_cc_by_source():
     datasets = prepare(["Q241790"]).manifest["datasets"]
     (source,), (record,), (claim,), (layer,), (evidence,) = (
-        datasets[k] for k in ("sources", "source_records", "claims", "layers", "evidence"))
+        datasets[k]
+        for k in ("sources", "source_records", "claims", "layers", "evidence")
+    )
     assert source["license"] == LICENSE
     assert source["external_id"] == "cliopatria_polities_only_v021"
     assert "10.1038/s41597-025-04516-9" in source["citation"]
-    assert layer["claim_ids"] == [claim["id"]] and layer["source_record_ids"] == [record["id"]]
-    assert claim["subject_id"] == layer["id"] and claim["object_id"] == "kingdom-of-kush"
+    assert layer["claim_ids"] == [claim["id"]] and layer["source_record_ids"] == [
+        record["id"]
+    ]
+    assert (
+        claim["subject_id"] == layer["id"] and claim["object_id"] == "kingdom-of-kush"
+    )
     assert claim["source_id"] == evidence["source_id"] == source["id"]
     assert record["feature_id"] == evidence["entity_id"] == layer["id"]
-    original = next(f for f in json.loads(FIXTURE.read_bytes())["features"]
-                    if f["properties"]["Wikidata"] == "Q241790")
+    original = next(
+        f
+        for f in json.loads(FIXTURE.read_bytes())["features"]
+        if f["properties"]["Wikidata"] == "Q241790"
+    )
     assert layer["geometry_json"] == original["geometry"]
 
 
@@ -68,7 +84,10 @@ def test_omissions_report_inactive_and_unmapped_polities():
     assert "no Cliopatria row active in 117" in omissions["Q28370"]
     # Explicit selections do not list every unmapped polity.
     assert prepare(["Q5257"]).manifest["omissions"] == []
-    assert prepare(["Q5257"], year=100).manifest["datasets"]["layers"][0]["valid_to_year"] == 105
+    assert (
+        prepare(["Q5257"], year=100).manifest["datasets"]["layers"][0]["valid_to_year"]
+        == 105
+    )
 
 
 def test_geometry_matches_seed_layer_contract():
@@ -94,17 +113,22 @@ def test_release_zip_is_accepted(tmp_path):
     assert zipped["raw_sha256"] != plain["raw_sha256"]
 
 
-@pytest.mark.parametrize("ids,data,match", [
-    (["Q1", "Q1"], None, "must not repeat"),
-    (["423025"], None, "Wikidata IDs"),
-    (["Q999999999"], None, "no Civil Atlas civilization mapped"),
-    ([], b"broken", "Cliopatria GeoJSON"),
-    ([], b'{"type":"FeatureCollection","features":[]}', "release label"),
-    ([], b"PK\x03\x04broken", "valid zip"),
-])
+@pytest.mark.parametrize(
+    "ids,data,match",
+    [
+        (["Q1", "Q1"], None, "must not repeat"),
+        (["423025"], None, "Wikidata IDs"),
+        (["Q999999999"], None, "no Civil Atlas civilization mapped"),
+        ([], b"broken", "Cliopatria GeoJSON"),
+        ([], b'{"type":"FeatureCollection","features":[]}', "release label"),
+        ([], b"PK\x03\x04broken", "valid zip"),
+    ],
+)
 def test_invalid_input_rejected(ids, data, match):
     with pytest.raises(ValueError, match=match):
-        CliopatriaAdapter(117).normalize(data or FIXTURE.read_bytes(), ids, "v1", RETRIEVED)
+        CliopatriaAdapter(117).normalize(
+            data or FIXTURE.read_bytes(), ids, "v1", RETRIEVED
+        )
 
 
 def test_duplicate_active_rows_rejected():
@@ -117,31 +141,62 @@ def test_duplicate_active_rows_rejected():
 
 def test_reused_qid_cannot_attach_an_unrelated_polity():
     data = json.loads(FIXTURE.read_bytes())
-    feature = next(f for f in data["features"] if f["properties"]["Wikidata"] == "Q241790")
+    feature = next(
+        f for f in data["features"] if f["properties"]["Wikidata"] == "Q241790"
+    )
     feature["properties"]["Name"] = "Unrelated synthetic polity"
     with pytest.raises(ValueError, match="source identity mismatch"):
-        CliopatriaAdapter(117).normalize(json.dumps(data).encode(), ["Q241790"], "v1", RETRIEVED)
+        CliopatriaAdapter(117).normalize(
+            json.dumps(data).encode(), ["Q241790"], "v1", RETRIEVED
+        )
 
 
 def test_explicit_legacy_crosswalk_without_source_name_remains_supported():
-    crosswalk = {"Q241790": {"civilization_id": "kingdom-of-kush", "variant_group": "legacy-group"}}
-    result = CliopatriaAdapter(117, crosswalk).normalize(FIXTURE.read_bytes(), ["Q241790"], "v1", RETRIEVED)
+    crosswalk = {
+        "Q241790": {
+            "civilization_id": "kingdom-of-kush",
+            "variant_group": "legacy-group",
+        }
+    }
+    result = CliopatriaAdapter(117, crosswalk).normalize(
+        FIXTURE.read_bytes(), ["Q241790"], "v1", RETRIEVED
+    )
     assert result.datasets["layers"][0]["variant_group"] == "legacy-group"
 
 
 @pytest.mark.parametrize("name", ["", " ", None, 12])
 def test_invalid_expected_source_name_rejected(tmp_path, name):
     path = tmp_path / "crosswalk.json"
-    path.write_text(json.dumps({"polities": [{"wikidata": "Q1", "civilization_id": "x", "variant_group": "x", "cliopatria_name": name}]}))
+    path.write_text(
+        json.dumps(
+            {
+                "polities": [
+                    {
+                        "wikidata": "Q1",
+                        "civilization_id": "x",
+                        "variant_group": "x",
+                        "cliopatria_name": name,
+                    }
+                ]
+            }
+        )
+    )
     with pytest.raises(ValueError, match="nonempty source name"):
         load_crosswalk(path)
 
 
 def test_license_gate_accepts_open_and_refuses_non_commercial(tmp_path):
-    assert resolve_license("CC-BY-4.0") == resolve_license("http://creativecommons.org/licenses/by/4.0/legalcode")
+    assert resolve_license("CC-BY-4.0") == resolve_license(
+        "http://creativecommons.org/licenses/by/4.0/legalcode"
+    )
     assert check_license(PleiadesAdapter()).spdx == "CC-BY-3.0"
     assert check_license(CliopatriaAdapter(117)).spdx == "CC-BY-4.0"
-    for refused in ("CC-BY-NC-SA-4.0", "https://creativecommons.org/licenses/by-sa/3.0/", "GPL-3.0", "unknown_seed"):
+    for refused in (
+        "CC-BY-NC-SA-4.0",
+        "https://creativecommons.org/licenses/by-sa/3.0/",
+        "GPL-3.0",
+        "unknown_seed",
+    ):
         with pytest.raises(ValueError, match="not cleared"):
             resolve_license(refused)
 
@@ -153,17 +208,37 @@ def test_license_gate_accepts_open_and_refuses_non_commercial(tmp_path):
 
 
 def test_cli_dry_run(tmp_path):
-    command = [sys.executable, "-m", "app.ingestion.cli", "--source", "cliopatria",
-               "--snapshot", str(FIXTURE), "--year", "117", "--dataset-version", "fixture-v1",
-               "--retrieved-at", RETRIEVED, "--actor", "test:cli",
-               "--artifact-dir", str(tmp_path / "archive"), "--dry-run"]
-    result = subprocess.run(command, cwd=Path(__file__).parents[1], capture_output=True, text=True)
+    command = [
+        sys.executable,
+        "-m",
+        "app.ingestion.cli",
+        "--source",
+        "cliopatria",
+        "--snapshot",
+        str(FIXTURE),
+        "--year",
+        "117",
+        "--dataset-version",
+        "fixture-v1",
+        "--retrieved-at",
+        RETRIEVED,
+        "--actor",
+        "test:cli",
+        "--artifact-dir",
+        str(tmp_path / "archive"),
+        "--dry-run",
+    ]
+    result = subprocess.run(
+        command, cwd=Path(__file__).parents[1], capture_output=True, text=True
+    )
     assert result.returncode == 0, result.stderr
     summary = json.loads(result.stdout)
     assert summary["status"] == "validated" and summary["counts"]["layers"] == 4
     assert not (tmp_path / "archive").exists()
     missing_year = [arg for arg in command if arg not in ("--year", "117")]
-    result = subprocess.run(missing_year, cwd=Path(__file__).parents[1], capture_output=True, text=True)
+    result = subprocess.run(
+        missing_year, cwd=Path(__file__).parents[1], capture_output=True, text=True
+    )
     assert result.returncode == 2 and "--year is required" in result.stderr
 
 
@@ -174,28 +249,106 @@ def test_import_stays_private_until_layer_approved(database, tmp_path, monkeypat
     layer_id = "cliopatria-kingdom-of-kush-630bce-337ce"
 
     def public_layer_ids():
-        spatial = client.get("/api/v1/spatial/layers", params={"year": 117}).json()["features"]
+        spatial = client.get("/api/v1/spatial/layers", params={"year": 117}).json()[
+            "features"
+        ]
         listed = client.get("/api/v1/civilization-layers").json()
         return {f["id"] for f in spatial}, {layer["id"] for layer in listed}
 
     with database() as session:
-        if not AtlasRepository(session).get("civilizations", "kingdom-of-kush", published_only=False):
+        if not AtlasRepository(session).get(
+            "civilizations", "kingdom-of-kush", published_only=False
+        ):
             pytest.skip("world117 seed not imported")
-    assert import_bundle(prepare(["Q241790"]), tmp_path / "archive", "test:cliopatria")["status"] == "completed"
+    assert (
+        import_bundle(prepare(["Q241790"]), tmp_path / "archive", "test:cliopatria")[
+            "status"
+        ]
+        == "completed"
+    )
     assert all(layer_id not in ids for ids in public_layer_ids())
     queue = client.get("/api/v1/review-assignments", headers=headers).json()
     assert any(a["id"] == f"review-layers-{layer_id}" for a in queue)
 
-    action = {"assignment_id": f"review-layers-{layer_id}", "decision_type": "approve",
-              "reviewer": "test:reviewer", "rationale": "Fixture approved for integration test."}
-    assert client.post("/api/v1/review-actions", headers=headers, json=action).status_code == 200
+    action = {
+        "assignment_id": f"review-layers-{layer_id}",
+        "decision_type": "approve",
+        "reviewer": "test:reviewer",
+        "rationale": "Fixture approved for integration test.",
+    }
+    assert (
+        client.post("/api/v1/review-actions", headers=headers, json=action).status_code
+        == 200
+    )
     assert all(layer_id in ids for ids in public_layer_ids())
 
 
 def test_import_refuses_layers_for_unknown_civilizations(database, tmp_path):  # noqa: F811
-    crosswalk = {"Q241790": {"civilization_id": "not-a-civilization", "variant_group": "x"}}
-    bundle = prepare_import(CliopatriaAdapter(117, crosswalk), FIXTURE, [], "cliopatria-test-bad", RETRIEVED)
+    crosswalk = {
+        "Q241790": {"civilization_id": "not-a-civilization", "variant_group": "x"}
+    }
+    bundle = prepare_import(
+        CliopatriaAdapter(117, crosswalk), FIXTURE, [], "cliopatria-test-bad", RETRIEVED
+    )
     with pytest.raises(ValueError, match="unknown civilization"):
         import_bundle(bundle, tmp_path / "archive", "test:cliopatria")
     with database() as session:
-        assert AtlasRepository(session).get("import_jobs", bundle.job_id, published_only=False) is None
+        assert (
+            AtlasRepository(session).get(
+                "import_jobs", bundle.job_id, published_only=False
+            )
+            is None
+        )
+
+
+def test_cli_uses_explicit_crosswalk_and_rejects_ignored_year_options(tmp_path):
+    mapping = tmp_path / "crosswalk.json"
+    mapping.write_text(
+        json.dumps(
+            {
+                "polities": [
+                    {
+                        "wikidata": "Q241790",
+                        "cliopatria_name": "Kingdom of Kush",
+                        "civilization_id": "kingdom-of-kush",
+                        "variant_group": "kingdom-of-kush-default-reading",
+                    }
+                ]
+            }
+        )
+    )
+    base = [
+        sys.executable,
+        "-m",
+        "app.ingestion.cli",
+        "--snapshot",
+        str(FIXTURE),
+        "--dataset-version",
+        "explicit-map-v1",
+        "--retrieved-at",
+        RETRIEVED,
+        "--actor",
+        "test:cli",
+        "--artifact-dir",
+        str(tmp_path / "archive"),
+        "--dry-run",
+    ]
+    result = subprocess.run(
+        base + ["--source", "cliopatria", "--year", "117", "--crosswalk", str(mapping)],
+        cwd=Path(__file__).parents[1],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["counts"]["layers"] == 1
+    invalid = subprocess.run(
+        base + ["--source", "wikidata", "--year", "117", "--crosswalk", str(mapping)],
+        cwd=Path(__file__).parents[1],
+        capture_output=True,
+        text=True,
+    )
+    assert (
+        invalid.returncode == 2
+        and "--year applies only to boundary sources" in invalid.stderr
+    )
+    assert not (tmp_path / "archive").exists()

@@ -143,6 +143,18 @@ class OHMAdapter:
             if crosswalk is not None
             else json.loads(DEFAULT_CROSSWALK.read_text())
         )
+        if not isinstance(self.crosswalk, dict) or any(
+            not re.fullmatch(r"Q[0-9]+|relation/[0-9]+", key)
+            or not isinstance(value, dict)
+            or not all(
+                isinstance(value.get(field), str) and value[field].strip()
+                for field in ("civilization_id", "variant_group")
+            )
+            for key, value in self.crosswalk.items()
+        ):
+            raise ValueError(
+                "OHM crosswalk requires QID/relation keys and civilization/variant-group mappings"
+            )
 
     def entity_ids_for(self, external_id):
         return [("layers", f"ohm-relation-{external_id}")]
@@ -184,6 +196,7 @@ class OHMAdapter:
                     updated_at=retrieved_at,
                 ).model_dump(mode="json"),
                 "review_status": "needs_review",
+                "mapping": self.crosswalk,
             }
         )
         for relation in data["elements"]:
@@ -251,6 +264,7 @@ class OHMAdapter:
                     valid_from_year=start,
                     valid_to_year=end,
                 ).model_dump(mode="json")
+                record["source_id"] = source_id
                 claim = HistoricalClaim(
                     id=claim_id,
                     claim_type="supports_boundary",
