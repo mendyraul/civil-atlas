@@ -12,6 +12,11 @@ cases remain unresolved. Issue #57 cannot be closed until those and editorial
 review are resolved. Unchanged seed replay uses a transactional receipt to
 preserve subsequent editorial decisions.
 
+The [identity review dossier](117-ce-identity-review.md) records revision-pinned
+evidence, three proposed identifier corrections and the remaining scope or
+chronology decisions. Proposals remain inactive until the identity review is
+resolved.
+
 Verification: seed dry-run and 30 focused unit/integration tests pass against
 PostGIS 16/3.5, including private publication state and review-preserving replay.
 
@@ -60,6 +65,8 @@ published; production coverage parity remains an operator/editorial gate.
 - Standard production build and an independent webpack build pass. A cached
   sandbox-induced Turbopack error cleared after moving generated output aside.
 - REUSE licensing validation passes.
+- [GitHub CI at `cf9e88d`](https://github.com/mendyraul/civil-atlas/actions/runs/42122940665)
+  passes all four jobs, including frontend browser and private editor checks.
 
 Keep #57 open for the seven documented unresolved cases and editorial review.
 Update roadmap #67 after merging these software deliveries; retain #55 and #62
