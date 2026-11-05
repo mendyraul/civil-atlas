@@ -1,0 +1,44 @@
+name: Reviewed data release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Dataset version (YYYY.MM or YYYY.MM.PATCH)'
+        required: true
+        type: string
+      publish:
+        description: 'Publish the validated export to GitHub Releases'
+        default: false
+        type: boolean
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: [self-hosted, civil-atlas-release]
+    environment: data-release
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Validate version
+        run: python -c 'import os,re; assert re.fullmatch(r"[0-9]{4}\.[0-9]{2}(?:\.[0-9]+)?", os.environ["RELEASE_VERSION"])'
+      - name: Validate and export reviewed data
+        working-directory: backend
+        run: |
+          python -m app.data_release export --version "$RELEASE_VERSION" --output "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip" --dry-run
+          python -m app.data_release export --version "$RELEASE_VERSION" --output "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: civil-atlas-${{ inputs.version }}
+          path: ${{ runner.temp }}/civil-atlas-${{ inputs.version }}.zip
+      - name: Publish release
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "data-$RELEASE_VERSION" "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip" --title "Reviewed data $RELEASE_VERSION" --notes 'Reviewed Civil Atlas dataset. See bundled attribution and ODbL notice.' --target "$GITHUB_SHA"

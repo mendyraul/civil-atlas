@@ -189,3 +189,11 @@ notes remain personal and unreviewed.
 The backend includes an opt-in review queue at `/editor`. Editors can compare
 proposed boundaries with published readings, check citations and record decisions.
 See [editor setup and publication rules](docs/editor-review.md).
+
+## Reviewed dataset releases
+
+Self-hosters can load a versioned reviewed dataset after database migrations,
+without rerunning source imports. See [data releases](docs/data-releases.md).
+Local ingestion guides cover [OHM boundaries](docs/ohm-import.md),
+[roads and physical geography](docs/geography-import.md), and
+[Wikidata enrichment](docs/wikidata-import.md).
