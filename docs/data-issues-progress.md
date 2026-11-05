@@ -16,3 +16,9 @@ Verification: seed dry-run and 30 focused unit/integration tests pass against
 PostGIS 16/3.5, including private publication state and review-preserving replay.
 
 No historical records were approved and public demo/deployment settings are unchanged.
+
+## #58 — OpenHistoricalMap
+
+Saved Overpass relation adapter and CLI support are implemented with exact-byte
+archives, checked crosswalks, alternative readings, retained source/fixme tags,
+explicit omissions and the existing editorial workflow. See `ohm-import.md`.
