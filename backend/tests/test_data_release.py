@@ -149,3 +149,94 @@ def test_release_omits_operational_metadata_from_public_payloads():
     records, _ = read_archive(raw)
     assert "secret_access_key" not in records[0]["payload"]
     assert "artifact_dir" not in records[0]["payload"]
+
+
+def test_release_validates_curated_links_and_treats_source_properties_as_opaque():
+    from copy import deepcopy
+    from tests.release_fixture import dataset
+
+    records = dataset()
+    records[0]["payload"]["source_properties"] = {
+        "source_id": "upstream-source-identifier",
+        "civilization_id": "upstream-local-id",
+    }
+    raw, _ = build_archive(records, "2026.11")
+    assert (
+        read_archive(raw)[0][0]["payload"]["source_properties"]["source_id"]
+        == "upstream-source-identifier"
+    )
+    broken = deepcopy(records)
+    next(r for r in broken if r["entity_type"] == "episodes")["payload"]["steps"][0][
+        "entity_ids"
+    ] = ["private-node"]
+    with pytest.raises(ValueError, match="missing public entity"):
+        build_archive(broken, "2026.11")
+    broken = deepcopy(records)
+    next(r for r in broken if r["entity_type"] == "layers")["payload"][
+        "source_record_ids"
+    ] = ["private-source-record"]
+    with pytest.raises(ValueError, match="missing public dependency"):
+        build_archive(broken, "2026.11")
+
+
+def test_candidate_validation_needs_no_database_and_checks_version_digest(
+    tmp_path, monkeypatch
+):
+    from app.data_release import validate_release
+    from hashlib import sha256
+
+    raw, _ = build_archive([record()], "2026.11")
+    source = tmp_path / "candidate.zip"
+    source.write_bytes(raw)
+
+    def no_database():
+        raise AssertionError("validation must not connect to a database")
+
+    monkeypatch.setattr(data_release, "session_scope", no_database)
+    output = tmp_path / "verified.zip"
+    assert (
+        validate_release(source, "2026.11", sha256(raw).hexdigest(), output)["version"]
+        == "2026.11"
+    )
+    assert output.read_bytes() == raw
+    with pytest.raises(ValueError, match="SHA-256"):
+        validate_release(source, "2026.11", "0" * 64)
+    with pytest.raises(ValueError, match="version"):
+        validate_release(source, "2026.12")
+    with pytest.raises(FileExistsError):
+        validate_release(source, output=output)
+
+
+def test_release_rejects_blocked_and_unreviewed_records():
+    for overrides in [
+        {"review_status": "needs_review"},
+        {"import_review_blocked": "source dates removed"},
+    ]:
+        item = record()
+        item["payload"].update(overrides)
+        with pytest.raises(ValueError, match="review"):
+            build_archive([item], "2026.11")
+
+
+def test_legacy_import_receipts_become_stable_source_links_without_leaking_operations():
+    from tests.release_fixture import dataset
+    from app.data_release import preserve_release_links
+
+    records = dataset()
+    citation = next(r for r in records if r["entity_type"] == "source_records")[
+        "payload"
+    ]
+    origin = next(r for r in records if r["entity_type"] == "sources")["payload"]
+    citation.pop("source_id")
+    citation["import_job_id"] = "private-import-job"
+    origin["import_job_id"] = "private-import-job"
+    preserve_release_links(records, [{"entity_type": "sources", "payload": origin}])
+    assert citation["source_ids"] == ["release-origin"]
+    raw, _ = build_archive(records, "2026.11")
+    restored, _ = read_archive(raw)
+    restored_citation = next(
+        r for r in restored if r["entity_type"] == "source_records"
+    )["payload"]
+    assert restored_citation["source_ids"] == ["release-origin"]
+    assert "import_job_id" not in restored_citation
+    assert b"private-import-job" not in data_release.encode(restored)

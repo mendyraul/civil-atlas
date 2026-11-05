@@ -206,6 +206,7 @@ class GeographyAdapter:
                 + " Original properties: "
                 + json.dumps(props, sort_keys=True),
             ).model_dump(mode="json")
+            rec["source_id"] = source_id
             datasets["source_records"].append(rec)
             rec["notes"] += (
                 f" Normalized horizontal geometry from {source_crs} to OGC:CRS84; original coordinates and elevation remain in the raw archive."

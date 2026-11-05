@@ -25,7 +25,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       APP_ENV: staging
       DATABASE_URL: ${STAGING_DATABASE_URL:?STAGING_DATABASE_URL is required}

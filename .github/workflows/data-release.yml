@@ -6,32 +6,41 @@ on:
         description: 'Dataset version (YYYY.MM or YYYY.MM.PATCH)'
         required: true
         type: string
+      candidate_url:
+        description: 'HTTPS URL of an exported reviewed-data candidate'
+        required: true
+        type: string
+      sha256:
+        description: 'SHA-256 of the exported candidate ZIP'
+        required: true
+        type: string
       publish:
-        description: 'Publish the validated export to GitHub Releases'
+        description: 'Publish the validated candidate to GitHub Releases'
         default: false
         type: boolean
 permissions:
   contents: write
 jobs:
-  export:
-    runs-on: [self-hosted, civil-atlas-release]
+  validate:
+    runs-on: ubuntu-latest
     environment: data-release
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RELEASE_VERSION: ${{ inputs.version }}
+      CANDIDATE_URL: ${{ inputs.candidate_url }}
+      CANDIDATE_SHA256: ${{ inputs.sha256 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install -r backend/requirements.txt
-      - name: Validate version
-        run: python -c 'import os,re; assert re.fullmatch(r"[0-9]{4}\.[0-9]{2}(?:\.[0-9]+)?", os.environ["RELEASE_VERSION"])'
-      - name: Validate and export reviewed data
+      - name: Validate exported candidate without database access
         working-directory: backend
         run: |
-          python -m app.data_release export --version "$RELEASE_VERSION" --output "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip" --dry-run
-          python -m app.data_release export --version "$RELEASE_VERSION" --output "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip"
+          case "$CANDIDATE_URL" in https://*) ;; *) echo "candidate_url must use HTTPS"; exit 2 ;; esac
+          python -m app.data_release validate "$CANDIDATE_URL" \
+            --version "$RELEASE_VERSION" --sha256 "$CANDIDATE_SHA256" \
+            --output "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: civil-atlas-${{ inputs.version }}

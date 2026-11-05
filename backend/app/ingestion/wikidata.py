@@ -125,6 +125,7 @@ class WikidataAdapter:
                 citation=statement,
                 link=statement,
                 source_namespace=self.namespace,
+                source_id=source_id,
                 confidence="low",
                 review_status="needs_review",
                 notes=raw_notes,

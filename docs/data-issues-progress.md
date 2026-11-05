@@ -45,13 +45,13 @@ publication are performed automatically.
 Export/load commands validate public schemas, dependency closure, checksums and
 archive limits; load is transactional into an empty migrated database and
 rebuilds spatial/knowledge projections. Attribution and the ODbL notice travel
-with each archive. The manual release workflow requires a configured private
-runner and reviewed dataset. See `data-releases.md`. No real release has been
+with each archive. The manual release workflow validates a checksummed exported candidate on a
+GitHub-hosted runner without database access. See `data-releases.md`. No real release has been
 published; production coverage parity remains an operator/editorial gate.
 
 ## Verification
 
-- 124 backend tests pass, including the private editor Chromium test.
+- 141 backend tests pass, including the private editor Chromium test.
 - Frontend typecheck, lint and 43 unit tests pass.
 - All 17 atlas browser regressions pass, including mobile, accessibility, timeline
   scrubbing, linked cameras, source pages and failed-basemap recovery.
@@ -65,3 +65,33 @@ Keep #57 open for the seven documented unresolved cases and editorial review.
 Update roadmap #67 after merging these software deliveries; retain #55 and #62
 as deferred. Real source batches, approval and release publication require their
 own evidence and must not be inferred from synthetic acceptance fixtures.
+
+
+## Upstream-input and restoration audit — November 5, 2026
+
+The initial green CI run at `fb791c0` was followed by an audit against actual
+upstream inputs rather than synthetic fixtures alone:
+
+- Itiner-e static 2024 v1.3 stores all 14,769 records as 3D single-part
+  MultiLineStrings in EPSG:3395. Adapter v2 reprojects horizontal coordinates,
+  retains source/elevation bytes in the archive and recognizes actual ID/name
+  fields. A full-file dry run retains all source records and produces the one
+  explicitly mapped test route with 14,768 explicit omissions.
+- The real OHM relation 2849539 uses canonical Q2277 and an admin-centre node.
+  Its independent crosswalk, metadata-node handling, topology validation and
+  date conversion import the original private reading without omissions.
+- The saved real Wikidata P39 query preserves Trajan's Roman emperor office,
+  tenure qualifiers, date precision and calendar. RDF BCE numbering is converted
+  explicitly; capital/event paths and related entity lifetimes are also tested.
+- Release acceptance now exports 19 dependency-closed synthetic records from one
+  newly migrated database into another, compares public atlas/source/place/event/
+  context/knowledge responses and episodes, verifies projections, excludes private
+  operational data and tests source withdrawal after restoration.
+- Candidate validation is database-free and pins file SHA-256/version. The manual
+  workflow runs on GitHub-hosted infrastructure. The Docker backend includes
+  attribution/license notices and passes both real OHM dry-run and release
+  validation checks on Python 3.13.
+
+Upstream fixture READMEs record exact hashes, URLs and license evidence. These
+mechanical tests do not constitute historical/editorial approval. The seven #57
+cases and actual reviewed-dataset publication remain explicitly outstanding.
