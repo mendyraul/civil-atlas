@@ -384,27 +384,68 @@ class AtlasRepository:
 
 
     def upsert_knowledge_projection(self, kind, record):
-        if kind not in {'people','offices'}: return
+        if kind not in {"people", "offices"}:
+            return
+
         def entity(identifier, label, entity_kind):
-            self.session.execute(text("""
+            self.session.execute(
+                text("""
                 INSERT INTO entities(id,slug,entity_kind,canonical_name,review_status)
                 VALUES (:id,:id,:kind,:name,:status)
                 ON CONFLICT (id) DO UPDATE SET canonical_name=excluded.canonical_name,
                   review_status=excluded.review_status,updated_at=now()
-            """), {'id':identifier,'kind':entity_kind,'name':label,'status':record['review_status']})
-        if kind=='people':
-            entity(record['id'],record['name'],'person')
-            self.session.execute(text('INSERT INTO people(entity_id) VALUES (:id) ON CONFLICT DO NOTHING'),{'id':record['id']})
+            """),
+                {
+                    "id": identifier,
+                    "kind": entity_kind,
+                    "name": label,
+                    "status": record["review_status"],
+                },
+            )
+
+        if kind == "people":
+            entity(record["id"], record["name"], "person")
+            self.session.execute(
+                text(
+                    "INSERT INTO people(entity_id) VALUES (:id) ON CONFLICT DO NOTHING"
+                ),
+                {"id": record["id"]},
+            )
         else:
-            from hashlib import sha256
-            jurisdiction=record['civilization_id']
-            entity(jurisdiction,jurisdiction,'civilization')
-            office='wd-office-'+sha256(f"{jurisdiction}:{record['office']}".encode()).hexdigest()[:24]
-            entity(office,record['office'],'office')
-            self.session.execute(text("""INSERT INTO offices(entity_id,jurisdiction_entity_id,office_category)
+            jurisdiction = record["civilization_id"]
+            entity(jurisdiction, jurisdiction, "civilization")
+            office = (
+                "wd-office-"
+                + sha256(
+                    f"{jurisdiction}:{record.get('office_wikidata_id') or record['office']}".encode()
+                ).hexdigest()[:24]
+            )
+            entity(office, record["office"], "office")
+            self.session.execute(
+                text("""INSERT INTO offices(entity_id,jurisdiction_entity_id,office_category)
                 VALUES (:id,:jurisdiction,:category) ON CONFLICT DO NOTHING"""),
-                {'id':office,'jurisdiction':jurisdiction,'category':record['office']})
-            self.session.execute(text("""INSERT INTO office_tenures(id,office_entity_id,person_entity_id,valid_from_year,valid_to_year)
+                {
+                    "id": office,
+                    "jurisdiction": jurisdiction,
+                    "category": {
+                        "P35": "head_of_state",
+                        "P6": "head_of_government",
+                        "P39": "position_held",
+                    }.get(
+                        record.get("qualifiers", {}).get("property", {}).get("value"),
+                        "leadership",
+                    ),
+                },
+            )
+            self.session.execute(
+                text("""INSERT INTO office_tenures(id,office_entity_id,person_entity_id,valid_from_year,valid_to_year)
                 VALUES (:id,:office,:person,:start,:end) ON CONFLICT (id) DO UPDATE SET
-                person_entity_id=excluded.person_entity_id,valid_from_year=excluded.valid_from_year,valid_to_year=excluded.valid_to_year"""),
-                {'id':record['id'],'office':office,'person':record['person_id'],'start':record['start_year'],'end':record['end_year']})
+                office_entity_id=excluded.office_entity_id,person_entity_id=excluded.person_entity_id,valid_from_year=excluded.valid_from_year,valid_to_year=excluded.valid_to_year"""),
+                {
+                    "id": record["id"],
+                    "office": office,
+                    "person": record["person_id"],
+                    "start": record["start_year"],
+                    "end": record["end_year"],
+                },
+            )

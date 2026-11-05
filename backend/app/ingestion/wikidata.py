@@ -2,27 +2,50 @@
 
 import json
 import re
+import calendar
 from hashlib import sha256
 from app.ingestion.pleiades import NormalizedSnapshot
 from app.schemas import HistoricalEvent, PersonRecord, OfficeTenure, CapitalRole
 
 
 def dated_year(binding):
+    if not isinstance(binding, dict):
+        raise ValueError("expected a SPARQL timestamp binding")
     value = binding.get("value", "")
-    match = re.fullmatch(r"([+-]?\d{4,})-\d{2}-\d{2}T00:00:00Z", value)
+    match = re.fullmatch(
+        r"([+-]?\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z", value
+    )
     if not match:
         raise ValueError("unsupported or missing Wikidata timestamp")
-    return int(match[1])
+    year, month, day, hour, minute, second = map(int, match.groups())
+    if (
+        not 1 <= month <= 12
+        or not 1 <= day <= calendar.monthrange(year, month)[1]
+        or hour > 23
+        or minute > 59
+        or second > 59
+    ):
+        raise ValueError("invalid SPARQL timestamp")
+    # RDF timeValue literals use astronomical years (0 = 1 BCE), unlike
+    # Wikibase entity JSON. This adapter accepts SPARQL results, not entity JSON.
+    return year if year > 0 else year - 1
 
 
 class WikidataAdapter:
     namespace = "wikidata"
-    version = "1"
+    version = "2"
     label = "Wikidata saved SPARQL enrichment"
     license = "CC0-1.0"
     source_type = "knowledge_graph"
 
     def __init__(self, mapping):
+        if not isinstance(mapping, dict) or any(
+            not isinstance(mapping.get(key, {}), dict)
+            for key in ("civilizations", "places")
+        ):
+            raise ValueError(
+                "Wikidata crosswalk must contain civilization/place mapping objects"
+            )
         self.mapping = mapping
 
     def entity_ids_for(self, external_id):
@@ -158,7 +181,12 @@ class WikidataAdapter:
                         OfficeTenure(
                             **common,
                             person_id=pid,
-                            office=val(row, "property") or "head of state",
+                            office=val(row, "officeLabel")
+                            or val(row, "property")
+                            or "head of state",
+                            office_wikidata_id=qid(val(row, "office"))
+                            if val(row, "office")
+                            else None,
                         ).model_dump(mode="json")
                     )
                 elif kind == "capital":

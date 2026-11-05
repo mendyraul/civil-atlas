@@ -693,6 +693,7 @@ class OfficeTenure(BaseModel):
     civilization_id: str
     person_id: str
     office: str
+    office_wikidata_id: str | None = None
     start_year: int
     end_year: int
     review_status: str

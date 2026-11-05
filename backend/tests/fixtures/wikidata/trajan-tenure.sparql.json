@@ -1,0 +1,71 @@
+{
+  "head" : {
+    "vars" : [ "kind", "civilization", "value", "valueLabel", "office", "officeLabel", "statement", "property", "start", "end", "startPrecision", "endPrecision", "startCalendar", "endCalendar" ]
+  },
+  "results" : {
+    "bindings" : [ {
+      "civilization" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q2277"
+      },
+      "office" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q842606"
+      },
+      "value" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q1425"
+      },
+      "kind" : {
+        "type" : "literal",
+        "value" : "leader"
+      },
+      "property" : {
+        "type" : "literal",
+        "value" : "P39"
+      },
+      "valueLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Trajan"
+      },
+      "officeLabel" : {
+        "xml:lang" : "en",
+        "type" : "literal",
+        "value" : "Roman emperor"
+      },
+      "statement" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/statement/q1425-75340009-EA95-46B2-BD24-F7407C26A583"
+      },
+      "end" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "0117-08-06T00:00:00Z"
+      },
+      "endPrecision" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "11"
+      },
+      "endCalendar" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q1985786"
+      },
+      "start" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#dateTime",
+        "type" : "literal",
+        "value" : "0098-01-26T00:00:00Z"
+      },
+      "startPrecision" : {
+        "datatype" : "http://www.w3.org/2001/XMLSchema#integer",
+        "type" : "literal",
+        "value" : "11"
+      },
+      "startCalendar" : {
+        "type" : "uri",
+        "value" : "http://www.wikidata.org/entity/Q1985786"
+      }
+    } ]
+  }
+}
