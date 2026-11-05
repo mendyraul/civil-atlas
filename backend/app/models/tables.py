@@ -477,3 +477,14 @@ progress = Table(
     Column("consent_recorded_at", DateTime(timezone=True), nullable=False),
     Column("updated_at", DateTime(timezone=True), nullable=False),
 )
+
+# Dated person-to-office assertions, projected from publication-gated documents.
+office_tenures = Table(
+    "office_tenures", metadata,
+    Column("id", String(64), primary_key=True),
+    Column("office_entity_id", ForeignKey("offices.entity_id"), nullable=False),
+    Column("person_entity_id", ForeignKey("people.entity_id"), nullable=False),
+    Column("valid_from_year", Integer, nullable=False),
+    Column("valid_to_year", Integer, nullable=False),
+    CheckConstraint("valid_from_year <= valid_to_year"),
+)

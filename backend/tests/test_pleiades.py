@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import threading
 
 from fastapi.testclient import TestClient
 import pytest
@@ -18,7 +19,7 @@ from app.ingestion import pipeline
 from app.ingestion.pipeline import LocalArchive, import_bundle, prepare_import
 from app.ingestion.pleiades import LICENSE, PleiadesAdapter
 from app.main import app
-from app.services import atlas
+from app.services import atlas, enrichment
 from app.services.repository import AtlasRepository
 
 FIXTURE = Path(__file__).parent / "fixtures/pleiades/rome.json"
@@ -177,14 +178,16 @@ def database(monkeypatch):
             pytest.fail(f"PostgreSQL required in CI: {error}")
         pytest.skip(f"PostgreSQL unavailable: {error}")
     transaction = connection.begin()
+    lock = threading.RLock()
 
     @contextmanager
     def scope():
-        with Session(bind=connection, join_transaction_mode="create_savepoint") as session:
+        # Browser requests may overlap; the rollback fixture shares one connection.
+        with lock, Session(bind=connection, join_transaction_mode="create_savepoint") as session:
             with session.begin():
                 yield session
 
-    for module in (pipeline, routes, atlas):
+    for module in (pipeline, routes, atlas, enrichment):
         monkeypatch.setattr(module, "session_scope", scope)
     try:
         yield scope

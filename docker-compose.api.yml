@@ -2,7 +2,8 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     env_file:
       - ${CIVIL_ATLAS_API_ENV_FILE:?Set the path to the private API environment file}
     ports:

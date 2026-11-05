@@ -510,7 +510,35 @@ class HistoricalEvent(BaseModel):
     evidence: list[EvidenceRecord]
 
 
+class PhysicalFeature(BaseModel):
+    id: str
+    label: str
+    feature_type: str
+    geometry: dict[str, Any]
+    start_year: int | None = None
+    end_year: int | None = None
+    confidence: str
+    review_status: str
+    source_record_ids: list[str]
+    source_notes: str
+    source_properties: dict[str, Any] = Field(default_factory=dict)
+    source_id: str
+    date_citation: str | None = None
+
+    @model_validator(mode='after')
+    def validate_feature(self):
+        from app.ingestion.geography import validate_geometry
+        validate_geometry(self.geometry)
+        if (self.start_year is None) != (self.end_year is None):
+            raise ValueError('both date bounds are required together')
+        if self.start_year is not None and self.start_year > self.end_year:
+            raise ValueError('reversed date interval')
+        return self
+
+
 class WorldPayload(BaseModel):
+    enrichment: dict[str, dict[str, list[dict[str, Any]]]] = Field(default_factory=dict)
+    physical_features: list[PhysicalFeature] = Field(default_factory=list)
     year: int
     civilizations: list[Civilization]
     nodes: list[AtlasNode]
@@ -650,3 +678,39 @@ class SearchResult(BaseModel):
 class GraphView(BaseModel):
     nodes: list[KnowledgeEntity]
     edges: list[dict[str, object]]
+
+
+class PersonRecord(BaseModel):
+    id: str
+    name: str
+    wikidata_id: str
+    review_status: str
+    source_record_ids: list[str]
+
+
+class OfficeTenure(BaseModel):
+    id: str
+    civilization_id: str
+    person_id: str
+    office: str
+    office_wikidata_id: str | None = None
+    start_year: int
+    end_year: int
+    review_status: str
+    source_record_ids: list[str]
+    source_id: str
+    statement: str
+    qualifiers: dict[str, Any]
+
+
+class CapitalRole(BaseModel):
+    id: str
+    civilization_id: str
+    place_id: str
+    start_year: int
+    end_year: int
+    review_status: str
+    source_record_ids: list[str]
+    source_id: str
+    statement: str
+    qualifiers: dict[str, Any]

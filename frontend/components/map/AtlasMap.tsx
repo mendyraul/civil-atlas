@@ -5,7 +5,7 @@ import * as maplibregl from 'maplibre-gl';
 import { GeoJSONSource, LngLatBounds, MapMouseEvent } from 'maplibre-gl';
 import { NODE_VISIBILITY_ZOOM } from '../../lib/atlas';
 import { civilizationLabels } from '../../lib/cartography';
-import type { MapAnnotation, GeoJSONPosition as DrawingPosition, AtlasCamera, AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
+import type { PhysicalFeature, MapAnnotation, GeoJSONPosition as DrawingPosition, AtlasCamera, AtlasNode, AtlasRoute, Civilization, CivilizationLayer, GeoJSONPosition, TerritorialGeometry } from '../../types/atlas';
 import { createBoundaryTransition } from '../../lib/boundaryTransition';
 import { MapLegend } from './MapLegend';
 
@@ -15,6 +15,7 @@ maplibregl.setWorkerUrl(new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', impor
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE_URL || '/map-styles/minimal.json';
 
 type AtlasMapProps = {
+  physicalFeatures?: PhysicalFeature[];
   year?: number;
   annotations?: MapAnnotation[];
   imageOverlays?: Array<{ id: string; url: string; bounds: [number, number, number, number] }>;
@@ -258,10 +259,12 @@ function applyCurrentMapState(map: maplibregl.Map, state: MapState) {
   });
 }
 
+const EMPTY_PHYSICAL: PhysicalFeature[] = [];
 const EMPTY_ANNOTATIONS: MapAnnotation[] = [];
 const EMPTY_IMAGES: NonNullable<AtlasMapProps['imageOverlays']> = [];
 
 export function AtlasMap({
+  physicalFeatures = EMPTY_PHYSICAL,
   year,
   annotations = EMPTY_ANNOTATIONS, imageOverlays = EMPTY_IMAGES, drawMode = null, onDrawPoint, onFinishDraw, onBoundsChange,
   cameraCommand,
@@ -301,6 +304,7 @@ export function AtlasMap({
   const applyingCameraCommand = useRef(false);
   const [renderedCliopatria, setRenderedCliopatria] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [physicalVisible, setPhysicalVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const hoverRef = useRef<HoverRef>(null);
@@ -795,6 +799,25 @@ export function AtlasMap({
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map || mapStatus !== 'ready') return;
+    const sourceId = 'physical-geography';
+    if (!physicalVisible || physicalFeatures.length === 0) {
+      for (const id of ['physical-geography-line', 'physical-geography-fill']) if (map.getLayer(id)) map.removeLayer(id);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+      return;
+    }
+    const data: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: physicalFeatures.map((feature) => ({
+      type: 'Feature', id: feature.id, geometry: feature.geometry, properties: { label: feature.label },
+    })) };
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, { type: 'geojson', data, attribution: 'Physical geography: <a href="https://github.com/AWMC/geodata">AWMC</a> · <a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>' });
+      map.addLayer({ id: 'physical-geography-fill', type: 'fill', source: sourceId, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': '#4bc6d6', 'fill-opacity': 0.15 } });
+      map.addLayer({ id: 'physical-geography-line', type: 'line', source: sourceId, paint: { 'line-color': '#4bc6d6', 'line-width': 2 } });
+    } else (map.getSource(sourceId) as GeoJSONSource).setData(data);
+  }, [physicalFeatures, physicalVisible, mapStatus]);
+
+  useEffect(() => {
+    const map = mapRef.current;
     if (!map || mapStatus !== 'ready' || !cameraCommand) return;
     const current = map.getCenter();
     if (Math.abs(current.lng - cameraCommand.center[0]) < 0.0001 && Math.abs(current.lat - cameraCommand.center[1]) < 0.0001 && Math.abs(map.getZoom() - cameraCommand.zoom) < 0.001 && Math.abs(map.getBearing() - (cameraCommand.bearing ?? 0)) < 0.01 && Math.abs(map.getPitch() - (cameraCommand.pitch ?? 0)) < 0.01) return;
@@ -923,6 +946,7 @@ export function AtlasMap({
       </div>
       {drawMode && <div className="atlas-drawing-notice" role="status">{drawMode === 'Rectangle' ? 'Click two search corners.' : 'Click the globe to add note coordinates.'} <button className="atlas-tool" type="button" onClick={onFinishDraw}>Finish drawing</button></div>}
       <div className="atlas-camera-tools" role="group" aria-label="Globe camera controls">
+        {physicalFeatures.length > 0 && <button className="atlas-tool" type="button" aria-pressed={physicalVisible} onClick={() => setPhysicalVisible(!physicalVisible)}>Physical geography{physicalFeatures.some((feature) => feature.startYear === null) ? ' (includes undated features)' : ''}</button>}
         <button className="atlas-tool" type="button" onClick={() => { lastFlownRef.current = selectedId; mapRef.current?.flyTo({ center: [30, 25], zoom: mapRef.current && mapRef.current.getContainer().clientWidth < 768 ? 1.0 : 1.8, bearing: 0, pitch: 0, duration: reducedMotion ? 0 : 1100 }); }}>Reset globe</button>
         <button className="atlas-tool" type="button" onClick={() => mapRef.current?.easeTo({ bearing: 0, duration: reducedMotion ? 0 : 500 })}>North up</button>
         <button className="atlas-tool" type="button" onClick={() => { const map = mapRef.current; map?.easeTo({ pitch: map.getPitch() > 10 ? 0 : 35, duration: reducedMotion ? 0 : 700 }); }}>Tilt</button>

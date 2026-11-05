@@ -39,21 +39,20 @@ Canonical objects are not meant to stand alone. They should point back to:
 Confidence is an operational signal, not a claim of certainty. It helps the UI
 show where data is strong, provisional, or waiting on review.
 
-## Future source importers
+## Source importers
 
 Every source must clear the [licensing register](licensing-register.md) before
 import. The [historical data sources audit](historical-data-sources-audit.md)
 compares candidate sources for borders, places and routes.
 
-Likely future import candidates include:
+Additional source research candidates include:
 
-- Pleiades
 - World Historical Gazetteer
-- OpenHistoricalMap
-- Wikidata
 - Library of Congress
 - Europeana
 
 The local [Pleiades pilot](pleiades-pilot.md) now imports selected records from
-operator-supplied snapshots into the unpublished review workflow. Other adapters
-and live fetching remain future work.
+operator-supplied snapshots into the unpublished review workflow. Saved-snapshot
+adapters also cover [Cliopatria](cliopatria-import.md),
+[OpenHistoricalMap](ohm-import.md), [Itiner-e and AWMC](geography-import.md), and
+[Wikidata](wikidata-import.md). Live fetching remains future work.

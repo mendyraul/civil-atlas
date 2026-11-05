@@ -637,3 +637,9 @@ def episode(identifier: str):
     if pack is None:
         raise HTTPException(status_code=404, detail="Published episode not found")
     return pack
+
+
+@router.get('/civilizations/{civilization_id}/enrichment')
+def get_civilization_enrichment(civilization_id: str, year: int = Query(default=117)):
+    from app.services.enrichment import civilization_context
+    return civilization_context(civilization_id, _validate_year(year))

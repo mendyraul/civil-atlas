@@ -3,13 +3,179 @@
   "description": "Maps Cliopatria polities (by Wikidata ID) to world117 civilizations and their existing boundary variant groups.",
   "source": "https://github.com/Seshat-Global-History-Databank/cliopatria",
   "polities": [
-    {"wikidata": "Q12544", "cliopatria_name": "Roman Empire", "civilization_id": "roman-empire", "variant_group": "roman-117-frontier-readings"},
-    {"wikidata": "Q1068371", "cliopatria_name": "Han Dynasty", "civilization_id": "han-dynasty", "variant_group": "han-117-frontier-readings"},
-    {"wikidata": "Q1986139", "cliopatria_name": "Parthian Empire", "civilization_id": "parthian-empire", "variant_group": "parthian-empire-default-reading"},
-    {"wikidata": "Q241790", "cliopatria_name": "Kingdom of Kush", "civilization_id": "kingdom-of-kush", "variant_group": "kingdom-of-kush-default-reading"},
-    {"wikidata": "Q139377", "cliopatria_name": "Kingdom of Axum", "civilization_id": "aksumite-kingdom", "variant_group": "aksumite-kingdom-default-reading"},
-    {"wikidata": "Q28567", "cliopatria_name": "Mayan City-States", "civilization_id": "maya-civilization", "variant_group": "maya-civilization-default-reading"},
-    {"wikidata": "Q5257", "cliopatria_name": "Satavahana Dynasty", "civilization_id": "satavahana-dynasty", "variant_group": "satavahana-dynasty-default-reading"},
-    {"wikidata": "Q25979", "cliopatria_name": "Kushan Empire", "civilization_id": "kushan-empire", "variant_group": "kushan-empire-source-readings"}
+    {
+      "wikidata": "Q12544",
+      "cliopatria_name": "Roman Empire",
+      "civilization_id": "roman-empire",
+      "variant_group": "roman-117-frontier-readings"
+    },
+    {
+      "wikidata": "Q1068371",
+      "cliopatria_name": "Han Dynasty",
+      "civilization_id": "han-dynasty",
+      "variant_group": "han-117-frontier-readings"
+    },
+    {
+      "wikidata": "Q1986139",
+      "cliopatria_name": "Parthian Empire",
+      "civilization_id": "parthian-empire",
+      "variant_group": "parthian-empire-default-reading"
+    },
+    {
+      "wikidata": "Q241790",
+      "cliopatria_name": "Kingdom of Kush",
+      "civilization_id": "kingdom-of-kush",
+      "variant_group": "kingdom-of-kush-default-reading"
+    },
+    {
+      "wikidata": "Q139377",
+      "cliopatria_name": "Kingdom of Axum",
+      "civilization_id": "aksumite-kingdom",
+      "variant_group": "aksumite-kingdom-default-reading"
+    },
+    {
+      "wikidata": "Q28567",
+      "cliopatria_name": "Mayan City-States",
+      "civilization_id": "maya-civilization",
+      "variant_group": "maya-civilization-default-reading"
+    },
+    {
+      "wikidata": "Q5257",
+      "cliopatria_name": "Satavahana Dynasty",
+      "civilization_id": "satavahana-dynasty",
+      "variant_group": "satavahana-dynasty-default-reading"
+    },
+    {
+      "wikidata": "Q25979",
+      "cliopatria_name": "Kushan Empire",
+      "civilization_id": "kushan-empire",
+      "variant_group": "kushan-empire-source-readings"
+    },
+    {
+      "wikidata": "Q877155",
+      "cliopatria_name": "Early Cheras",
+      "civilization_id": "early-cheras",
+      "variant_group": "early-cheras-source-readings"
+    },
+    {
+      "wikidata": "Q3532152",
+      "cliopatria_name": "Early Pandyas",
+      "civilization_id": "early-pandyas",
+      "variant_group": "early-pandyas-source-readings"
+    },
+    {
+      "wikidata": "Q3532146",
+      "cliopatria_name": "Early Cholas",
+      "civilization_id": "early-cholas",
+      "variant_group": "early-cholas-source-readings"
+    },
+    {
+      "wikidata": "Q1378584",
+      "cliopatria_name": "Byeonhan",
+      "civilization_id": "byeonhan",
+      "variant_group": "byeonhan-source-readings"
+    },
+    {
+      "wikidata": "Q701273",
+      "cliopatria_name": "Jinhan",
+      "civilization_id": "jinhan",
+      "variant_group": "jinhan-source-readings"
+    },
+    {
+      "wikidata": "Q421372",
+      "cliopatria_name": "Mahan",
+      "civilization_id": "mahan",
+      "variant_group": "mahan-source-readings"
+    },
+    {
+      "wikidata": "Q844750",
+      "cliopatria_name": "Zapotec Civilization",
+      "civilization_id": "zapotec-civilization",
+      "variant_group": "zapotec-civilization-source-readings"
+    },
+    {
+      "wikidata": "Q867782",
+      "cliopatria_name": "Funan",
+      "civilization_id": "funan",
+      "variant_group": "funan-source-readings"
+    },
+    {
+      "wikidata": "Q28370",
+      "cliopatria_name": "Goguryeo",
+      "civilization_id": "goguryeo",
+      "variant_group": "goguryeo-source-readings"
+    },
+    {
+      "wikidata": "Q19083",
+      "cliopatria_name": "Caucasian Iberia",
+      "civilization_id": "caucasian-iberia",
+      "variant_group": "caucasian-iberia-source-readings"
+    },
+    {
+      "wikidata": "Q177076",
+      "cliopatria_name": "Caucasian Albania",
+      "civilization_id": "caucasian-albania",
+      "variant_group": "caucasian-albania-source-readings"
+    },
+    {
+      "wikidata": "Q136884",
+      "cliopatria_name": "Lazica",
+      "civilization_id": "lazica",
+      "variant_group": "lazica-source-readings"
+    },
+    {
+      "wikidata": "Q321371",
+      "cliopatria_name": "Cimmerian Bosporus",
+      "civilization_id": "cimmerian-bosporus",
+      "variant_group": "cimmerian-bosporus-source-readings"
+    },
+    {
+      "wikidata": "Q1627675",
+      "cliopatria_name": "Pyu City-States",
+      "civilization_id": "pyu-city-states",
+      "variant_group": "pyu-city-states-source-readings"
+    },
+    {
+      "wikidata": "Q240123",
+      "cliopatria_name": "Indo-Scythians",
+      "civilization_id": "indo-scythians",
+      "variant_group": "indo-scythians-source-readings"
+    },
+    {
+      "wikidata": "Q2086608",
+      "cliopatria_name": "Western Satraps",
+      "civilization_id": "western-satraps",
+      "variant_group": "western-satraps-source-readings"
+    },
+    {
+      "wikidata": "Q854062",
+      "cliopatria_name": "Wusun",
+      "civilization_id": "wusun",
+      "variant_group": "wusun-source-readings"
+    },
+    {
+      "wikidata": "Q289577",
+      "cliopatria_name": "Himyarite Kingdom",
+      "civilization_id": "himyarite-kingdom",
+      "variant_group": "himyarite-kingdom-source-readings"
+    },
+    {
+      "wikidata": "Q188836",
+      "cliopatria_name": "Xiongnu",
+      "civilization_id": "xiongnu",
+      "variant_group": "xiongnu-source-readings"
+    },
+    {
+      "wikidata": "Q861054",
+      "cliopatria_name": "Xianbei",
+      "civilization_id": "xianbei",
+      "variant_group": "xianbei-source-readings"
+    },
+    {
+      "wikidata": "Q911440",
+      "cliopatria_name": "Protectorate of the Western Regions",
+      "civilization_id": "protectorate-of-the-western-regions",
+      "variant_group": "protectorate-of-the-western-regions-source-readings"
+    }
   ]
 }

@@ -5,3 +5,5 @@ sqlalchemy==2.0.43
 psycopg[binary]==3.2.9
 pytest==9.0.3
 httpx==0.28.1
+pyproj==3.7.2
+shapely==2.1.2

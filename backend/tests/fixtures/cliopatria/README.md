@@ -22,3 +22,10 @@ five-row sample, it does not preserve every original property or the original
 release bytes. Its provenance records the upstream archive hash and the local
 source path. It has the same Cliopatria CC BY 4.0 attribution. Importing it
 still produces unpublished `needs_review` records.
+
+`expanded-117.geojson` selects 21 unchanged features active in 117 CE from the
+same `cliopatria_polities_only_v021` archive, retrieved November 5, 2026.
+Archive SHA-256: `e10a4e429fca708788ff9e7572a95fce801fae55852d217cffabc1c59cd4eed4`.
+The collection wrapper is regenerated; feature properties and coordinates are
+unchanged. The inventory crosswalk records seven excluded ambiguous identities.
+These rows support source-reported assertions and have not been editorially approved.

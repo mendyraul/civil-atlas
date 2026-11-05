@@ -47,6 +47,7 @@ jobs:
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/002_repository_integrity.sql
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/003_publication_state.sql
           PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/004_postgis_and_external_ids.sql
+          PGPASSWORD=civil_atlas psql -h localhost -U civil_atlas -d civil_atlas -f db/init/006_wikidata_projections.sql
         env:
           PGHOST: localhost
           PGPORT: 5432

@@ -1,0 +1,18 @@
+# Notable-event associations whose event has a sourced point-in-time statement.
+SELECT ?kind ?civilization ?value ?valueLabel ?statement ?dateStatement ?place
+       ?start ?end ?startPrecision ?endPrecision ?startCalendar ?endCalendar WHERE {
+  VALUES ?civilization { wd:Q2277 }
+  ?civilization p:P793 ?statement .
+  ?statement ps:P793 ?value .
+  ?value p:P585 ?dateStatement .
+  ?dateStatement psv:P585 ?dateNode .
+  FILTER NOT EXISTS { ?statement wikibase:rank wikibase:DeprecatedRank }
+  FILTER NOT EXISTS { ?dateStatement wikibase:rank wikibase:DeprecatedRank }
+  ?dateNode wikibase:timeValue ?start ; wikibase:timePrecision ?startPrecision ; wikibase:timeCalendarModel ?startCalendar .
+  BIND(?start AS ?end)
+  BIND(?startPrecision AS ?endPrecision)
+  BIND(?startCalendar AS ?endCalendar)
+  BIND("event" AS ?kind)
+  OPTIONAL { ?value wdt:P276 ?place }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}

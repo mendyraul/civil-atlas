@@ -1,0 +1,14 @@
+# Save the endpoint response as SPARQL JSON; ingestion never runs this query.
+# Roman Empire Q2277 / Roman emperor Q842606. P39 supplies dated person tenures.
+SELECT ?kind ?civilization ?value ?valueLabel ?office ?officeLabel ?statement ?property
+       ?start ?end ?startPrecision ?endPrecision ?startCalendar ?endCalendar WHERE {
+  VALUES (?civilization ?office) { (wd:Q2277 wd:Q842606) }
+  VALUES ?value { wd:Q1425 }
+  ?value p:P39 ?statement .
+  ?statement ps:P39 ?office ; pqv:P580 ?startNode ; pqv:P582 ?endNode .
+  ?startNode wikibase:timeValue ?start ; wikibase:timePrecision ?startPrecision ; wikibase:timeCalendarModel ?startCalendar .
+  ?endNode wikibase:timeValue ?end ; wikibase:timePrecision ?endPrecision ; wikibase:timeCalendarModel ?endCalendar .
+  BIND("leader" AS ?kind)
+  BIND("P39" AS ?property)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}

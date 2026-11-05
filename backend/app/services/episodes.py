@@ -9,16 +9,19 @@ def reviewed_record(repository, kind, identifier, year=None):
     start, end = record.get("start_year", record.get("valid_from_year")), record.get("end_year", record.get("valid_to_year"))
     if year is not None and (start is not None and year < start or end is not None and year > end):
         raise ValueError(f"{kind}/{identifier} is not valid in {year}")
-    if kind == "source_records" and record.get("import_job_id"):
-        # A release can be reused by later imports (for example another year).
-        # Follow its stable evidence identity before falling back to job metadata.
-        source_ids = {link["source_id"] for link in repository.list("evidence")
-                      if link.get("entity_id") == record.get("feature_id") and link.get("source_id")}
-        releases = ([repository.get("sources", identifier) for identifier in source_ids]
-                    if source_ids else [source for source in repository.list("sources")
-                                        if source.get("import_job_id") == record["import_job_id"]])
-        if not releases or any(not source or source.get("review_status") != "reviewed" for source in releases):
-            raise ValueError("The cited source release must remain published and reviewed")
+    if kind == "source_records":
+        source_ids = set(record.get('source_ids',[]))
+        if record.get('source_id'): source_ids.add(record['source_id'])
+        if not source_ids and record.get('import_job_id'):
+            source_ids = {link["source_id"] for link in repository.list("evidence")
+                          if link.get("entity_id") == record.get("feature_id") and link.get("source_id")}
+            if not source_ids:
+                source_ids = {source['id'] for source in repository.list('sources')
+                              if source.get('import_job_id')==record['import_job_id']}
+        if source_ids or record.get('import_job_id'):
+            releases=[repository.get('sources',identifier) for identifier in source_ids]
+            if not releases or any(not source or source.get('review_status')!='reviewed' for source in releases):
+                raise ValueError("The cited source release must remain published and reviewed")
     if kind == "layers":
         if record.get("is_placeholder") or record.get("geometry_placeholder"):
             raise ValueError("Curated territory cannot use placeholder boundaries")

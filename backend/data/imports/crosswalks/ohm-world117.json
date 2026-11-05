@@ -1,0 +1,13 @@
+{
+  "Q2277": {
+    "civilization_id": "roman-empire",
+    "variant_group": "roman-117-frontier-readings",
+    "expected_wikidata": "Q2277",
+    "expected_name": "Roman Empire",
+    "name_tag": "name:en",
+    "identity_sources": [
+      "https://www.wikidata.org/wiki/Q2277",
+      "https://www.openhistoricalmap.org/relation/2849539"
+    ]
+  }
+}
