@@ -40,3 +40,12 @@ Present-day reference borders use the existing OpenFreeMap/OpenMapTiles basemap
 - Itiner-e, Digital Atlas of Ancient Roads (CC BY 4.0)
 - Ancient World Mapping Center geodata (ODbL 1.0)
 - Wikidata (CC0)
+
+## Optional local geography imports
+
+- Itiner-e: Brughmans, de Soto, Pažout and Bjerregaard Vahlstrup,
+  *Itiner-e: the digital atlas of ancient roads*; CC BY 4.0.
+  https://www.itiner-e.org/about. Preserve each release's citation and source URL.
+- Ancient World Mapping Center (AWMC), current GeoJSON physical geography;
+  ODbL 1.0. https://github.com/AWMC/geodata. Includes AWMC modifications to
+  OpenStreetMap data; retain OpenStreetMap attribution.

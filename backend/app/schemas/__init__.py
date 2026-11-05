@@ -510,7 +510,34 @@ class HistoricalEvent(BaseModel):
     evidence: list[EvidenceRecord]
 
 
+class PhysicalFeature(BaseModel):
+    id: str
+    label: str
+    feature_type: str
+    geometry: dict[str, Any]
+    start_year: int | None = None
+    end_year: int | None = None
+    confidence: str
+    review_status: str
+    source_record_ids: list[str]
+    source_notes: str
+    source_properties: dict[str, Any] = Field(default_factory=dict)
+    source_id: str
+    date_citation: str | None = None
+
+    @model_validator(mode='after')
+    def validate_feature(self):
+        from app.ingestion.geography import validate_geometry
+        validate_geometry(self.geometry)
+        if (self.start_year is None) != (self.end_year is None):
+            raise ValueError('both date bounds are required together')
+        if self.start_year is not None and self.start_year > self.end_year:
+            raise ValueError('reversed date interval')
+        return self
+
+
 class WorldPayload(BaseModel):
+    physical_features: list[PhysicalFeature] = Field(default_factory=list)
     year: int
     civilizations: list[Civilization]
     nodes: list[AtlasNode]

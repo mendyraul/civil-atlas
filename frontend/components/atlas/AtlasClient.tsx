@@ -476,6 +476,7 @@ export function AtlasClient() {
               initialZoom={zoom}
               civilizations={visibleWorld.civilizations}
               civilizationLayers={visibleWorld.layers}
+              physicalFeatures={visibleWorld.physicalFeatures}
               evidenceIds={highlightedIds}
               nodes={visibleWorld.nodes}
               routes={visibleWorld.routes}

@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 PUBLIC_ENTITY_TYPES = {
+    "physical_features",
     "episodes",
     "annotations",
     "civilizations",
@@ -218,8 +219,8 @@ class AtlasRepository:
                 "source_note": str(record.get("source_note", "")),
                 "created_at": record.get("created_at"), "updated_at": record.get("updated_at"),
             })
-        elif entity_type == "nodes":
-            longitude, latitude = record["coordinates"]
+        elif entity_type in {"nodes", "places"}:
+            longitude, latitude = record["coordinates"] if entity_type == "nodes" else (record["longitude"],record["latitude"])
             self.session.execute(text("""
                 INSERT INTO places
                   (id, slug, canonical_name, modern_name, latitude, longitude, geom,
@@ -239,7 +240,7 @@ class AtlasRepository:
                   updated_at=excluded.updated_at
             """), {
                 "id": str(record["id"]), "slug": str(record.get("slug", record["id"])),
-                "canonical_name": str(record.get("name", record.get("label", record["id"]))),
+                "canonical_name": str(record.get("canonical_name", record.get("name", record.get("label", record["id"])))),
                 "modern_name": record.get("modern_name"), "latitude": float(latitude),
                 "longitude": float(longitude), "start_year": int(record["start_year"]),
                 "end_year": int(record["end_year"]),

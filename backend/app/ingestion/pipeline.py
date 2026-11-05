@@ -169,6 +169,14 @@ def import_bundle(bundle: ImportBundle, artifact_dir: Path, actor: str, *, dry_r
                 payload = {**record, "import_job_id": bundle.job_id, "manifest_sha256": bundle.digest}
                 result = repository.upsert(kind, identifier, payload, audit_actor, published=False)
                 results[result] += 1
+                if kind == "routes":
+                    for node_id in (record['source_node_id'],record['target_node_id']):
+                        if not repository.get('nodes',node_id,published_only=False):
+                            raise ValueError(f"route references unknown node {node_id}")
+                    for civilization_id in record.get('civilization_ids',[]):
+                        if not repository.get('civilizations',civilization_id,published_only=False):
+                            raise ValueError(f'route references unknown civilization {civilization_id}')
+                    repository.upsert_spatial_projection(kind,record)
                 if kind == "layers":
                     # The public layer query reads this PostGIS projection, gated by publication.
                     civilization_id = record["civilization_id"]

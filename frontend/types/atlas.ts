@@ -261,7 +261,19 @@ export type LearningChapter = {
   steps: LearningStep[];
 };
 
+export type PhysicalFeature = {
+  id: string;
+  label: string;
+  featureType: string;
+  geometry: TerritorialGeometry | { type: 'LineString'; coordinates: GeoJSONPosition[] } | { type: 'MultiLineString'; coordinates: GeoJSONPosition[][] };
+  startYear: number | null;
+  endYear: number | null;
+  sourceNotes: string;
+  sourceRecordIds: string[];
+};
+
 export type WorldPayload = {
+  physicalFeatures?: PhysicalFeature[];
   year: number;
   civilizations: Civilization[];
   nodes: AtlasNode[];
