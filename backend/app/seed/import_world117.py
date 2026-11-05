@@ -105,7 +105,7 @@ def import_fixture(
         session.execute(text("SELECT pg_advisory_xact_lock(hashtext('seed:world117'))"))
         receipt_id = sha256(f"{catalog.MANIFEST_SHA256}:{knowledge.MANIFEST_SHA256}:{publish}".encode()).hexdigest()
         if repository.get("seed_receipts", receipt_id, published_only=False):
-            return {**counts, "duplicate": sum(len(records) for _, records, _ in datasets), "status": "duplicate"}
+            return {**counts, "duplicate": sum(len(records) for _, records, _ in datasets) + len(knowledge.ENTITIES) + len(knowledge.CLAIMS) + len(knowledge.RELATIONSHIPS), "status": "duplicate"}
         for kind, records, schema in datasets:
             seen: set[str] = set()
             for raw in records:
