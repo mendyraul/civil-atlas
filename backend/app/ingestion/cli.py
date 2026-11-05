@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.ingestion.episodes import EpisodeAdapter
 from app.ingestion.ohm import OHMAdapter
 from app.ingestion.geography import AWMCAdapter, ItinereAdapter
+from app.ingestion.wikidata import WikidataAdapter
 from app.ingestion.cliopatria import CliopatriaAdapter
 from app.ingestion.pipeline import import_bundle, prepare_import
 from app.ingestion.pleiades import PleiadesAdapter
@@ -16,7 +17,7 @@ from app.ingestion.pleiades import PleiadesAdapter
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", choices=("pleiades", "cliopatria", "ohm", "itinere", "awmc", "episodes"), default="pleiades")
+    parser.add_argument("--source", choices=("pleiades", "cliopatria", "ohm", "itinere", "awmc", "wikidata", "episodes"), default="pleiades")
     parser.add_argument("--snapshot", required=True, type=Path)
     parser.add_argument(
         "--id", "--place-id", action="append", dest="ids", default=[],
@@ -30,12 +31,12 @@ def main() -> None:
     parser.add_argument("--artifact-dir", required=True, type=Path)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    if args.source in {'itinere','awmc'}:
+    if args.source in {'itinere','awmc','wikidata'}:
         if args.crosswalk is None:
             parser.error('--crosswalk is required for geography sources')
         try:
             mapping = json.loads(args.crosswalk.read_text())
-            adapter = {'itinere':ItinereAdapter,'awmc':AWMCAdapter:WikidataAdapter}[args.source](mapping)
+            adapter = {'itinere':ItinereAdapter,'awmc':AWMCAdapter,'wikidata':WikidataAdapter}[args.source](mapping)
         except (ValueError,OSError) as error:
             parser.error(str(error))
     elif args.source == "episodes":

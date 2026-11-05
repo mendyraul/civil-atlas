@@ -67,3 +67,30 @@ test('a slow date request retains a truthfully labelled snapshot and a failed da
   await expect(page.getByRole('alert').filter({ hasText: 'Historical data is unavailable for this year.' })).toBeVisible();
   await expect(status).toContainText('/ 0 polities');
 });
+
+test('reviewed physical geography is a separate attributed overlay and dated leaders appear in the dossier', async ({ page }) => {
+  const civilization = fixture.world.civilizations[0];
+  const world = { ...fixture.world,
+    physical_features: [{ id: 'awmc-fixture', label: 'Synthetic river', feature_type: 'river',
+      geometry: { type: 'LineString', coordinates: [[10, 30], [12, 32]] }, start_year: null, end_year: null,
+      source_notes: 'Synthetic browser fixture', source_record_ids: [] }],
+    enrichment: { [civilization.id]: { leaders: [{ id: 'fixture-tenure', label: 'Synthetic reviewed leader',
+      start_year: 98, end_year: 117, citation: 'https://www.wikidata.org/wiki/Q1425' }], capitals: [] } },
+  };
+  await page.route('https://public-api.fixture.invalid/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    await route.fulfill({ headers: { 'Access-Control-Allow-Origin': '*' }, json: path.endsWith('/world/117') ? world : path.endsWith('/sources') ? fixture.sources : [] });
+  });
+  await page.goto('/atlas');
+  const overlay = page.getByRole('button', { name: 'Physical geography (includes undated features)' });
+  await expect(overlay).toHaveAttribute('aria-pressed', 'false');
+  await overlay.click();
+  await expect(overlay).toHaveAttribute('aria-pressed', 'true');
+  const credits = page.locator('.maplibregl-ctrl-attrib-inner');
+  await expect(credits).toContainText('AWMC');
+  await overlay.click();
+  await expect(credits).not.toContainText('AWMC');
+  await page.goto('/atlas?sel=' + civilization.id);
+  await page.getByRole('button', { name: /Selection & evidence/ }).click();
+  await expect(page.getByRole('link', { name: 'Synthetic reviewed leader' })).toBeVisible();
+});

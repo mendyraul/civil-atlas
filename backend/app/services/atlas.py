@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.db.session import session_scope
 from app.schemas import (
-    PhysicalFeature, AtlasNode, AtlasRoute, Civilization, CivilizationEdge, CivilizationLayer,
+    PersonRecord, OfficeTenure, CapitalRole, PhysicalFeature, AtlasNode, AtlasRoute, Civilization, CivilizationEdge, CivilizationLayer,
     CivilizationPlace, Era, EvidenceLink, GlobePayload, HistoricalClaim,
     HistoricalEvent, HistoricalRelationship, ImportJob, Place, ReviewAssignment,
     ReviewDecision, RevisionRecord, Source, SourceArtifact, SourceRecord, WorldPayload,
@@ -21,6 +21,7 @@ T = TypeVar("T", bound=BaseModel)
 
 MODEL_TYPES: dict[str, type[BaseModel]] = {
     "physical_features": PhysicalFeature,
+    "people": PersonRecord, "offices": OfficeTenure, "capital_roles": CapitalRole,
     "civilizations": Civilization, "layers": CivilizationLayer, "nodes": AtlasNode,
     "routes": AtlasRoute, "places": Place, "civilization_places": CivilizationPlace,
     "edges": CivilizationEdge, "sources": Source, "source_records": SourceRecord,
@@ -64,7 +65,9 @@ def active(start: int, end: int, year: int) -> bool:
 
 def get_world(year: int) -> WorldPayload:
     civilizations = [x for x in list_entities("civilizations", Civilization) if active(x.start_year, x.end_year, year)]
+    from app.services.enrichment import civilization_context
     return WorldPayload(
+        enrichment={c.id: civilization_context(c.id,year) for c in civilizations},
         year=year, civilizations=civilizations,
         physical_features=[x for x in list_entities("physical_features", PhysicalFeature) if x.start_year is None or active(x.start_year,x.end_year,year)],
         nodes=[x for x in list_entities("nodes", AtlasNode) if active(x.start_year, x.end_year, year)],

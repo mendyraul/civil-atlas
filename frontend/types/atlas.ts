@@ -272,7 +272,13 @@ export type PhysicalFeature = {
   sourceRecordIds: string[];
 };
 
+export type CivilizationContext = {
+  leaders: Array<{ id: string; label: string; startYear: number; endYear: number; citation: string }>;
+  capitals: Array<{ id: string; label: string; startYear: number; endYear: number; citation: string }>;
+};
+
 export type WorldPayload = {
+  enrichment?: Record<string, CivilizationContext>;
   physicalFeatures?: PhysicalFeature[];
   year: number;
   civilizations: Civilization[];

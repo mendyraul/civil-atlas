@@ -169,6 +169,12 @@ def import_bundle(bundle: ImportBundle, artifact_dir: Path, actor: str, *, dry_r
                 payload = {**record, "import_job_id": bundle.job_id, "manifest_sha256": bundle.digest}
                 result = repository.upsert(kind, identifier, payload, audit_actor, published=False)
                 results[result] += 1
+                repository.upsert_knowledge_projection(kind,record)
+                if kind in {'offices','capital_roles'}:
+                    for target_kind, target_id in [('civilizations',record['civilization_id']),
+                        ('people',record['person_id']) if kind=='offices' else ('places',record['place_id'])]:
+                        if not repository.get(target_kind,target_id,published_only=False):
+                            raise ValueError(f"unknown enrichment reference {target_kind}/{target_id}")
                 if kind == "routes":
                     for node_id in (record['source_node_id'],record['target_node_id']):
                         if not repository.get('nodes',node_id,published_only=False):

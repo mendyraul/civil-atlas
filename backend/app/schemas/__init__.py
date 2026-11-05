@@ -537,6 +537,7 @@ class PhysicalFeature(BaseModel):
 
 
 class WorldPayload(BaseModel):
+    enrichment: dict[str, dict[str, list[dict[str, Any]]]] = Field(default_factory=dict)
     physical_features: list[PhysicalFeature] = Field(default_factory=list)
     year: int
     civilizations: list[Civilization]
@@ -677,3 +678,38 @@ class SearchResult(BaseModel):
 class GraphView(BaseModel):
     nodes: list[KnowledgeEntity]
     edges: list[dict[str, object]]
+
+
+class PersonRecord(BaseModel):
+    id: str
+    name: str
+    wikidata_id: str
+    review_status: str
+    source_record_ids: list[str]
+
+
+class OfficeTenure(BaseModel):
+    id: str
+    civilization_id: str
+    person_id: str
+    office: str
+    start_year: int
+    end_year: int
+    review_status: str
+    source_record_ids: list[str]
+    source_id: str
+    statement: str
+    qualifiers: dict[str, Any]
+
+
+class CapitalRole(BaseModel):
+    id: str
+    civilization_id: str
+    place_id: str
+    start_year: int
+    end_year: int
+    review_status: str
+    source_record_ids: list[str]
+    source_id: str
+    statement: str
+    qualifiers: dict[str, Any]
