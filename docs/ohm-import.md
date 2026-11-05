@@ -21,7 +21,7 @@ year-level API intervals preserve the source years and full date tags remain in
 review notes. Approximate or absent dates are omitted rather than inferred.
 
 The default checked civilization crosswalk is shared with Cliopatria, matching
-OHM Wikidata tags. An explicitly supplied Python crosswalk may use `relation/ID`
+OHM Wikidata tags. An explicit JSON crosswalk passed with `--crosswalk` may use `relation/ID`
 keys for reviewed relation-specific mappings. No name-based automatic match occurs.
 
 Member ways must form complete, unambiguous closed outer and inner rings.
