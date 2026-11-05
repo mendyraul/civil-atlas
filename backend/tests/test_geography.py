@@ -134,3 +134,76 @@ def test_road_import_projects_source_path_and_rejects_unknown_endpoints(
     )
     with pytest.raises(ValueError, match="unknown node"):
         import_bundle(changed, tmp_path / "archive", "test:roads")
+
+
+def test_itinere_static_release_projection_elevation_and_identifiers():
+    from pathlib import Path
+
+    snapshot = Path(__file__).parent / "fixtures/itinere/roads-v1.3.geojson"
+    mapping_data = mapping(
+        "CC-BY-4.0",
+        **{
+            "1874": {
+                "source_node_id": "fixture-start",
+                "target_node_id": "fixture-end",
+                "start_year": 50,
+                "end_year": 250,
+                "date_citation": "Source Lower_Date/Upper_Date estimates; uncertainties retained in source properties.",
+            }
+        },
+    )
+    normalized = ItinereAdapter(mapping_data).normalize(
+        snapshot.read_bytes(), [], "actual-v1.3", "2026-11-05T21:42:00Z"
+    )
+    assert len(normalized.datasets["routes"]) == 1
+    route = normalized.datasets["routes"][0]
+    assert route["id"] == "itinere-1874"
+    assert route["label"] == "Kaine-Mons Porphyrites"
+    assert route["path"][0] == pytest.approx(
+        [33.34423352666381, 27.21022157378383], abs=1e-10
+    )
+    source = next(
+        f
+        for f in json.loads(snapshot.read_bytes())["features"]
+        if f["properties"]["InLine_FID"] == 1874
+    )
+    assert len(route["path"]) == len(source["geometry"]["coordinates"][0])
+    assert route["source_properties"] == source["properties"]
+    assert source["geometry"]["coordinates"][0][0][2] == 396.32950574152346
+    record = next(
+        r
+        for r in normalized.datasets["source_records"]
+        if r["feature_id"] == route["id"]
+    )
+    assert "EPSG:3395" in record["notes"] and "elevation" in record["notes"]
+    assert "0" in {o["id"] for o in normalized.omissions}
+
+
+def test_awmc_actual_crs84_geometry_and_source_fields_are_preserved():
+    from pathlib import Path
+
+    snapshot = Path(__file__).parent / "fixtures/awmc/shoreline.geojson"
+    original = json.loads(snapshot.read_bytes())
+    normalized = AWMCAdapter(mapping()).normalize(
+        snapshot.read_bytes(), [], "actual-shoreline", "2026-11-05T21:42:00Z"
+    )
+    assert normalized.omissions == []
+    assert [r["id"] for r in normalized.datasets["physical_features"]] == [
+        "awmc-1",
+        "awmc-2",
+    ]
+    for feature, record in zip(
+        original["features"], normalized.datasets["physical_features"]
+    ):
+        assert record["geometry"] == feature["geometry"]
+        assert record["source_properties"] == feature["properties"]
+        assert record["start_year"] is record["end_year"] is None
+
+
+def test_projected_geometry_requires_explicit_supported_crs():
+    data = json.loads(raw())
+    data["crs"] = {"type": "name", "properties": {"name": "EPSG:99999"}}
+    with pytest.raises(ValueError, match="unsupported source CRS"):
+        AWMCAdapter(mapping()).normalize(
+            json.dumps(data).encode(), [], "v1", "2026-11-05T15:00:00Z"
+        )

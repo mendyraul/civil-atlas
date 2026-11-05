@@ -21,7 +21,8 @@ def snapshot(**tags):
                 "id": 1,
                 "tags": {
                     "name": "Test Roman boundary",
-                    "wikidata": "Q12544",
+                    "name:en": "Roman Empire",
+                    "wikidata": "Q2277",
                     "start_date": "0117-01-01",
                     "end_date": "0118-01-01",
                     "fixme:s": "needs source",
@@ -134,3 +135,57 @@ def test_import_review_and_replay(database, tmp_path, monkeypatch):
 
 
 from tests.test_pleiades import database  # noqa: E402,F401
+
+
+def test_actual_roman_relation_imports_original_boundary_with_separate_identity_crosswalk():
+    from pathlib import Path
+    import gzip
+    import hashlib
+
+    raw = (
+        Path(__file__).parent / "fixtures/ohm/roman-117.overpass.json.gz"
+    ).read_bytes()
+    assert (
+        hashlib.sha256(gzip.decompress(raw)).hexdigest()
+        == "f1e0015b084a1c91ffffe401f21158637ee5d2efe2eba6bf97788007e8310b30"
+    )
+    result = OHMAdapter(117).normalize(
+        raw, ["2849539"], "roman-actual", "2026-11-05T21:46:00Z"
+    )
+    assert result.omissions == []
+    layer = result.datasets["layers"][0]
+    assert layer["civilization_id"] == "roman-empire" and layer["is_primary"] is False
+    assert "needs source for boundary lines" in layer["source_note"]
+    assert layer["review_status"] == "needs_review"
+    assert layer["valid_from_year"] == 117
+
+
+def test_ohm_dates_preserve_month_precision_and_do_not_include_exclusive_january_end():
+    from app.ingestion.ohm import date_interval
+
+    assert date_interval("0117-02", "0118-01-01") == (117, 117)
+    assert date_interval("0000", "0001-01-01") == (-1, -1)
+    assert date_interval("-0001-03", "0000-07") == (-2, -1)
+    for value in ["0117-13", "0117-02-30", "0117-00-00"]:
+        with pytest.raises(ValueError):
+            date_interval(value, "0118")
+    value = snapshot()
+    value["elements"][0]["members"].insert(
+        0, {"type": "node", "role": "admin_centre", "ref": 123}
+    )
+    assert normalize(value).omissions == []
+
+
+def test_self_intersecting_boundary_is_an_omission():
+    value = snapshot()
+    value["elements"][0]["members"] = [
+        {
+            "type": "way",
+            "role": "outer",
+            "geometry": [
+                {"lon": x, "lat": y}
+                for x, y in [[0, 0], [4, 4], [0, 4], [4, 0], [0, 0]]
+            ],
+        }
+    ]
+    assert "topology" in normalize(value).omissions[0]["reason"]

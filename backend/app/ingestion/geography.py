@@ -2,54 +2,114 @@
 
 import json
 import math
+from functools import lru_cache
+
+from pyproj import Transformer
+from pyproj.exceptions import ProjError
 
 from app.ingestion.pleiades import NormalizedSnapshot
 from app.schemas import AtlasRoute, PhysicalFeature, Source, SourceRecord
 
 
+GEOMETRY_DEPTH = {
+    "LineString": 1,
+    "MultiLineString": 2,
+    "Polygon": 2,
+    "MultiPolygon": 3,
+}
+CRS_NAMES = {
+    "EPSG:4326": "OGC:CRS84",
+    "urn:ogc:def:crs:EPSG::4326": "OGC:CRS84",
+    "OGC:CRS84": "OGC:CRS84",
+    "urn:ogc:def:crs:OGC:1.3:CRS84": "OGC:CRS84",
+    "EPSG:3395": "EPSG:3395",
+    "urn:ogc:def:crs:EPSG::3395": "EPSG:3395",
+    "EPSG:3857": "EPSG:3857",
+    "urn:ogc:def:crs:EPSG::3857": "EPSG:3857",
+}
+
+
+def coordinate_tree(value, depth, convert):
+    if depth == 0:
+        if (
+            not isinstance(value, (list, tuple))
+            or len(value) not in (2, 3)
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in value)
+        ):
+            raise ValueError("coordinates require two or three finite numbers")
+        return convert(value)
+    if not isinstance(value, list) or not value:
+        raise ValueError("empty or malformed coordinate array")
+    return [coordinate_tree(item, depth - 1, convert) for item in value]
+
+
 def validate_geometry(value):
-    if not isinstance(value, dict) or value.get("type") not in {
-        "LineString",
-        "MultiLineString",
-        "Polygon",
-        "MultiPolygon",
-    }:
+    if not isinstance(value, dict) or value.get("type") not in GEOMETRY_DEPTH:
         raise ValueError("unsupported physical geometry")
-    kind, coordinates = value["type"], value.get("coordinates")
-    lines = (
-        coordinates
-        if kind in {"MultiLineString", "Polygon"}
-        else (
-            [coordinates]
-            if kind == "LineString"
-            else [ring for polygon in coordinates for ring in polygon]
-        )
+
+    def point(value):
+        if len(value) != 2 or not (-180 <= value[0] <= 180 and -90 <= value[1] <= 90):
+            raise ValueError("invalid longitude/latitude")
+        return value
+
+    coordinates = coordinate_tree(
+        value.get("coordinates"), GEOMETRY_DEPTH[value["type"]], point
     )
-    if not lines:
-        raise ValueError("empty geometry")
+    kind = value["type"]
+    if kind == "LineString":
+        lines = [coordinates]
+    elif kind == "MultiPolygon":
+        lines = [ring for polygon in coordinates for ring in polygon]
+    else:
+        lines = coordinates
     for line in lines:
         if len(line) < 2 or (
             kind in {"Polygon", "MultiPolygon"}
             and (len(line) < 4 or line[0] != line[-1])
         ):
             raise ValueError("incomplete line or ring")
-        for point in line:
-            if (
-                len(point) != 2
-                or any(
-                    type(v) not in (int, float) or not math.isfinite(v) for v in point
-                )
-                or not (-180 <= point[0] <= 180 and -90 <= point[1] <= 90)
-            ):
-                raise ValueError("invalid longitude/latitude")
     return value
 
 
+@lru_cache(maxsize=4)
+def coordinate_transformer(source_crs):
+    return Transformer.from_crs(source_crs, "OGC:CRS84", always_xy=True)
+
+
+def normalize_geometry(value, source_crs):
+    if not isinstance(value, dict) or value.get("type") not in GEOMETRY_DEPTH:
+        raise ValueError("unsupported physical geometry")
+    transformer = coordinate_transformer(source_crs)
+
+    def point(value):
+        # Preserve the original 3D/projected geometry in the exact raw archive;
+        # the atlas displays horizontal coordinates only, without simplification.
+        try:
+            x, y = transformer.transform(value[0], value[1], errcheck=True)
+        except ProjError as error:
+            raise ValueError(
+                "source coordinates cannot be transformed to longitude/latitude"
+            ) from error
+        return [x, y]
+
+    geometry = {
+        "type": value["type"],
+        "coordinates": coordinate_tree(
+            value.get("coordinates"), GEOMETRY_DEPTH[value["type"]], point
+        ),
+    }
+    return validate_geometry(geometry)
+
+
 class GeographyAdapter:
-    version = "1"
+    version = "2"
     source_type = "historical_gis"
+    default_id_field = "id"
+    default_name_field = "name"
 
     def __init__(self, mapping):
+        if not isinstance(mapping, dict):
+            raise ValueError("mapping must be a JSON object")
         self.mapping = mapping
         if (
             mapping.get("license") != self.license
@@ -65,10 +125,28 @@ class GeographyAdapter:
 
     def normalize(self, raw, ids, dataset_version, retrieved_at):
         data = json.loads(raw)
-        if data.get("type") != "FeatureCollection" or not isinstance(
-            data.get("features"), list
+        if (
+            not isinstance(data, dict)
+            or data.get("type") != "FeatureCollection"
+            or not isinstance(data.get("features"), list)
         ):
             raise ValueError("expected saved GeoJSON FeatureCollection")
+        crs = data.get("crs") or {}
+        if not isinstance(crs, dict) or not isinstance(crs.get("properties", {}), dict):
+            raise ValueError("snapshot CRS must declare a named coordinate system")
+        declared = crs.get("properties", {}).get("name")
+        configured = self.mapping.get("source_crs")
+        if (
+            declared
+            and configured
+            and CRS_NAMES.get(declared) != CRS_NAMES.get(configured)
+        ):
+            raise ValueError("mapping source_crs conflicts with the snapshot CRS")
+        source_crs = CRS_NAMES.get(declared or configured or "OGC:CRS84")
+        if source_crs is None:
+            raise ValueError(
+                "unsupported source CRS; expected CRS84, EPSG:4326, EPSG:3395 or EPSG:3857"
+            )
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate selected IDs")
         datasets = {"sources": [], "source_records": [], self.kind: []}
@@ -95,7 +173,10 @@ class GeographyAdapter:
         for feature in data["features"]:
             props = feature.get("properties") or {}
             external = str(
-                feature.get("id", props.get(self.mapping.get("id_field", "id"), ""))
+                feature.get(
+                    "id",
+                    props.get(self.mapping.get("id_field", self.default_id_field), ""),
+                )
             )
             if ids and external not in ids:
                 continue
@@ -109,7 +190,12 @@ class GeographyAdapter:
                 id=record_id,
                 feature_id=key,
                 feature_kind=self.kind,
-                feature_label=str(props.get("name", external)),
+                feature_label=str(
+                    props.get(
+                        self.mapping.get("name_field", self.default_name_field),
+                        external,
+                    )
+                ),
                 title=f"{self.label}: {external}",
                 citation=citation,
                 link=url,
@@ -121,8 +207,11 @@ class GeographyAdapter:
                 + json.dumps(props, sort_keys=True),
             ).model_dump(mode="json")
             datasets["source_records"].append(rec)
+            rec["notes"] += (
+                f" Normalized horizontal geometry from {source_crs} to OGC:CRS84; original coordinates and elevation remain in the raw archive."
+            )
             try:
-                shape = validate_geometry(feature.get("geometry"))
+                shape = normalize_geometry(feature.get("geometry"), source_crs)
                 start, end = mapping.get("start_year"), mapping.get("end_year")
                 if start is not None or end is not None:
                     if (
@@ -136,7 +225,12 @@ class GeographyAdapter:
                         )
                 common = dict(
                     id=key,
-                    label=str(props.get("name", external)),
+                    label=str(
+                        props.get(
+                            self.mapping.get("name_field", self.default_name_field),
+                            external,
+                        )
+                    ),
                     confidence="low",
                     review_status="needs_review",
                     source_record_ids=[record_id],
@@ -146,10 +240,22 @@ class GeographyAdapter:
                     date_citation=mapping.get("date_citation"),
                 )
                 if self.kind == "routes":
+                    if 9999 in (start, end):
+                        raise ValueError(
+                            "9999 is an unknown Itiner-e date sentinel, not a historical year"
+                        )
                     if start is None:
                         raise ValueError(
                             "no source-supported route dates; retained as a source record"
                         )
+                    if (
+                        shape["type"] == "MultiLineString"
+                        and len(shape["coordinates"]) == 1
+                    ):
+                        shape = {
+                            "type": "LineString",
+                            "coordinates": shape["coordinates"][0],
+                        }
                     if shape["type"] != "LineString":
                         raise ValueError(
                             "routes require a single continuous LineString"
@@ -193,6 +299,8 @@ class GeographyAdapter:
                         ),
                     ).model_dump(mode="json")
                 rec.update(valid_from_year=start, valid_to_year=end)
+                if mapping.get("date_citation"):
+                    rec["notes"] += " Date evidence: " + mapping["date_citation"]
                 datasets[self.kind].append(value)
             except (ValueError, TypeError, KeyError) as error:
                 omissions.append({"id": external, "reason": str(error)})
@@ -206,6 +314,8 @@ class GeographyAdapter:
 
 
 class ItinereAdapter(GeographyAdapter):
+    default_id_field = "InLine_FID"
+    default_name_field = "Name"
     namespace = "itinere"
     label = "Itiner-e Roman roads"
     license = "CC-BY-4.0"
@@ -213,6 +323,8 @@ class ItinereAdapter(GeographyAdapter):
 
 
 class AWMCAdapter(GeographyAdapter):
+    default_id_field = "OBJECTID"
+    default_name_field = "TITLE"
     namespace = "awmc"
     label = "Ancient World Mapping Center physical geography"
     license = "ODbL-1.0"

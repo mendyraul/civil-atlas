@@ -1,9 +1,14 @@
 """Saved Overpass boundary adapter. No network calls or automatic publication."""
 
 import json
+import gzip
 import re
+import calendar
+from pathlib import Path
 
-from app.ingestion.cliopatria import load_crosswalk
+from shapely.geometry import shape
+from shapely.validation import explain_validity
+
 from app.ingestion.pleiades import NormalizedSnapshot
 from app.schemas import (
     CivilizationLayer,
@@ -14,23 +19,59 @@ from app.schemas import (
 )
 
 
-def year(value):
-    if not isinstance(value, str) or not re.fullmatch(
-        r"-?\d{1,6}(?:-\d{2}-\d{2})?", value
-    ):
+DEFAULT_CROSSWALK = (
+    Path(__file__).resolve().parents[2] / "data/imports/crosswalks/ohm-world117.json"
+)
+
+
+def parsed_date(value):
+    match = (
+        re.fullmatch(r"(-?\d{1,6})(?:-(\d{2})(?:-(\d{2}))?)?", value)
+        if isinstance(value, str)
+        else None
+    )
+    if not match:
         raise ValueError("explicit start_date and end_date required")
-    return int(re.match(r"-?\d+", value)[0])
+    iso_year = int(match[1])
+    month = int(match[2]) if match[2] else None
+    day = int(match[3]) if match[3] else None
+    if month is not None and not 1 <= month <= 12:
+        raise ValueError("invalid source date month")
+    if day is not None and not 1 <= day <= calendar.monthrange(iso_year, month)[1]:
+        raise ValueError("invalid source date day")
+    return iso_year, month, day
+
+
+def historical_year(iso_year):
+    # OHM's proleptic Gregorian year 0000 is 1 BCE; atlas BCE years are negative.
+    return iso_year if iso_year > 0 else iso_year - 1
+
+
+def date_interval(start_value, end_value):
+    start = parsed_date(start_value)
+    end = parsed_date(end_value)
+    lower = (start[0], start[1] or 1, start[2] or 1)
+    upper = (
+        end[0],
+        end[1] or 12,
+        end[2] or calendar.monthrange(end[0], end[1] or 12)[1],
+    )
+    if lower > upper:
+        raise ValueError("reversed date interval")
+    end_year = end[0] - (1 if end[1:] == (1, 1) else 0)
+    return historical_year(start[0]), historical_year(end_year)
 
 
 def rings(members, role):
     segments = []
     for member in members:
-        if member.get("role", "outer") != role:
+        if (member.get("role") or "outer") != role:
             continue
         if member.get("type") != "way" or not member.get("geometry"):
             raise ValueError("incomplete or nested relation member")
         segments.append([[point["lon"], point["lat"]] for point in member["geometry"]])
-    result = []
+    result = [segment for segment in segments if segment[0] == segment[-1]]
+    segments = [segment for segment in segments if segment[0] != segment[-1]]
     while segments:
         ring = segments.pop(0)
         while ring[0] != ring[-1]:
@@ -63,7 +104,12 @@ def contains(ring, point):
 
 
 def geometry(members):
-    if any(m.get("role", "outer") not in {"outer", "inner"} for m in members):
+    members = [
+        m
+        for m in members
+        if not (m.get("type") == "node" and m.get("role") in {"admin_centre", "label"})
+    ]
+    if any((m.get("role") or "outer") not in {"outer", "inner"} for m in members):
         raise ValueError("unsupported relation member role")
     polygons = [[outer] for outer in rings(members, "outer")]
     if not polygons:
@@ -75,25 +121,39 @@ def geometry(members):
         if len(parents) != 1:
             raise ValueError("hole has no unique containing outer boundary")
         parents[0].append(hole)
-    return {"type": "MultiPolygon", "coordinates": polygons}
+    result = {"type": "MultiPolygon", "coordinates": polygons}
+    if not shape(result).is_valid:
+        raise ValueError(
+            "invalid boundary topology: " + explain_validity(shape(result))
+        )
+    return result
 
 
 class OHMAdapter:
     namespace = "ohm"
-    version = "1"
+    version = "2"
     label = "OpenHistoricalMap boundaries"
     license = "https://creativecommons.org/publicdomain/zero/1.0/"
     source_type = "historical_gis"
 
     def __init__(self, selected_year, crosswalk=None):
         self.year = selected_year
-        self.crosswalk = crosswalk if crosswalk is not None else load_crosswalk()
+        self.crosswalk = (
+            crosswalk
+            if crosswalk is not None
+            else json.loads(DEFAULT_CROSSWALK.read_text())
+        )
 
     def entity_ids_for(self, external_id):
         return [("layers", f"ohm-relation-{external_id}")]
 
     def normalize(self, raw, ids, dataset_version, retrieved_at):
-        data = json.loads(raw)
+        try:
+            data = json.loads(
+                gzip.decompress(raw) if raw.startswith(b"\x1f\x8b") else raw
+            )
+        except (ValueError, OSError, EOFError) as error:
+            raise ValueError("expected saved Overpass JSON or gzip snapshot") from error
         if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
             raise ValueError("expected saved Overpass JSON with elements")
         if len(ids) != len(set(ids)) or any(
@@ -141,7 +201,7 @@ class OHMAdapter:
                     raise ValueError(
                         "individual license override requires separate clearance"
                     )
-                start, end = year(tags.get("start_date")), year(tags.get("end_date"))
+                start, end = date_interval(tags.get("start_date"), tags.get("end_date"))
                 if start > end:
                     raise ValueError("reversed date interval")
                 if not start <= self.year <= end:
@@ -152,6 +212,19 @@ class OHMAdapter:
                 )
                 if not target:
                     raise ValueError("no checked civilization crosswalk")
+                if (
+                    target.get("expected_wikidata")
+                    and qid != target["expected_wikidata"]
+                ):
+                    raise ValueError(
+                        "relation Wikidata identity differs from the checked crosswalk"
+                    )
+                if (
+                    target.get("expected_name")
+                    and tags.get(target.get("name_tag", "name"))
+                    != target["expected_name"]
+                ):
+                    raise ValueError("relation name differs from the checked crosswalk")
                 shape = geometry(relation.get("members", []))
                 layer_id, record_id, claim_id = (
                     f"ohm-relation-{rid}",

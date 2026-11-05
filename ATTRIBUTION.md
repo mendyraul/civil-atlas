@@ -49,3 +49,7 @@ Present-day reference borders use the existing OpenFreeMap/OpenMapTiles basemap
 - Ancient World Mapping Center (AWMC), current GeoJSON physical geography;
   ODbL 1.0. https://github.com/AWMC/geodata. Includes AWMC modifications to
   OpenStreetMap data; retain OpenStreetMap attribution.
+
+- OpenHistoricalMap contributors, saved Roman boundary relation 2849539; CC0.
+  https://www.openhistoricalmap.org/relation/2849539. Boundary-line source
+  warnings remain attached; no historical review is implied by the fixture.
