@@ -32,7 +32,7 @@ def test_selects_rows_active_in_year_as_review_only_boundary_variants():
     manifest = prepare().manifest
     datasets = manifest["datasets"]
     layers = {layer["civilization_id"]: layer for layer in datasets["layers"]}
-    assert set(layers) == {"aksumite-kingdom", "kingdom-of-kush", "satavahana-dynasty"}
+    assert set(layers) == {"aksumite-kingdom", "kingdom-of-kush", "satavahana-dynasty", "funan"}
     satavahana = layers["satavahana-dynasty"]
     assert (satavahana["valid_from_year"], satavahana["valid_to_year"]) == (106, 126)
     assert satavahana["id"] == "cliopatria-satavahana-dynasty-106ce-126ce"
@@ -65,7 +65,7 @@ def test_records_link_layer_claim_evidence_and_cc_by_source():
 def test_omissions_report_inactive_and_unmapped_polities():
     omissions = {o["id"]: o["reason"] for o in prepare().manifest["omissions"]}
     assert omissions["Q12544"] == "no Cliopatria row active in 117"
-    assert "Funan: no Civil Atlas civilization mapped" in omissions["Q867782"]
+    assert "no Cliopatria row active in 117" in omissions["Q28370"]
     # Explicit selections do not list every unmapped polity.
     assert prepare(["Q5257"]).manifest["omissions"] == []
     assert prepare(["Q5257"], year=100).manifest["datasets"]["layers"][0]["valid_to_year"] == 105
@@ -97,7 +97,7 @@ def test_release_zip_is_accepted(tmp_path):
 @pytest.mark.parametrize("ids,data,match", [
     (["Q1", "Q1"], None, "must not repeat"),
     (["423025"], None, "Wikidata IDs"),
-    (["Q867782"], None, "no Civil Atlas civilization mapped"),
+    (["Q999999999"], None, "no Civil Atlas civilization mapped"),
     ([], b"broken", "Cliopatria GeoJSON"),
     ([], b'{"type":"FeatureCollection","features":[]}', "release label"),
     ([], b"PK\x03\x04broken", "valid zip"),
@@ -160,7 +160,7 @@ def test_cli_dry_run(tmp_path):
     result = subprocess.run(command, cwd=Path(__file__).parents[1], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     summary = json.loads(result.stdout)
-    assert summary["status"] == "validated" and summary["counts"]["layers"] == 3
+    assert summary["status"] == "validated" and summary["counts"]["layers"] == 4
     assert not (tmp_path / "archive").exists()
     missing_year = [arg for arg in command if arg not in ("--year", "117")]
     result = subprocess.run(missing_year, cwd=Path(__file__).parents[1], capture_output=True, text=True)

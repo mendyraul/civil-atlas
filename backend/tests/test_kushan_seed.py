@@ -24,7 +24,7 @@ def test_kushan_seed_has_cited_claim_and_matching_demo_identity():
     assert claim.source_id and claim.citation_locator
     assert (claim.valid_from_year, claim.valid_to_year) == (117, 126)
     assert claim.review_status == "needs_review"
-    assert import_fixture(dry_run=True)["dataset_version"] == "1.1.0"
+    assert import_fixture(dry_run=True)["dataset_version"] == "1.2.0"
 
 
 def test_kushan_crosswalk_preserves_the_bundled_source_geometry():

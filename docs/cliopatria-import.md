@@ -26,8 +26,8 @@ never fetches or publishes data. Everything lands as `needs_review`.
   ([doi:10.1038/s41597-025-04516-9](https://doi.org/10.1038/s41597-025-04516-9)).
 - Geometry is stored exactly as published, with no simplification. At 117 CE the
   largest row (Roman Empire) has about 1,500 vertices.
-- Active polities without a crosswalk entry are listed as omissions. At 117 CE
-  there are 29 of them, such as the Kushan Empire, Xianbei, Funan and Goguryeo.
+- Active polities without a crosswalk entry are listed as omissions. The version 1.2.0 inventory accounts for all 28 omissions remaining after Kushan.
+  Twenty-one source-reported polities are added privately; seven remain unresolved.
   Adding them means adding civilizations first.
 
 World117 seed version 1.1.0 adds Kushan (Q25979), its source-reading group,
@@ -76,3 +76,14 @@ Cliopatria is CC BY 4.0, which the importer's license gate
 (`backend/app/ingestion/licenses.py`) allows. Keep the credit line in
 [`ATTRIBUTION.md`](../ATTRIBUTION.md) and show it wherever these borders are
 displayed. See [`licensing-register.md`](licensing-register.md).
+
+## 1.2.0 inventory
+
+`backend/data/imports/crosswalks/cliopatria-117-inventory.json` records every
+omission, source interval and resolution. The archive SHA-256 is retained.
+Twenty-one additions have source-reported existence claims and unchanged source
+geometry; their dates describe only the selected source interval, not an independently
+verified lifespan. No capital is asserted. Seven region, city, people or mismatched
+identities remain unmapped pending reconciliation. Issue #57 remains open for those
+cases and editorial review. The expanded fixture preserves the selected original
+features from that exact archive; retain Cliopatria attribution.

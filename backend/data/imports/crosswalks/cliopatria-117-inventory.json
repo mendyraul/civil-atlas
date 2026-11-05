@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "year": 117,
+  "release": "cliopatria_polities_only_v021",
+  "archive_sha256": "e10a4e429fca708788ff9e7572a95fce801fae55852d217cffabc1c59cd4eed4",
+  "source": "https://github.com/Seshat-Global-History-Databank/cliopatria",
+  "omissions": [
+    {
+      "name": "Hadhramaut",
+      "wikidata": "Q1517159",
+      "from_year": -350,
+      "to_year": 183,
+      "status": "unresolved",
+      "reason": "QID identifies a geographic region; ancient kingdom identity needs reconciliation."
+    },
+    {
+      "name": "Early Cheras",
+      "wikidata": "Q877155",
+      "from_year": -291,
+      "to_year": 298,
+      "status": "added_pending_review",
+      "civilization_id": "early-cheras",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Early Pandyas",
+      "wikidata": "Q3532152",
+      "from_year": -291,
+      "to_year": 298,
+      "status": "added_pending_review",
+      "civilization_id": "early-pandyas",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Early Cholas",
+      "wikidata": "Q3532146",
+      "from_year": -291,
+      "to_year": 298,
+      "status": "added_pending_review",
+      "civilization_id": "early-cholas",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Byeonhan",
+      "wikidata": "Q1378584",
+      "from_year": -91,
+      "to_year": 533,
+      "status": "added_pending_review",
+      "civilization_id": "byeonhan",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Jinhan",
+      "wikidata": "Q701273",
+      "from_year": -91,
+      "to_year": 372,
+      "status": "added_pending_review",
+      "civilization_id": "jinhan",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Mahan",
+      "wikidata": "Q421372",
+      "from_year": -91,
+      "to_year": 337,
+      "status": "added_pending_review",
+      "civilization_id": "mahan",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Zapotec Civilization",
+      "wikidata": "Q844750",
+      "from_year": -91,
+      "to_year": 206,
+      "status": "added_pending_review",
+      "civilization_id": "zapotec-civilization",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Dongye",
+      "wikidata": "Q105946539",
+      "from_year": -36,
+      "to_year": 312,
+      "status": "unresolved",
+      "reason": "Dongye QID differs from historical state Q713397; source correction required."
+    },
+    {
+      "name": "Dong-okjeo",
+      "wikidata": "Q713393",
+      "from_year": 43,
+      "to_year": 126,
+      "status": "unresolved",
+      "reason": "Dong-okjeo source name versus broader Okjeo identity requires reconciliation."
+    },
+    {
+      "name": "Goths",
+      "wikidata": "Q42193",
+      "from_year": 43,
+      "to_year": 153,
+      "status": "unresolved",
+      "reason": "Goths are a people; territorial polity interpretation requires review."
+    },
+    {
+      "name": "Funan",
+      "wikidata": "Q867782",
+      "from_year": 51,
+      "to_year": 237,
+      "status": "added_pending_review",
+      "civilization_id": "funan",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Goguryeo",
+      "wikidata": "Q28370",
+      "from_year": 60,
+      "to_year": 153,
+      "status": "added_pending_review",
+      "civilization_id": "goguryeo",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Caucasian Iberia",
+      "wikidata": "Q19083",
+      "from_year": 68,
+      "to_year": 259,
+      "status": "added_pending_review",
+      "civilization_id": "caucasian-iberia",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Caucasian Albania",
+      "wikidata": "Q177076",
+      "from_year": 68,
+      "to_year": 259,
+      "status": "added_pending_review",
+      "civilization_id": "caucasian-albania",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Lazica",
+      "wikidata": "Q136884",
+      "from_year": 68,
+      "to_year": 259,
+      "status": "added_pending_review",
+      "civilization_id": "lazica",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Cimmerian Bosporus",
+      "wikidata": "Q321371",
+      "from_year": 78,
+      "to_year": 370,
+      "status": "added_pending_review",
+      "civilization_id": "cimmerian-bosporus",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Anurādhapura",
+      "wikidata": "Q5724",
+      "from_year": 78,
+      "to_year": 438,
+      "status": "unresolved",
+      "reason": "QID identifies Anuradhapura city rather than its kingdom."
+    },
+    {
+      "name": "Pyu City-States",
+      "wikidata": "Q1627675",
+      "from_year": 84,
+      "to_year": 849,
+      "status": "added_pending_review",
+      "civilization_id": "pyu-city-states",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Indo-Scythians",
+      "wikidata": "Q240123",
+      "from_year": 91,
+      "to_year": 269,
+      "status": "added_pending_review",
+      "civilization_id": "indo-scythians",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Western Satraps",
+      "wikidata": "Q2086608",
+      "from_year": 106,
+      "to_year": 126,
+      "status": "added_pending_review",
+      "civilization_id": "western-satraps",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Huns",
+      "wikidata": "Q45813",
+      "from_year": 106,
+      "to_year": 370,
+      "status": "unresolved",
+      "reason": "Huns at 117 CE require chronology and collective-identity review."
+    },
+    {
+      "name": "Wusun",
+      "wikidata": "Q854062",
+      "from_year": 106,
+      "to_year": 153,
+      "status": "added_pending_review",
+      "civilization_id": "wusun",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Himyarite Kingdom",
+      "wikidata": "Q289577",
+      "from_year": 106,
+      "to_year": 153,
+      "status": "added_pending_review",
+      "civilization_id": "himyarite-kingdom",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Xiongnu",
+      "wikidata": "Q188836",
+      "from_year": 106,
+      "to_year": 126,
+      "status": "added_pending_review",
+      "civilization_id": "xiongnu",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Teotihuacan",
+      "wikidata": "Q172613",
+      "from_year": 106,
+      "to_year": 655,
+      "status": "unresolved",
+      "reason": "City versus territorial polity identity requires review."
+    },
+    {
+      "name": "Xianbei",
+      "wikidata": "Q861054",
+      "from_year": 117,
+      "to_year": 153,
+      "status": "added_pending_review",
+      "civilization_id": "xianbei",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    },
+    {
+      "name": "Protectorate of the Western Regions",
+      "wikidata": "Q911440",
+      "from_year": 117,
+      "to_year": 183,
+      "status": "added_pending_review",
+      "civilization_id": "protectorate-of-the-western-regions",
+      "reason": "Name/QID pair retained from the source; existence claim is explicitly source-reported."
+    }
+  ]
+}

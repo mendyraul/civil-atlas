@@ -8,6 +8,9 @@ transaction can change repository data.
 
 import argparse
 from typing import Any
+from hashlib import sha256
+
+from sqlalchemy import text
 
 from pydantic import BaseModel
 
@@ -99,6 +102,10 @@ def import_fixture(
     )
     with session_scope() as session:
         repository = AtlasRepository(session)
+        session.execute(text("SELECT pg_advisory_xact_lock(hashtext('seed:world117'))"))
+        receipt_id = sha256(f"{catalog.MANIFEST_SHA256}:{knowledge.MANIFEST_SHA256}:{publish}".encode()).hexdigest()
+        if repository.get("seed_receipts", receipt_id, published_only=False):
+            return {**counts, "duplicate": sum(len(records) for _, records, _ in datasets), "status": "duplicate"}
         for kind, records, schema in datasets:
             seen: set[str] = set()
             for raw in records:
@@ -157,6 +164,7 @@ def import_fixture(
                     preserve_published=not publish,
                 )
                 counts[result] += 1
+        repository.upsert("seed_receipts", receipt_id, {"id": receipt_id, "manifest_sha256": catalog.MANIFEST_SHA256}, audit_actor)
     return counts
 
 
