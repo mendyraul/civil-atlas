@@ -1,0 +1,53 @@
+name: Reviewed data release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Dataset version (YYYY.MM or YYYY.MM.PATCH)'
+        required: true
+        type: string
+      candidate_url:
+        description: 'HTTPS URL of an exported reviewed-data candidate'
+        required: true
+        type: string
+      sha256:
+        description: 'SHA-256 of the exported candidate ZIP'
+        required: true
+        type: string
+      publish:
+        description: 'Publish the validated candidate to GitHub Releases'
+        default: false
+        type: boolean
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    environment: data-release
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      CANDIDATE_URL: ${{ inputs.candidate_url }}
+      CANDIDATE_SHA256: ${{ inputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.txt
+      - name: Validate exported candidate without database access
+        working-directory: backend
+        run: |
+          case "$CANDIDATE_URL" in https://*) ;; *) echo "candidate_url must use HTTPS"; exit 2 ;; esac
+          python -m app.data_release validate "$CANDIDATE_URL" \
+            --version "$RELEASE_VERSION" --sha256 "$CANDIDATE_SHA256" \
+            --output "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: civil-atlas-${{ inputs.version }}
+          path: ${{ runner.temp }}/civil-atlas-${{ inputs.version }}.zip
+      - name: Publish release
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "data-$RELEASE_VERSION" "$RUNNER_TEMP/civil-atlas-$RELEASE_VERSION.zip" --title "Reviewed data $RELEASE_VERSION" --notes 'Reviewed Civil Atlas dataset. See bundled attribution and ODbL notice.' --target "$GITHUB_SHA"

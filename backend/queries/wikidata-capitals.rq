@@ -1,0 +1,12 @@
+# Dated P36 assertions only; undated capitals are not assigned invented bounds.
+SELECT ?kind ?civilization ?value ?valueLabel ?statement
+       ?start ?end ?startPrecision ?endPrecision ?startCalendar ?endCalendar WHERE {
+  VALUES ?civilization { wd:Q2277 }
+  ?civilization p:P36 ?statement .
+  ?statement ps:P36 ?value ; pqv:P580 ?startNode ; pqv:P582 ?endNode .
+  FILTER NOT EXISTS { ?statement wikibase:rank wikibase:DeprecatedRank }
+  ?startNode wikibase:timeValue ?start ; wikibase:timePrecision ?startPrecision ; wikibase:timeCalendarModel ?startCalendar .
+  ?endNode wikibase:timeValue ?end ; wikibase:timePrecision ?endPrecision ; wikibase:timeCalendarModel ?endCalendar .
+  BIND("capital" AS ?kind)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+}

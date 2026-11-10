@@ -191,6 +191,16 @@ export function DetailPanel({ feature, isFilteredOut = false, world }: DetailPan
 
       <p className="mt-5 text-sm leading-7 text-slate-200">{description}</p>
 
+      {isCivilization(feature) && world.enrichment?.[feature.id] && <section aria-label="Dated civilization context">
+        <h3>Leaders and capitals in {formatYear(world.year)}</h3>
+        {(['leaders', 'capitals'] as const).map((kind) => <div key={kind}>
+          <h4>{kind === 'leaders' ? 'Leaders' : 'Capitals'}</h4>
+          {world.enrichment![feature.id][kind].length === 0 ? <p>No reviewed records for this year.</p> :
+            <ul>{world.enrichment![feature.id][kind].map((record) => <li key={record.id}>
+              <a href={record.citation} target="_blank" rel="noreferrer">{record.label}</a> ({formatYear(record.startYear)}–{formatYear(record.endYear)})
+            </li>)}</ul>}
+        </div>)}
+      </section>}
       {isCivilization(feature) ? (
         <div className="mt-5 rounded-[22px] border border-amber-300/20 bg-amber-400/10 px-4 py-4 text-sm leading-7 text-amber-100">
           {feature.extentNote}

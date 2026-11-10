@@ -50,7 +50,7 @@ The importer enforces this with `backend/app/ingestion/licenses.py`.
 | Cliopatria (Seshat) | World polity borders, 3400 BCE–2024 CE | CC BY 4.0 (verified, `LICENSE.md`) | attribution | Credit Cliopatria/Seshat and cite Bennett et al. 2025. Imported via `cliopatria.py`. |
 | OpenHistoricalMap | Time-aware historical boundaries & features | CC0 1.0 (verified, Overpass output; default since Aug 2022) | approved | No obligation; credit appreciated. A few features carry their own `license=*` tag; skip those. |
 | Pleiades | Greco-Roman / ancient-world places | CC BY 3.0 | attribution | Cite Pleiades + contributors. |
-| Itiner-e | Roman road network | CC BY 4.0 (reported, project About page) | attribution | Use the Zenodo static release for reproducible imports. |
+| Itiner-e | Roman road network | CC BY 4.0 (verified, project About page; confirm each release) | attribution | Use the Zenodo static release for reproducible imports. |
 | AWMC geodata | Roman provinces, roads, aqueducts, ancient coastlines/rivers | ODbL 1.0 (verified, README) | share-alike | Credit AWMC. Older AWMC releases were CC BY-NC, so use only the GitHub GeoJSON. |
 | Wikidata | Entity metadata, coordinates, dates, IDs (glue) | CC0 1.0 | approved | No obligation; still record provenance internally. |
 | Met Museum Kushan essay | Editorial capital/context reference | No content reuse grant established | reference-only | Bibliographic metadata and an editorial reference only; no essay text or images imported. Draft dynasty dates and capital scope need review before publication. |
