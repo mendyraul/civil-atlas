@@ -97,3 +97,29 @@ crosswalk, and assign review. Publication requires the normal editorial decision
 The inventory currently remains 21 private additions and seven unresolved rows.
 Issue #57 remains open. None of this establishes parity with the public preview
 outside 117 CE, or supplies a reviewed release for #61.
+
+## Software-review disposition — November 10, 2026
+
+Software delivery and historical approval are separate acceptance steps. The
+import/release implementation may merge after its software checks pass without
+activating any of the identity proposals above. No new historical approval is
+recorded by this checkpoint.
+
+| Candidate | Treatment in this delivery | Remaining review |
+| --- | --- | --- |
+| Hadhramaut | Keep the kingdom correction as an inactive proposal | Approve the source-local match, chronology and territorial claim separately |
+| Dongye | Keep the disambiguation correction as an inactive proposal | Approve the name-checked historical-state match and boundary evidence |
+| Dong-okjeo | Preserve the narrower source identity; no broader exact alias | Review geographic scope and political status throughout the source interval |
+| Goths | Leave the row unresolved and unpublished | Decide entity type and whether a territorial polity claim is supported |
+| Anuradhapura | Keep the kingdom correction as an inactive proposal | Review city/kingdom separation, chronology and territorial extent |
+| Huns | Keep excluded from the 117 polity seed | Resolve chronology and identity from cited evidence without substituting Xiongnu |
+| Teotihuacan | Leave the row unresolved and unpublished | Decide city versus polity scope; review the polygon independently |
+
+The existing revision-pinned citations and hashes remain the evidence dossier;
+this checkpoint neither refreshes those upstream sources nor changes source
+bytes, geometry, canonical IDs, crosswalks or publication flags. Before any
+future approval, inspect the cited source and record the actual reviewer,
+rationale and evidence revision in the editorial workflow. Keep #57 and #61
+open; software fixtures and a synthetic release roundtrip do not constitute a
+reviewed historical dataset release. Deployment #55 and object storage #62
+remain separate work.
